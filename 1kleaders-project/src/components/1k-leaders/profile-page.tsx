@@ -1,0 +1,111 @@
+'use client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
+import { Edit, Mail, Calendar, Star, Briefcase, MapPin, Link2 } from 'lucide-react';
+import type { Page } from './types';
+
+interface Props { navigate: (page: Page) => void; }
+
+export default function ProfilePage({ navigate }: Props) {
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#222]">My Profile</h1>
+          <p className="text-[#7e7e7e]">View and manage your profile information</p>
+        </div>
+        <Button className="bg-[#e33b5f] hover:bg-[#c02d4f]" onClick={() => navigate('settings')}><Edit className="w-4 h-4 mr-2" /> Edit Profile</Button>
+      </div>
+
+      {/* Profile Header */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            <Avatar className="w-20 h-20"><AvatarFallback className="bg-[#e33b5f]/10 text-[#c02d4f] text-2xl font-bold">AR</AvatarFallback></Avatar>
+            <div className="text-center sm:text-left">
+              <h2 className="text-xl font-bold text-[#222]">Ahmed Al-Rashid</h2>
+              <div className="flex items-center gap-2 mt-1 justify-center sm:justify-start">
+                <Badge className="bg-[#e33b5f]/10 text-[#c02d4f]">Partner</Badge>
+                <span className="flex items-center gap-1 text-[#f07969] text-sm"><Star className="w-4 h-4" /> Gold Level</span>
+              </div>
+              <p className="text-sm text-[#7e7e7e] mt-2">Venture partner with 15+ years of experience in technology investments and startup mentoring. Passionate about building transformative ventures in the MENA region.</p>
+              <div className="flex items-center gap-4 mt-3 justify-center sm:justify-start text-xs text-[#7e7e7e]">
+                <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> Riyadh, Saudi Arabia</span>
+                <span className="flex items-center gap-1"><Briefcase className="w-3 h-3" /> Technology Sector</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* About & Skills */}
+        <Card className="lg:col-span-2">
+          <CardHeader><CardTitle className="text-base">About & Expertise</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <p className="text-sm font-medium text-[#444] mb-2">Skills & Expertise</p>
+              <div className="flex flex-wrap gap-2">
+                {['Investment Strategy', 'Venture Capital', 'Startup Mentoring', 'Board Advisory', 'Technology', 'Leadership', 'Negotiation', 'Portfolio Management'].map(s => (
+                  <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>
+                ))}
+              </div>
+            </div>
+            <Separator />
+            <div>
+              <p className="text-sm font-medium text-[#444] mb-2">Investment Interests</p>
+              <div className="flex flex-wrap gap-2">
+                {['FinTech', 'AI/ML', 'CleanTech', 'HealthTech'].map(s => (
+                  <Badge key={s} className="bg-[#e33b5f]/5 text-[#c02d4f] text-xs">{s}</Badge>
+                ))}
+              </div>
+            </div>
+            <Separator />
+            <div>
+              <p className="text-sm font-medium text-[#444] mb-2">Connected Accounts</p>
+              <div className="space-y-2">
+                {[
+                  { name: 'LinkedIn', status: 'Connected' },
+                  { name: 'Google', status: 'Connected' },
+                ].map(a => (
+                  <div key={a.name} className="flex items-center justify-between p-2 bg-[#fbfbfb] rounded-lg">
+                    <span className="text-sm flex items-center gap-2"><Link2 className="w-4 h-4 text-[#9e9e9e]" />{a.name}</span>
+                    <Badge className="bg-[#e33b5f]/10 text-[#c02d4f] text-xs">{a.status}</Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Activity Feed */}
+        <Card>
+          <CardHeader><CardTitle className="text-base">Recent Activity</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {[
+                { text: 'Invested in GreenTech Series A', time: '2 hours ago' },
+                { text: 'Updated profile information', time: '1 day ago' },
+                { text: 'Signed partner agreement', time: '3 days ago' },
+                { text: 'Connected with Omar Hassan', time: '5 days ago' },
+                { text: 'Submitted idea evaluation', time: '1 week ago' },
+                { text: 'Attended Demo Day event', time: '2 weeks ago' },
+              ].map((a, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <div className="w-2 h-2 rounded-full bg-[#e33b5f]/50 mt-2 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-[#444]">{a.text}</p>
+                    <p className="text-xs text-[#9e9e9e]">{a.time}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
