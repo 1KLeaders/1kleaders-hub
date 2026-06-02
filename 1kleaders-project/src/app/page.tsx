@@ -4,7 +4,8 @@ import type { Page, DashboardRole } from '@/components/1k-leaders/types';
 import LandingPage from '@/components/1k-leaders/landing-page';
 import WaitlistForm from '@/components/1k-leaders/waitlist-form';
 import LoginPage from '@/components/1k-leaders/login-page';
-import OnboardingKYC from '@/components/1k-leaders/onboarding-kyc';import DashboardLayout from '@/components/1k-leaders/dashboard-layout';
+import OnboardingKYC from '@/components/1k-leaders/onboarding-kyc';
+import DashboardLayout from '@/components/1k-leaders/dashboard-layout';
 import DashboardHome from '@/components/1k-leaders/dashboard-home';
 import IdeaSubmission from '@/components/1k-leaders/idea-submission';
 import IdeaRanking from '@/components/1k-leaders/idea-ranking';
@@ -20,6 +21,7 @@ import AIAssistant from '@/components/1k-leaders/ai-assistant';
 import VVPAssignments from '@/components/1k-leaders/vvp-assignments';
 import NewsletterTracking from '@/components/1k-leaders/newsletter-tracking';
 import VEPDashboard from '@/components/1k-leaders/vep-dashboard';
+import MABDashboard from '@/components/1k-leaders/mab-dashboard';
 import RecommendationsPage from '@/components/1k-leaders/recommendations-page';
 
 export default function Home() {
@@ -48,19 +50,19 @@ export default function Home() {
       case 'agreements':
         return <AgreementsPage />;
       case 'documents':
-        return <DocumentsPage />;
+        return <DocumentsPage role={dashboardRole} />;
       case 'partners':
-        return <PartnersPage />;
+        return <PartnersPage navigate={navigate} />;
       case 'settings':
         return <SettingsPage />;
       case 'notifications':
         return <NotificationsPage navigate={navigate} />;
       case 'profile':
-        return <ProfilePage navigate={navigate} />;
+        return <ProfilePage navigate={navigate} role={dashboardRole} />;
       case 'calendar':
         return <CalendarPage role={dashboardRole} />;
       case 'discussion-rooms':
-        return <DiscussionRooms role={dashboardRole} />;
+        return <DiscussionRooms role={dashboardRole} navigate={navigate} />;
       case 'ai-assistant':
         return <AIAssistant />;
       case 'vvp-assignments':
@@ -69,6 +71,8 @@ export default function Home() {
         return <NewsletterTracking />;
       case 'vep-dashboard':
         return <VEPDashboard />;
+      case 'mab-dashboard':
+        return <MABDashboard />;
       case 'recommendations':
         return <RecommendationsPage />;
       case 'kyc-onboarding':
@@ -82,7 +86,7 @@ export default function Home() {
     'dashboard', 'idea-submission', 'idea-ranking', 'agreements', 'documents',
     'partners', 'settings', 'notifications', 'profile', 'calendar',
     'discussion-rooms', 'ai-assistant', 'vvp-assignments', 'newsletter-tracking',
-    'vep-dashboard', 'recommendations', 'kyc-onboarding',
+    'vep-dashboard', 'mab-dashboard', 'recommendations', 'kyc-onboarding',
   ];
 
   if (dashboardPages.includes(currentPage)) {
