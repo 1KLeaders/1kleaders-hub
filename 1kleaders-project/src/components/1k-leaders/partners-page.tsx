@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Search, MessageSquare, Calendar, Mail, TrendingUp, Star } from 'lucide-react';
 
-type Props = Record<string, never>;
+import type { Page } from './types';
+interface Props { navigate?: (page: Page) => void; }
 
 const partners = [
   { id: 1, name: 'Ahmed Al-Rashid', role: 'Partner', level: 'Gold', status: 'active', contribution: '$500K', initials: 'AR' },

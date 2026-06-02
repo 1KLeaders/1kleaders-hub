@@ -8,17 +8,17 @@ interface Props { navigate: (page: Page) => void; }
 export default function LandingPage({ navigate }: Props) {
   return (
     <div className="min-h-screen flex flex-col" style={{ fontFamily: 'var(--font-manrope), Manrope, sans-serif' }}>
-      {/* Navbar */}
+      {/* Navbar — white text over dark hero */}
       <nav className="fixed top-0 left-0 w-full z-50 transition-all duration-500" id="main-nav">
         <div className="px-[5vw] py-[7vh] flex items-center justify-between transition-all duration-500" id="nav-inner">
           <button className="h-[4.2rem] bg-transparent border-none cursor-pointer" onClick={() => navigate('landing')}>
-            <img src="/logo-dark.png" alt="1KLeaders" className="h-full transition-all duration-300 object-contain" />
+            <img src="/logo-light-mid.png" alt="1KLeaders" className="h-full transition-all duration-300 object-contain" />
           </button>
           <div className="hidden md:flex items-center gap-10">
-            <a href="#about" className="text-[#222] font-medium no-underline relative hover:after:content-[''] hover:after:absolute hover:after:bottom-[-1px] hover:after:left-0 hover:after:w-full hover:after:h-[2px] hover:after:bg-[#555353] transition-colors" style={{ fontFamily: 'var(--font-rethink-sans), Rethink Sans, sans-serif' }}>What We Do</a>
-            <a href="#offer" className="text-[#222] font-medium no-underline relative hover:after:content-[''] hover:after:absolute hover:after:bottom-[-1px] hover:after:left-0 hover:after:w-full hover:after:h-[2px] hover:after:bg-[#555353] transition-colors" style={{ fontFamily: 'var(--font-rethink-sans), Rethink Sans, sans-serif' }}>What We Offer</a>
-            <a href="#cta" className="text-[#222] font-medium no-underline relative hover:after:content-[''] hover:after:absolute hover:after:bottom-[-1px] hover:after:left-0 hover:after:w-full hover:after:h-[2px] hover:after:bg-[#555353] transition-colors" style={{ fontFamily: 'var(--font-rethink-sans), Rethink Sans, sans-serif' }}>Join Us</a>
-            <button onClick={() => navigate('login')} className="text-[#222] font-medium bg-transparent border-none cursor-pointer hover:text-[#e33b5f] transition-colors" style={{ fontFamily: 'var(--font-rethink-sans), Rethink Sans, sans-serif' }}>
+            <a href="#about" className="text-white font-medium no-underline relative hover:opacity-80 transition-opacity" style={{ fontFamily: 'var(--font-rethink-sans), Rethink Sans, sans-serif' }}>What We Do</a>
+            <a href="#offer" className="text-white font-medium no-underline relative hover:opacity-80 transition-opacity" style={{ fontFamily: 'var(--font-rethink-sans), Rethink Sans, sans-serif' }}>What We Offer</a>
+            <a href="#cta" className="text-white font-medium no-underline relative hover:opacity-80 transition-opacity" style={{ fontFamily: 'var(--font-rethink-sans), Rethink Sans, sans-serif' }}>Join Us</a>
+            <button onClick={() => navigate('login')} className="text-white font-medium bg-transparent border-none cursor-pointer hover:opacity-80 transition-opacity" style={{ fontFamily: 'var(--font-rethink-sans), Rethink Sans, sans-serif' }}>
               Sign In
             </button>
             <button onClick={() => navigate('waitlist')} className="bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] text-white px-[1.7rem] py-[0.8rem] rounded-[0.3rem] font-bold border-none cursor-pointer inline-flex items-center gap-2 hover:opacity-90 transition-opacity" style={{ fontFamily: 'var(--font-rethink-sans), Rethink Sans, sans-serif' }}>
@@ -26,7 +26,7 @@ export default function LandingPage({ navigate }: Props) {
             </button>
           </div>
           <div className="md:hidden flex items-center gap-3">
-            <button className="text-[#222] font-medium bg-transparent border-none cursor-pointer text-sm" onClick={() => navigate('login')}>Sign In</button>
+            <button className="text-white font-medium bg-transparent border-none cursor-pointer text-sm" onClick={() => navigate('login')}>Sign In</button>
             <button className="bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] text-white px-4 py-2 rounded font-bold border-none cursor-pointer" onClick={() => navigate('waitlist')}>Join</button>
           </div>
         </div>

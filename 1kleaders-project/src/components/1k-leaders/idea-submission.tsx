@@ -25,7 +25,8 @@ function isHackathonOpen(): boolean {
 }
 
 function isIdeaOwner(role: DashboardRole): boolean {
-  return role === 'idea-owner';
+  // Idea submission open to: idea-owners, co-founders, partners, shareholders, admins
+  return ['idea-owner', 'partner', 'shareholder', 'admin', 'super-admin', 'user'].includes(role);
 }
 
 // Countdown component

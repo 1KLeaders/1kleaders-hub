@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Upload, Search, FileText, Download, Eye, CheckCircle, Clock, Shield, FolderOpen } from 'lucide-react';
 
-type Props = Record<string, never>;
+import type { DashboardRole } from './types';
+interface Props { role?: DashboardRole; }
 
 const categories = ['All', 'KYC', 'Agreements', 'Company', 'Idea', 'Financial', 'Partner'];
 

@@ -21,6 +21,7 @@ export type Page =
   | 'vvp-assignments'
   | 'newsletter-tracking'
   | 'vep-dashboard'
+  | 'mab-dashboard'
   | 'recommendations';
 
 export type DashboardRole =
@@ -48,3 +49,13 @@ export const roleBadgeConfig: Record<RoleBadge, { label: string; color: string; 
   user: { label: 'User', color: 'bg-[#555353]/10 text-[#555353] border-[#555353]/20', icon: '👤' },
   vvp: { label: 'VVP', color: 'bg-[#E65F5C]/10 text-[#E65F5C] border-[#E65F5C]/20', icon: '🎯' },
 };
+
+/** Pages accessible to idea-owners / co-founders only (restricted access) */
+export const IDEA_OWNER_PAGES: Page[] = [
+  'dashboard', 'idea-submission', 'notifications', 'profile', 'ai-assistant', 'settings',
+];
+
+/** Pages accessible to waiting-list / temporary users */
+export const WAITING_LIST_PAGES: Page[] = [
+  'dashboard', 'kyc-onboarding', 'notifications', 'profile', 'settings',
+];

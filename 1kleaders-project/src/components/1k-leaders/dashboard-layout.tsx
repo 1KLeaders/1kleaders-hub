@@ -6,9 +6,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LayoutDashboard, FileText, Users, Settings, Bell, Handshake, Lightbulb, LogOut, Menu, X, ChevronRight, FolderOpen, Calendar, MessageSquare, Bot, BarChart3, ClipboardCheck, Mail } from 'lucide-react';
+import {
+  LayoutDashboard, FileText, Users, Settings, Bell, Handshake, Lightbulb, LogOut,
+  Menu, X, ChevronRight, FolderOpen, Calendar, MessageSquare, Bot, BarChart3,
+  ClipboardCheck, Mail, Star, ClipboardList, Shield, FileCheck, MessageCircle,
+} from 'lucide-react';
 import type { Page, DashboardRole } from './types';
-import { roleBadgeConfig } from './types';
+import { roleBadgeConfig, IDEA_OWNER_PAGES, WAITING_LIST_PAGES } from './types';
 
 interface Props {
   navigate: (page: Page) => void;
@@ -30,20 +34,45 @@ const roleLabels: Record<DashboardRole, string> = {
   temporary: 'Temporary Account',
 };
 
-const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', page: 'dashboard' as Page },
-  { icon: Lightbulb, label: 'Idea Submission', page: 'idea-submission' as Page },
-  { icon: BarChart3, label: 'Idea Ranking', page: 'idea-ranking' as Page },
-  { icon: Calendar, label: 'Calendar', page: 'calendar' as Page },
-  { icon: MessageSquare, label: 'Discussion Rooms', page: 'discussion-rooms' as Page },
-  { icon: Bot, label: 'AI Assistant', page: 'ai-assistant' as Page },
-  { icon: FileText, label: 'Agreements', page: 'agreements' as Page },
-  { icon: FolderOpen, label: 'Documents', page: 'documents' as Page },
-  { icon: Handshake, label: 'Partners', page: 'partners' as Page },
-  { icon: ClipboardCheck, label: 'VVP Assignments', page: 'vvp-assignments' as Page },
-  { icon: Bell, label: 'Notifications', page: 'notifications' as Page },
-  { icon: Settings, label: 'Settings', page: 'settings' as Page },
+interface NavItem {
+  icon: React.ElementType;
+  label: string;
+  page: Page;
+  roles?: DashboardRole[]; // if set, only these roles see this item
+  hideFor?: DashboardRole[]; // these roles do NOT see this item
+}
+
+const navItems: NavItem[] = [
+  { icon: LayoutDashboard, label: 'Dashboard', page: 'dashboard' },
+  { icon: Lightbulb, label: 'Idea Submission', page: 'idea-submission' },
+  { icon: BarChart3, label: 'Idea Ranking', page: 'idea-ranking', hideFor: ['idea-owner', 'waiting-list', 'temporary', 'user'] },
+  { icon: Calendar, label: 'Calendar', page: 'calendar', hideFor: ['idea-owner', 'waiting-list', 'temporary'] },
+  { icon: MessageSquare, label: 'Discussion Rooms', page: 'discussion-rooms', hideFor: ['idea-owner', 'waiting-list', 'temporary', 'user'] },
+  { icon: Bot, label: 'AI Assistant', page: 'ai-assistant' },
+  { icon: FileText, label: 'Agreements', page: 'agreements', hideFor: ['idea-owner', 'waiting-list', 'user'] },
+  { icon: FolderOpen, label: 'Documents', page: 'documents', hideFor: ['idea-owner', 'waiting-list', 'user'] },
+  { icon: Handshake, label: 'Partners', page: 'partners', hideFor: ['idea-owner', 'waiting-list', 'temporary', 'user'] },
+  { icon: Bell, label: 'Notifications', page: 'notifications' },
+  { icon: Settings, label: 'Settings', page: 'settings' },
 ];
+
+// Waiting-list / temporary: only show KYC onboarding + core pages
+const waitlistNavItems: NavItem[] = [
+  { icon: LayoutDashboard, label: 'Dashboard', page: 'dashboard' },
+  { icon: FileCheck, label: 'KYC & Onboarding', page: 'kyc-onboarding' },
+  { icon: Bell, label: 'Notifications', page: 'notifications' },
+  { icon: Settings, label: 'Settings', page: 'settings' },
+];
+
+function getNavItems(role: DashboardRole): NavItem[] {
+  if (role === 'waiting-list' || role === 'temporary') return waitlistNavItems;
+  return navItems.filter(item => {
+    if (item.roles && !item.roles.includes(role)) return false;
+    if (item.hideFor && item.hideFor.includes(role)) return false;
+    return true;
+  });
+}
+
 export default function DashboardLayout({ navigate, role, setRole, currentPage, children }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -52,17 +81,23 @@ export default function DashboardLayout({ navigate, role, setRole, currentPage, 
     setSidebarOpen(false);
   };
 
-  // Role badge from config
   const roleBadgeKey = role as keyof typeof roleBadgeConfig;
   const badgeInfo = roleBadgeConfig[roleBadgeKey];
+  const visibleNav = getNavItems(role);
+  const isAdmin = role === 'admin' || role === 'super-admin';
+  const isVEP = role === 'partner' || role === 'shareholder' || isAdmin;
+  const isMAB = isAdmin;
 
   return (
     <div className="min-h-screen flex bg-[#f6f6f6]" style={{ fontFamily: 'var(--font-manrope), Manrope, sans-serif' }}>
       {sidebarOpen && <div className="fixed inset-0 bg-black/30 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
       <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-[#141414] flex flex-col transform transition-transform lg:transform-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+        {/* Logo — clicks back to dashboard */}
         <div className="p-4 flex items-center gap-3 border-b border-white/10">
-          <img src="/logo-light-mid.png" alt="1KLeaders" className="h-8 object-contain" />
+          <button onClick={() => handleNav('dashboard')} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <img src="/logo-light-mid.png" alt="1KLeaders" className="h-8 object-contain" />
+          </button>
           <button className="ml-auto lg:hidden text-white" onClick={() => setSidebarOpen(false)}><X className="w-5 h-5" /></button>
         </div>
 
@@ -78,7 +113,7 @@ export default function DashboardLayout({ navigate, role, setRole, currentPage, 
           </div>
           <Separator className="mb-3 bg-white/10" />
           <nav className="space-y-1">
-            {navItems.map(item => (
+            {visibleNav.map(item => (
               <button key={item.page} onClick={() => handleNav(item.page)}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === item.page ? 'bg-gradient-to-r from-[#e33b5f]/20 to-[#E65F5C]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
                 <item.icon className="w-4 h-4" />{item.label}
@@ -86,14 +121,40 @@ export default function DashboardLayout({ navigate, role, setRole, currentPage, 
             ))}
           </nav>
 
-          {/* Admin-only nav */}
-          {(role === 'admin' || role === 'super-admin') && (
+          {/* VEP/MAB tools */}
+          {isVEP && (
+            <>
+              <Separator className="my-3 bg-white/10" />
+              <p className="text-xs text-[#7e7e7e] uppercase tracking-wider mb-2 px-2">Evaluation</p>
+              <button onClick={() => handleNav('vep-dashboard')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'vep-dashboard' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
+                <Star className="w-4 h-4" />VEP Dashboard
+              </button>
+              {isMAB && (
+                <button onClick={() => handleNav('mab-dashboard')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'mab-dashboard' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
+                  <Shield className="w-4 h-4" />MAB Dashboard
+                </button>
+              )}
+              <button onClick={() => handleNav('recommendations')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'recommendations' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
+                <MessageCircle className="w-4 h-4" />Recommendations
+              </button>
+            </>
+          )}
+
+          {/* Admin-only tools */}
+          {isAdmin && (
             <>
               <Separator className="my-3 bg-white/10" />
               <p className="text-xs text-[#7e7e7e] uppercase tracking-wider mb-2 px-2">Admin Tools</p>
               <button onClick={() => handleNav('newsletter-tracking')}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'newsletter-tracking' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
                 <Mail className="w-4 h-4" />Newsletter Tracking
+              </button>
+              <button onClick={() => handleNav('vvp-assignments')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'vvp-assignments' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
+                <ClipboardCheck className="w-4 h-4" />VVP Assignments
               </button>
             </>
           )}

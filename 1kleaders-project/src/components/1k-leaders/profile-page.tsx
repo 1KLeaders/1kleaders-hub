@@ -4,12 +4,29 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import { Edit, Mail, Calendar, Star, Briefcase, MapPin, Link2 } from 'lucide-react';
-import type { Page } from './types';
+import { Edit, Mail, Star, Briefcase, MapPin, Clock, Copy, Check, Users, Lightbulb, ClipboardCheck, Calendar } from 'lucide-react';
+import { useState } from 'react';
+import type { Page, DashboardRole } from './types';
 
-interface Props { navigate: (page: Page) => void; }
+interface Props {
+  navigate: (page: Page) => void;
+  role?: DashboardRole;
+}
 
-export default function ProfilePage({ navigate }: Props) {
+export default function ProfilePage({ navigate, role = 'partner' }: Props) {
+  const [copied, setCopied] = useState(false);
+
+  // Simulated referral link unique to this account
+  const referralLink = 'https://1kleaders.com/join?ref=AR-00142';
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(referralLink).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const isShareholder = role === 'shareholder' || role === 'partner' || role === 'super-admin' || role === 'admin';
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -17,29 +34,52 @@ export default function ProfilePage({ navigate }: Props) {
           <h1 className="text-2xl font-bold text-[#222]">My Profile</h1>
           <p className="text-[#7e7e7e]">View and manage your profile information</p>
         </div>
-        <Button className="bg-[#e33b5f] hover:bg-[#c02d4f]" onClick={() => navigate('settings')}><Edit className="w-4 h-4 mr-2" /> Edit Profile</Button>
+        <Button className="bg-[#e33b5f] hover:bg-[#c02d4f]" onClick={() => navigate('settings')}>
+          <Edit className="w-4 h-4 mr-2" /> Edit Profile
+        </Button>
       </div>
 
       {/* Profile Header */}
       <Card>
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row items-center gap-6">
-            <Avatar className="w-20 h-20"><AvatarFallback className="bg-[#e33b5f]/10 text-[#c02d4f] text-2xl font-bold">AR</AvatarFallback></Avatar>
-            <div className="text-center sm:text-left">
+            <Avatar className="w-20 h-20">
+              <AvatarFallback className="bg-[#e33b5f]/10 text-[#c02d4f] text-2xl font-bold">AR</AvatarFallback>
+            </Avatar>
+            <div className="text-center sm:text-left flex-1">
               <h2 className="text-xl font-bold text-[#222]">Ahmed Al-Rashid</h2>
-              <div className="flex items-center gap-2 mt-1 justify-center sm:justify-start">
+              <div className="flex items-center gap-2 mt-1 justify-center sm:justify-start flex-wrap">
                 <Badge className="bg-[#e33b5f]/10 text-[#c02d4f]">Partner</Badge>
                 <span className="flex items-center gap-1 text-[#f07969] text-sm"><Star className="w-4 h-4" /> Gold Level</span>
               </div>
               <p className="text-sm text-[#7e7e7e] mt-2">Venture partner with 15+ years of experience in technology investments and startup mentoring. Passionate about building transformative ventures in the MENA region.</p>
-              <div className="flex items-center gap-4 mt-3 justify-center sm:justify-start text-xs text-[#7e7e7e]">
+              <div className="flex items-center gap-4 mt-3 justify-center sm:justify-start text-xs text-[#7e7e7e] flex-wrap">
                 <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> Riyadh, Saudi Arabia</span>
                 <span className="flex items-center gap-1"><Briefcase className="w-3 h-3" /> Technology Sector</span>
+                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Last login: Today, 9:42 AM</span>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Contribution Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {[
+          { icon: Calendar, label: 'Meetings Attended', value: '24' },
+          { icon: Clock, label: 'Contribution Hours', value: '38.5h' },
+          { icon: Lightbulb, label: 'Ideas Reviewed', value: '12' },
+          { icon: ClipboardCheck, label: 'Tasks Completed', value: '7' },
+        ].map(stat => (
+          <Card key={stat.label}>
+            <CardContent className="p-4 text-center">
+              <stat.icon className="w-5 h-5 text-[#e33b5f] mx-auto mb-1" />
+              <p className="text-2xl font-bold text-[#222]">{stat.value}</p>
+              <p className="text-xs text-[#7e7e7e] mt-0.5">{stat.label}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* About & Skills */}
@@ -63,21 +103,28 @@ export default function ProfilePage({ navigate }: Props) {
                 ))}
               </div>
             </div>
-            <Separator />
-            <div>
-              <p className="text-sm font-medium text-[#444] mb-2">Connected Accounts</p>
-              <div className="space-y-2">
-                {[
-                  { name: 'LinkedIn', status: 'Connected' },
-                  { name: 'Google', status: 'Connected' },
-                ].map(a => (
-                  <div key={a.name} className="flex items-center justify-between p-2 bg-[#fbfbfb] rounded-lg">
-                    <span className="text-sm flex items-center gap-2"><Link2 className="w-4 h-4 text-[#9e9e9e]" />{a.name}</span>
-                    <Badge className="bg-[#e33b5f]/10 text-[#c02d4f] text-xs">{a.status}</Badge>
+
+            {/* Referral Link — shareholders/partners only */}
+            {isShareholder && (
+              <>
+                <Separator />
+                <div>
+                  <p className="text-sm font-medium text-[#444] mb-1 flex items-center gap-2">
+                    <Users className="w-4 h-4 text-[#e33b5f]" /> Your Referral Link
+                  </p>
+                  <p className="text-xs text-[#7e7e7e] mb-2">Share this unique link to refer prospective partners to 1K Leaders.</p>
+                  <div className="flex items-center gap-2 bg-[#f6f6f6] border border-[#f0f0f0] rounded-lg px-3 py-2">
+                    <span className="text-sm text-[#444] flex-1 truncate font-mono">{referralLink}</span>
+                    <button
+                      onClick={handleCopy}
+                      className="flex items-center gap-1 text-xs text-[#e33b5f] hover:text-[#c02d4f] font-medium transition shrink-0"
+                    >
+                      {copied ? <><Check className="w-3.5 h-3.5" /> Copied</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
+                    </button>
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
