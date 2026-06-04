@@ -31,23 +31,31 @@ export type DashboardRole =
   | 'shareholder'
   | 'investor'
   | 'idea-owner'
+  | 'vep-member'
+  | 'mab-member'
+  | 'co-founder'
+  | 'advisor'
   | 'user'
   | 'waiting-list'
   | 'temporary';
 
 export type DashboardPriority = 'startups' | 'ideas' | 'balanced';
 
-export type RoleBadge = 'partner' | 'shareholder' | 'investor' | 'idea-owner' | 'admin' | 'super-admin' | 'user' | 'vvp';
-
-export const roleBadgeConfig: Record<RoleBadge, { label: string; color: string; icon: string }> = {
-  partner: { label: 'Partner', color: 'bg-[#e33b5f]/10 text-[#e33b5f] border-[#e33b5f]/20', icon: '🤝' },
-  shareholder: { label: 'Shareholder', color: 'bg-[#E65F5C]/10 text-[#E65F5C] border-[#E65F5C]/20', icon: '🏛️' },
-  investor: { label: 'Investor', color: 'bg-[#f07969]/10 text-[#f07969] border-[#f07969]/20', icon: '💰' },
-  'idea-owner': { label: 'Idea Owner', color: 'bg-[#e33b5f]/10 text-[#e33b5f] border-[#e33b5f]/20', icon: '💡' },
-  admin: { label: 'Admin', color: 'bg-[#141414]/10 text-[#141414] border-[#141414]/20', icon: '⚙️' },
-  'super-admin': { label: 'Super Admin', color: 'bg-[#e33b5f]/10 text-[#e33b5f] border-[#e33b5f]/20', icon: '🛡️' },
-  user: { label: 'User', color: 'bg-[#555353]/10 text-[#555353] border-[#555353]/20', icon: '👤' },
-  vvp: { label: 'VVP', color: 'bg-[#E65F5C]/10 text-[#E65F5C] border-[#E65F5C]/20', icon: '🎯' },
+// Badge config covers every DashboardRole
+export const roleBadgeConfig: Record<DashboardRole, { label: string; color: string; icon: string }> = {
+  partner:        { label: 'Partner',        color: 'bg-[#e33b5f]/10 text-[#e33b5f] border-[#e33b5f]/20',   icon: '🤝' },
+  shareholder:    { label: 'Shareholder',    color: 'bg-[#E65F5C]/10 text-[#E65F5C] border-[#E65F5C]/20',   icon: '🏛️' },
+  investor:       { label: 'Investor',       color: 'bg-[#f07969]/10 text-[#f07969] border-[#f07969]/20',   icon: '💰' },
+  'idea-owner':   { label: 'Idea Owner',     color: 'bg-[#e33b5f]/10 text-[#e33b5f] border-[#e33b5f]/20',   icon: '💡' },
+  'co-founder':   { label: 'Co-Founder',     color: 'bg-[#E65F5C]/10 text-[#E65F5C] border-[#E65F5C]/20',   icon: '🚀' },
+  advisor:        { label: 'Advisor',        color: 'bg-[#f07969]/10 text-[#f07969] border-[#f07969]/20',   icon: '🎓' },
+  'vep-member':   { label: 'VEP Member',     color: 'bg-[#E65F5C]/10 text-[#E65F5C] border-[#E65F5C]/20',   icon: '🎯' },
+  'mab-member':   { label: 'MAB Member',     color: 'bg-[#e33b5f]/10 text-[#e33b5f] border-[#e33b5f]/20',   icon: '🏆' },
+  admin:          { label: 'Admin',          color: 'bg-[#141414]/10 text-[#141414] border-[#141414]/20',   icon: '⚙️' },
+  'super-admin':  { label: 'Super Admin',    color: 'bg-[#e33b5f]/10 text-[#e33b5f] border-[#e33b5f]/20',   icon: '🛡️' },
+  user:           { label: 'User',           color: 'bg-[#555353]/10 text-[#555353] border-[#555353]/20',   icon: '👤' },
+  'waiting-list': { label: 'Waiting List',   color: 'bg-[#9e9e9e]/10 text-[#9e9e9e] border-[#9e9e9e]/20',   icon: '⏳' },
+  temporary:      { label: 'Temp Account',   color: 'bg-[#f07969]/10 text-[#f07969] border-[#f07969]/20',   icon: '🔑' },
 };
 
 /** Pages accessible to idea-owners / co-founders only (restricted access) */

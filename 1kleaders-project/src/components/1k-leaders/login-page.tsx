@@ -5,24 +5,29 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Mail, Lock, Eye, EyeOff, ChevronDown, Users, Lightbulb, Handshake, TrendingUp, Shield, UserCircle, Building2, Star } from 'lucide-react';
+import { ArrowLeft, Mail, Lock, Eye, EyeOff, ChevronDown, Users, Lightbulb, Handshake, TrendingUp, Shield, UserCircle, Building2, Star, GraduationCap, Rocket } from 'lucide-react';
 import type { Page, DashboardRole } from './types';
 
 interface Props { navigate: (page: Page) => void; type?: 'partner' | 'idea-owner'; onRoleSelect?: (role: DashboardRole) => void; }
 
-const roles: { id: DashboardRole; label: string; labelAr: string; icon: React.ReactNode; desc: string }[] = [
-  { id: 'shareholder', label: 'Shareholder', labelAr: 'مساهم', icon: <Building2 className="w-5 h-5" />, desc: 'Access shareholder dashboard & portfolio' },
-  { id: 'partner', label: 'Partner', labelAr: 'شريك', icon: <Handshake className="w-5 h-5" />, desc: 'Manage partnerships & ventures' },
-  { id: 'investor', label: 'Investor', labelAr: 'مستثمر', icon: <TrendingUp className="w-5 h-5" />, desc: 'Track investments & returns' },
-  { id: 'idea-owner', label: 'Idea Owner', labelAr: 'صاحب فكرة', icon: <Lightbulb className="w-5 h-5" />, desc: 'Submit & manage your ideas' },
-  { id: 'admin', label: 'Admin', labelAr: 'مدير', icon: <Shield className="w-5 h-5" />, desc: 'Admin dashboard & controls' },
-  { id: 'super-admin', label: 'Super Admin', labelAr: 'مدير عام', icon: <Star className="w-5 h-5" />, desc: 'Full system access & management' },
-  { id: 'user', label: 'User', labelAr: 'مستخدم', icon: <UserCircle className="w-5 h-5" />, desc: 'Standard user access' },
-  { id: 'vvp', label: 'VVP', labelAr: 'VVP', icon: <Users className="w-5 h-5" />, desc: 'VVP assignments & tracking' },
+const roles: { id: DashboardRole; label: string; icon: React.ReactNode; desc: string }[] = [
+  { id: 'shareholder',   label: 'Shareholder',  icon: <Building2 className="w-5 h-5" />,     desc: 'Access shareholder dashboard & portfolio' },
+  { id: 'partner',       label: 'Partner',       icon: <Handshake className="w-5 h-5" />,     desc: 'Manage partnerships & ventures' },
+  { id: 'investor',      label: 'Investor',      icon: <TrendingUp className="w-5 h-5" />,    desc: 'Track investments & returns' },
+  { id: 'idea-owner',    label: 'Idea Owner',    icon: <Lightbulb className="w-5 h-5" />,     desc: 'Submit & manage your ideas' },
+  { id: 'co-founder',    label: 'Co-Founder',    icon: <Rocket className="w-5 h-5" />,        desc: 'Build startups as a co-founder' },
+  { id: 'advisor',       label: 'Advisor',       icon: <GraduationCap className="w-5 h-5" />, desc: 'Share expertise & guide ventures' },
+  { id: 'vep-member',    label: 'VEP Member',    icon: <Users className="w-5 h-5" />,         desc: 'Venture Evaluation Panel access' },
+  { id: 'mab-member',    label: 'MAB Member',    icon: <Star className="w-5 h-5" />,          desc: 'Management Advisory Board access' },
+  { id: 'admin',         label: 'Admin',         icon: <Shield className="w-5 h-5" />,        desc: 'Admin dashboard & controls' },
+  { id: 'super-admin',   label: 'Super Admin',   icon: <Star className="w-5 h-5" />,          desc: 'Full system access & management' },
+  { id: 'user',          label: 'User',          icon: <UserCircle className="w-5 h-5" />,    desc: 'Standard user access' },
 ];
 
 export default function LoginPage({ navigate, type, onRoleSelect }: Props) {
-  const [selectedRole, setSelectedRole] = useState<DashboardRole>(type === 'idea-owner' ? 'idea-owner' : type === 'partner' ? 'partner' : 'shareholder');
+  const [selectedRole, setSelectedRole] = useState<DashboardRole>(
+    type === 'idea-owner' ? 'idea-owner' : type === 'partner' ? 'partner' : 'shareholder'
+  );
   const [showPassword, setShowPassword] = useState(false);
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -75,7 +80,7 @@ export default function LoginPage({ navigate, type, onRoleSelect }: Props) {
                 </button>
 
                 {showRoleDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg border border-[#f0f0f0] shadow-lg z-50 overflow-hidden">
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg border border-[#f0f0f0] shadow-lg z-50 overflow-hidden max-h-64 overflow-y-auto">
                     {roles.map((role) => (
                       <button
                         key={role.id}
@@ -154,22 +159,14 @@ export default function LoginPage({ navigate, type, onRoleSelect }: Props) {
 
             <Separator className="bg-[#f0f0f0]" />
 
-            {/* Bottom links */}
             <div className="text-center space-y-2">
               <p className="text-sm text-[#7e7e7e]">
                 Don&apos;t have an account?{' '}
                 <button onClick={() => navigate('waitlist')} className="text-[#e33b5f] font-medium hover:underline">Join the Waitlist</button>
               </p>
-              {selectedRole === 'idea-owner' && (
-                <p className="text-sm text-[#7e7e7e]">
-                  Have an idea?{' '}
-                  <button onClick={() => navigate('idea-submission')} className="text-[#E65F5C] font-medium hover:underline">Submit Your Idea</button>
-                </p>
-              )}
             </div>
           </CardContent>
         </Card>
-
         <p className="text-center text-xs text-[#7e7e7e] mt-4">
           By signing in, you agree to our Terms of Service and Privacy Policy.
         </p>
