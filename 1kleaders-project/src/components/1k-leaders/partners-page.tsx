@@ -11,19 +11,19 @@ import type { Page } from './types';
 interface Props { navigate?: (page: Page) => void; }
 
 const partners = [
-  { id: 1, name: 'Ahmed Al-Rashid', role: 'Partner', level: 'Gold', status: 'active', contribution: '$500K', initials: 'AR' },
-  { id: 2, name: 'Fatima Khalid', role: 'Shareholder', level: 'Silver', status: 'active', contribution: '$250K', initials: 'FK' },
+  { id: 1, name: 'Ahmed Al-Rashid', role: 'Shareholder', level: 'Gold', status: 'active', initials: 'AR' },
+  { id: 2, name: 'Fatima Khalid', role: 'Shareholder', level: 'Silver', status: 'active', initials: 'FK' },
   { id: 3, name: 'Omar Hassan', role: 'Investor', level: 'Platinum', status: 'active', contribution: '$1.2M', initials: 'OH' },
   { id: 4, name: 'Sara Mohammed', role: 'Prospective', level: '-', status: 'pending', contribution: '-', initials: 'SM' },
-  { id: 5, name: 'Khalid Nasser', role: 'Partner', level: 'Gold', status: 'active', contribution: '$350K', initials: 'KN' },
+  { id: 5, name: 'Khalid Nasser', role: 'Shareholder', level: 'Gold', status: 'active', initials: 'KN' },
   { id: 6, name: 'Noura Ali', role: 'Investor', level: 'Silver', status: 'active', contribution: '$180K', initials: 'NA' },
   { id: 7, name: 'Tariq Ibrahim', role: 'Shareholder', level: 'Gold', status: 'inactive', contribution: '$400K', initials: 'TI' },
   { id: 8, name: 'Layla Abdullah', role: 'Prospective', level: '-', status: 'pending', contribution: '-', initials: 'LA' },
 ];
 
-const filterOptions = ['All', 'Partner', 'Shareholder', 'Investor', 'Prospective'];
+const filterOptions = ['All', 'Shareholder', 'Shareholder', 'Investor', 'Prospective'];
 
-export default function PartnersPage({}: Props) {
+export default function ShareholdersPage({}: Props) {
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
 
@@ -36,7 +36,7 @@ export default function PartnersPage({}: Props) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#222]">Partners</h1>
+        <h1 className="text-2xl font-bold text-[#222]">Shareholders</h1>
         <p className="text-[#7e7e7e]">Manage and connect with platform partners</p>
       </div>
 
@@ -60,7 +60,7 @@ export default function PartnersPage({}: Props) {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Total Partners', value: partners.length },
+          { label: 'Total Shareholders', value: partners.length },
           { label: 'Active', value: partners.filter(p => p.status === 'active').length },
           { label: 'Pending', value: partners.filter(p => p.status === 'pending').length },
           { label: 'Total Contribution', value: '$2.88M' },
@@ -74,7 +74,7 @@ export default function PartnersPage({}: Props) {
         ))}
       </div>
 
-      {/* Partner Grid */}
+      {/* Shareholder Grid */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map(p => (
           <Card key={p.id} className="hover:shadow-md transition">

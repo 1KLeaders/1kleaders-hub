@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { User, Lock, Bell, Shield, Palette, Link2, Eye, Save } from 'lucide-react';
+import { User, Lock, Bell, Shield, Palette , Eye, Save, Mail } from 'lucide-react';
 
 type Props = Record<string, never>;
 
@@ -27,8 +27,7 @@ export default function SettingsPage({}: Props) {
             { value: 'notifications', label: 'Notifications', icon: Bell },
             { value: 'privacy', label: 'Privacy', icon: Shield },
             { value: 'display', label: 'Display', icon: Palette },
-            { value: 'connected', label: 'Connected', icon: Link2 },
-          ].map(t => (
+                      ].map(t => (
             <TabsTrigger key={t.value} value={t.value} className="text-xs data-[state=active]:bg-white">
               <t.icon className="w-3 h-3 mr-1" />{t.label}
             </TabsTrigger>
@@ -83,6 +82,7 @@ export default function SettingsPage({}: Props) {
             <CardContent className="space-y-4">
               {[
                 { label: 'Email Notifications', desc: 'Receive updates via email' },
+                { label: 'Action Required Alerts', desc: 'High-priority admin notifications' },
                 { label: 'Platform Notifications', desc: 'In-app notification alerts' },
                 { label: 'WhatsApp Notifications', desc: 'Get alerts on WhatsApp' },
                 { label: 'Calendar Reminders', desc: 'Meeting and event reminders' },
@@ -139,33 +139,6 @@ export default function SettingsPage({}: Props) {
               </div>
               <div><Label>Timezone</Label><Input defaultValue="Asia/Riyadh (UTC+3)" /></div>
               <div><Label>Default Dashboard View</Label><Input defaultValue="Partner Dashboard" /></div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="connected">
-          <Card>
-            <CardHeader><CardTitle className="text-base">Connected Accounts</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              {[
-                { name: 'LinkedIn', status: 'Connected', color: 'emerald' },
-                { name: 'Microsoft Teams', status: 'Not Connected', color: 'stone' },
-                { name: 'Google', status: 'Connected', color: 'emerald' },
-                { name: 'DocuSign', status: 'Not Connected', color: 'stone' },
-              ].map(a => (
-                <div key={a.name} className="flex items-center justify-between py-3 border-b border-[#f0f0f0] last:border-0">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${a.color === 'emerald' ? 'bg-[#e33b5f]/5' : 'bg-[#f6f6f6]'}`}>
-                      <Link2 className={`w-5 h-5 ${a.color === 'emerald' ? 'text-[#e33b5f]' : 'text-[#9e9e9e]'}`} />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">{a.name}</p>
-                      <p className={`text-xs ${a.color === 'emerald' ? 'text-[#e33b5f]' : 'text-[#9e9e9e]'}`}>{a.status}</p>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm">{a.color === 'emerald' ? 'Disconnect' : 'Connect'}</Button>
-                </div>
-              ))}
             </CardContent>
           </Card>
         </TabsContent>

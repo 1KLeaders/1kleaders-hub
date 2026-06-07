@@ -148,7 +148,7 @@ export default function CalendarPage({ role }: Props) {
       proposedDates: newVoteProposals.map(p => ({ date: p.date, time: p.time, votes: 0, voters: [] })),
       status: 'voting',
       initiatedBy: 'You',
-      participants: ['All Partners & Shareholders'],
+      participants: ['All Shareholders'],
     }]);
     setNewVoteTitle('');
     setNewVoteProposals([{ date: '', time: '' }]);
@@ -207,7 +207,7 @@ export default function CalendarPage({ role }: Props) {
               </div>
               <div>
                 <label className="text-sm font-medium text-[#444] mb-1 block">Participants</label>
-                <div className="flex items-center gap-2 px-3 py-2.5 bg-[#fbfbfb] rounded-xl"><Users className="w-4 h-4 text-[#9e9e9e]" /><span className="text-sm text-[#555353]">All Partners & Shareholders</span></div>
+                <div className="flex items-center gap-2 px-3 py-2.5 bg-[#fbfbfb] rounded-xl"><Users className="w-4 h-4 text-[#9e9e9e]" /><span className="text-sm text-[#555353]">All Shareholders</span></div>
               </div>
             </div>
             <DialogFooter>

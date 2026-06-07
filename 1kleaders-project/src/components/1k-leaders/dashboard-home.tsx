@@ -18,13 +18,13 @@ function DigitalBadge({ role }: { role: RoleBadge }) {
 
 const dashboards: Record<DashboardRole, { metrics: { label: string; value: string; change: string; up: boolean; icon: any }[]; title: string; subtitle: string }> = {
   partner: {
-    title: 'Welcome back, Partner',
+    title: 'Welcome back, Shareholder',
     subtitle: 'Here\'s your venture portfolio overview',
     metrics: [
       { label: 'Total Investments', value: '$2.4M', change: '+12.5%', up: true, icon: DollarSign },
       { label: 'Active Ventures', value: '8', change: '+2', up: true, icon: Briefcase },
       { label: 'Portfolio ROI', value: '23.4%', change: '+3.2%', up: true, icon: TrendingUp },
-      { label: 'Partner Level', value: 'Gold', change: 'Next: Platinum', up: true, icon: Users },
+      { label: 'Shareholder Level', value: 'Gold', change: 'Next: Platinum', up: true, icon: Users },
     ],
   },
   'super-admin': {
@@ -32,7 +32,7 @@ const dashboards: Record<DashboardRole, { metrics: { label: string; value: strin
     subtitle: 'Full platform control and monitoring',
     metrics: [
       { label: 'Total Users', value: '1,247', change: '+89 this month', up: true, icon: Users },
-      { label: 'Active Partners', value: '342', change: '+15', up: true, icon: Briefcase },
+      { label: 'Active Shareholders', value: '342', change: '+15', up: true, icon: Briefcase },
       { label: 'Platform Revenue', value: '$890K', change: '+18.2%', up: true, icon: DollarSign },
       { label: 'System Health', value: '99.9%', change: 'Operational', up: true, icon: CheckCircle },
     ],
@@ -113,7 +113,7 @@ const activities: Record<DashboardRole, { text: string; time: string; type: stri
   partner: [
     { text: 'New venture "GreenTech Solutions" added to portfolio', time: '2 hours ago', type: 'info' },
     { text: 'Monthly ROI report is now available', time: '5 hours ago', type: 'success' },
-    { text: 'Partner meeting scheduled for tomorrow', time: '1 day ago', type: 'warning' },
+    { text: 'Shareholder meeting scheduled for tomorrow', time: '1 day ago', type: 'warning' },
     { text: 'Investment milestone reached: $2M+', time: '2 days ago', type: 'success' },
   ],
   'super-admin': [
@@ -197,7 +197,7 @@ export default function DashboardHome({ role, navigate }: Props) {
           <span className="text-xs text-[#7e7e7e]">Focus:</span>
           {[
             { key: 'startups' as const, label: 'Startups', icon: Rocket },
-            { key: 'balanced' as const, label: 'Balanced', icon: Star },
+            
             { key: 'ideas' as const, label: 'Ideas', icon: Lightbulb },
           ].map(p => (
             <button key={p.key} onClick={() => setPriority(p.key)}

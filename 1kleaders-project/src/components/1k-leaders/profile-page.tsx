@@ -13,7 +13,7 @@ interface Props {
   role?: DashboardRole;
 }
 
-export default function ProfilePage({ navigate, role = 'partner' }: Props) {
+export default function ProfilePage({ navigate, role = 'shareholder' }: Props) {
   const [copied, setCopied] = useState(false);
 
   // Simulated referral link unique to this account
@@ -25,7 +25,7 @@ export default function ProfilePage({ navigate, role = 'partner' }: Props) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const isShareholder = role === 'shareholder' || role === 'partner' || role === 'super-admin' || role === 'admin';
+  const isShareholder = role === 'shareholder' || role === 'shareholder' || role === 'super-admin' || role === 'admin';
 
   return (
     <div className="space-y-6">
@@ -49,10 +49,10 @@ export default function ProfilePage({ navigate, role = 'partner' }: Props) {
             <div className="text-center sm:text-left flex-1">
               <h2 className="text-xl font-bold text-[#222]">Ahmed Al-Rashid</h2>
               <div className="flex items-center gap-2 mt-1 justify-center sm:justify-start flex-wrap">
-                <Badge className="bg-[#e33b5f]/10 text-[#c02d4f]">Partner</Badge>
+                <Badge className="bg-[#e33b5f]/10 text-[#c02d4f]">Shareholder</Badge>
                 <span className="flex items-center gap-1 text-[#f07969] text-sm"><Star className="w-4 h-4" /> Gold Level</span>
               </div>
-              <p className="text-sm text-[#7e7e7e] mt-2">Venture partner with 15+ years of experience in technology investments and startup mentoring. Passionate about building transformative ventures in the MENA region.</p>
+              <p className="text-sm text-[#7e7e7e] mt-2">Venture shareholder with 15+ years of experience in technology investments and startup mentoring. Passionate about building transformative ventures in the MENA region.</p>
               <div className="flex items-center gap-4 mt-3 justify-center sm:justify-start text-xs text-[#7e7e7e] flex-wrap">
                 <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> Riyadh, Saudi Arabia</span>
                 <span className="flex items-center gap-1"><Briefcase className="w-3 h-3" /> Technology Sector</span>
@@ -104,7 +104,7 @@ export default function ProfilePage({ navigate, role = 'partner' }: Props) {
               </div>
             </div>
 
-            {/* Referral Link — shareholders/partners only */}
+            {/* Referral Link — shareholders/shareholders only */}
             {isShareholder && (
               <>
                 <Separator />
@@ -112,7 +112,7 @@ export default function ProfilePage({ navigate, role = 'partner' }: Props) {
                   <p className="text-sm font-medium text-[#444] mb-1 flex items-center gap-2">
                     <Users className="w-4 h-4 text-[#e33b5f]" /> Your Referral Link
                   </p>
-                  <p className="text-xs text-[#7e7e7e] mb-2">Share this unique link to refer prospective partners to 1K Leaders.</p>
+                  <p className="text-xs text-[#7e7e7e] mb-2">Share this unique link to refer prospective shareholders to 1K Leaders.</p>
                   <div className="flex items-center gap-2 bg-[#f6f6f6] border border-[#f0f0f0] rounded-lg px-3 py-2">
                     <span className="text-sm text-[#444] flex-1 truncate font-mono">{referralLink}</span>
                     <button
@@ -136,7 +136,7 @@ export default function ProfilePage({ navigate, role = 'partner' }: Props) {
               {[
                 { text: 'Invested in GreenTech Series A', time: '2 hours ago' },
                 { text: 'Updated profile information', time: '1 day ago' },
-                { text: 'Signed partner agreement', time: '3 days ago' },
+                { text: 'Signed shareholder agreement', time: '3 days ago' },
                 { text: 'Connected with Omar Hassan', time: '5 days ago' },
                 { text: 'Submitted idea evaluation', time: '1 week ago' },
                 { text: 'Attended Demo Day event', time: '2 weeks ago' },

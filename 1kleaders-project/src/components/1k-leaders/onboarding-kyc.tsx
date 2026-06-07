@@ -38,7 +38,7 @@ const statusConfig: Record<OnboardingStatus, { label: string; color: string; ico
   'welcome-pack':      { label: 'Welcome Pack Shared',           color: 'bg-[#E65F5C]/10 text-[#E65F5C] border-[#E65F5C]/20',   icon: Package },
   'ops-review':        { label: 'Pending Operations Review',     color: 'bg-[#f07969]/10 text-[#f07969] border-[#f07969]/20',   icon: Clock },
   'awaiting-round':    { label: 'Awaiting Round Completion',     color: 'bg-[#e33b5f]/10 text-[#e33b5f] border-[#e33b5f]/20',   icon: Clock },
-  'registered':        { label: 'Officially Registered Partner', color: 'bg-[#e33b5f] text-white border-[#e33b5f]',              icon: CheckCircle2 },
+  'registered':        { label: 'Officially Registered Shareholder', color: 'bg-[#e33b5f] text-white border-[#e33b5f]',              icon: CheckCircle2 },
 };
 
 // Simulate current user being in KYC pending state
@@ -109,8 +109,8 @@ export default function OnboardingKYC({ navigate }: Props) {
     { key: 'payment-pending',   label: 'Payment',              desc: 'Upload investment payment receipt' },
     { key: 'payment-confirmed', label: 'Payment Confirmed',    desc: 'Funds received by company' },
     { key: 'welcome-pack',      label: 'Welcome Pack',         desc: 'Onboarding documents shared' },
-    { key: 'awaiting-round',    label: 'Awaiting Round',       desc: 'Pending 50-partner round completion' },
-    { key: 'registered',        label: 'ADGM Registered',      desc: 'Officially registered partner' },
+    { key: 'awaiting-round',    label: 'Awaiting Round',       desc: 'Pending 50-shareholder round completion' },
+    { key: 'registered',        label: 'ADGM Registered',      desc: 'Officially registered shareholder' },
   ];
 
   const statusOrder = journeySteps.map(s => s.key);
@@ -123,7 +123,7 @@ export default function OnboardingKYC({ navigate }: Props) {
     <div className="space-y-6" style={{ fontFamily: 'var(--font-manrope), Manrope, sans-serif' }}>
       <div>
         <h1 className="text-2xl font-bold text-[#222]">KYC & Onboarding</h1>
-        <p className="text-[#7e7e7e]">Complete your onboarding to activate your partner account</p>
+        <p className="text-[#7e7e7e]">Complete your onboarding to activate your shareholder account</p>
       </div>
 
       {/* Current Status Banner */}
@@ -141,7 +141,7 @@ export default function OnboardingKYC({ navigate }: Props) {
               <p className="text-sm text-[#555353] mt-1.5">Please upload all required KYC documents to proceed with your onboarding.</p>
             )}
             {status === 'awaiting-round' && (
-              <p className="text-sm text-[#555353] mt-1.5">Your onboarding file is complete. You are currently in the approved partner pipeline awaiting completion of the current partner round before official ADGM registration.</p>
+              <p className="text-sm text-[#555353] mt-1.5">Your onboarding file is complete. You are currently in the approved shareholder pipeline awaiting completion of the current shareholder round before official ADGM registration.</p>
             )}
           </div>
           {(status === 'kyc-pending') && (
@@ -175,7 +175,7 @@ export default function OnboardingKYC({ navigate }: Props) {
       {activeTab === 'status' && (
         <Card className="border-[#f0f0f0]">
           <CardHeader>
-            <CardTitle className="text-base text-[#222]">Partner Onboarding Journey</CardTitle>
+            <CardTitle className="text-base text-[#222]">Shareholder Onboarding Journey</CardTitle>
             <p className="text-sm text-[#7e7e7e]">Track your progress through the onboarding process</p>
           </CardHeader>
           <CardContent>
@@ -373,7 +373,7 @@ export default function OnboardingKYC({ navigate }: Props) {
               <p className="text-sm font-semibold text-[#222]">Bank Transfer Details</p>
               <div className="grid sm:grid-cols-2 gap-2 text-sm">
                 <div><span className="text-[#7e7e7e]">Beneficiary:</span> <span className="font-medium text-[#222]">1KL Holdings Limited</span></div>
-                <div><span className="text-[#7e7e7e]">Bank:</span> <span className="font-medium text-[#222]">ADGM Banking Partner</span></div>
+                <div><span className="text-[#7e7e7e]">Bank:</span> <span className="font-medium text-[#222]">ADGM Banking Shareholder</span></div>
                 <div><span className="text-[#7e7e7e]">Reference:</span> <span className="font-medium text-[#e33b5f]">Your Platform Username</span></div>
                 <div><span className="text-[#7e7e7e]">Contact:</span> <span className="font-medium text-[#222]">info@1kleaders.com</span></div>
               </div>

@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 
 interface LoginPagesProps {
-  type: 'partner' | 'idea-owner'
+  type: 'shareholder' | 'idea-owner'
   onNavigate: (page: string) => void
 }
 
@@ -28,13 +28,13 @@ export function LoginPages({ type, onNavigate }: LoginPagesProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
-  const isPartner = type === 'partner'
+  const isShareholder = type === 'shareholder'
 
   const handleLogin = () => {
     setIsLoading(true)
     setTimeout(() => {
       setIsLoading(false)
-      onNavigate('dashboard-partner')
+      onNavigate('dashboard-shareholder')
     }, 1000)
   }
 
@@ -48,19 +48,19 @@ export function LoginPages({ type, onNavigate }: LoginPagesProps) {
         <Card className="border-stone-200 shadow-xl">
           <CardHeader className="text-center pb-2">
             <div className={`w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center ${
-              isPartner ? 'bg-emerald-100' : 'bg-amber-100'
+              isShareholder ? 'bg-emerald-100' : 'bg-amber-100'
             }`}>
-              {isPartner
+              {isShareholder
                 ? <Handshake className="w-8 h-8 text-emerald-600" />
                 : <Lightbulb className="w-8 h-8 text-amber-600" />
               }
             </div>
             <CardTitle className="text-2xl text-stone-900">
-              {isPartner ? 'Partner Login' : 'Idea Owner Login'}
+              {isShareholder ? 'Shareholder Login' : 'Idea Owner Login'}
             </CardTitle>
             <p className="text-sm text-stone-500 mt-1">
-              {isPartner
-                ? 'Access your partner dashboard and venture portfolio'
+              {isShareholder
+                ? 'Access your shareholder dashboard and venture portfolio'
                 : 'Submit and manage your business ideas'}
             </p>
           </CardHeader>
@@ -111,7 +111,7 @@ export function LoginPages({ type, onNavigate }: LoginPagesProps) {
             <Button
               onClick={handleLogin}
               disabled={isLoading}
-              className={`w-full text-white ${isPartner ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-amber-600 hover:bg-amber-700'}`}
+              className={`w-full text-white ${isShareholder ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-amber-600 hover:bg-amber-700'}`}
             >
               {isLoading ? (
                 <div className="flex items-center gap-2">
@@ -129,9 +129,9 @@ export function LoginPages({ type, onNavigate }: LoginPagesProps) {
             <Separator />
 
             <div className="text-center space-y-2">
-              {isPartner ? (
+              {isShareholder ? (
                 <p className="text-sm text-stone-500">
-                  Not a partner yet?{' '}
+                  Not a shareholder yet?{' '}
                   <button onClick={() => onNavigate('waitlist')} className="text-emerald-600 hover:text-emerald-700 font-medium">
                     Join the Waitlist
                   </button>

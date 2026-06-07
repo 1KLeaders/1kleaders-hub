@@ -23,7 +23,7 @@ interface Props {
 }
 
 const roleLabels: Record<DashboardRole, string> = {
-  partner: 'Partner',
+  partner: 'Shareholder',
   'super-admin': 'Super Admin',
   admin: 'Admin',
   shareholder: 'Shareholder',
@@ -51,7 +51,7 @@ const navItems: NavItem[] = [
   { icon: Bot, label: 'AI Assistant', page: 'ai-assistant' },
   { icon: FileText, label: 'Agreements', page: 'agreements', hideFor: ['idea-owner', 'waiting-list', 'user'] },
   { icon: FolderOpen, label: 'Documents', page: 'documents', hideFor: ['idea-owner', 'waiting-list', 'user'] },
-  { icon: Handshake, label: 'Partners', page: 'partners', hideFor: ['idea-owner', 'waiting-list', 'temporary', 'user'] },
+  { icon: Handshake, label: 'Shareholders', page: 'partners', hideFor: ['idea-owner', 'waiting-list', 'temporary', 'user'] },
   { icon: Bell, label: 'Notifications', page: 'notifications' },
   { icon: Settings, label: 'Settings', page: 'settings' },
 ];
@@ -138,7 +138,7 @@ export default function DashboardLayout({ navigate, role, setRole, currentPage, 
               )}
               <button onClick={() => handleNav('recommendations')}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'recommendations' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
-                <MessageCircle className="w-4 h-4" />Recommendations
+                <MessageCircle className="w-4 h-4" />AI Recommendations
               </button>
             </>
           )}

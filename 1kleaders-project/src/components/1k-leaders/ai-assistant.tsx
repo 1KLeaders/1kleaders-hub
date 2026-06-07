@@ -17,7 +17,7 @@ const quickPrompts = [
 ];
 
 const aiMessages = [
-  { role: 'assistant', text: 'Hello! I\'m your AI Idea Assistant powered by 1K Leaders. I can help you with:\n\n• Refining and evaluating your startup ideas\n• Market research and trend analysis\n• Business model generation\n• Feasibility assessments\n• Connecting you with relevant partners\n\nHow can I help you today?' },
+  { role: 'assistant', text: 'Hello! I\'m your AI Idea Assistant powered by 1K Leaders. I can help you with:\n\n• Refining and evaluating your startup ideas\n• Market research and trend analysis\n• Business model generation\n• Feasibility assessments\n• Connecting you with relevant shareholders and AI recommendations\n\nHow can I help you today?' },
 ];
 
 export default function AIAssistant({}: Props) {
@@ -67,9 +67,9 @@ export default function AIAssistant({}: Props) {
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           { icon: Lightbulb, title: 'Idea Refinement', desc: 'Shape and improve your startup concept', color: 'bg-[#f07969]/5 text-[#f07969]' },
-          { icon: TrendingUp, title: 'Market Analysis', desc: 'Real-time sector trends & insights', color: 'bg-[#e33b5f]/5 text-[#e33b5f]' },
-          { icon: Target, title: 'Feasibility Score', desc: 'AI-powered venture evaluation', color: 'bg-purple-50 text-purple-600' },
-          { icon: Sparkles, title: 'Business Model', desc: 'Generate complete business canvases', color: 'bg-sky-50 text-sky-600' },
+          { icon: Sparkles, title: 'Recommendations', desc: 'AI-generated strategic recommendations', color: 'bg-[#e33b5f]/5 text-[#e33b5f]' },
+          { icon: Target, title: 'Startup Insights', desc: 'AI-powered venture evaluation', color: 'bg-purple-50 text-purple-600' },
+          { icon: TrendingUp, title: 'Growth Opportunities', desc: 'Suggested partnerships and expansion ideas', color: 'bg-sky-50 text-sky-600' },
         ].map(f => (
           <Card key={f.title} className="hover:shadow-md transition cursor-pointer">
             <CardContent className="p-4 text-center">

@@ -10,15 +10,15 @@ import { Upload, Search, FileText, Download, Eye, CheckCircle, Clock, Shield, Fo
 import type { DashboardRole } from './types';
 interface Props { role?: DashboardRole; }
 
-const categories = ['All', 'KYC', 'Agreements', 'Company', 'Idea', 'Financial', 'Partner'];
+const categories = ['All', 'KYC', 'Agreements', 'Company', 'Idea', 'Financial', 'Shareholder'];
 
 const docs = [
   { id: 1, name: 'National ID - Ahmed Al-Rashid', category: 'KYC', status: 'verified', date: '2026-05-15', size: '2.4 MB' },
-  { id: 2, name: 'Partner Agreement v2', category: 'Agreements', status: 'pending', date: '2026-05-18', size: '1.1 MB' },
+  { id: 2, name: 'Shareholder Agreement v2', category: 'Agreements', status: 'pending', date: '2026-05-18', size: '1.1 MB' },
   { id: 3, name: 'Business Plan - GreenTech', category: 'Idea', status: 'verified', date: '2026-05-17', size: '5.2 MB' },
   { id: 4, name: 'Financial Report Q1 2026', category: 'Financial', status: 'verified', date: '2026-05-10', size: '3.7 MB' },
   { id: 5, name: 'Certificate of Incorporation', category: 'Company', status: 'verified', date: '2026-04-20', size: '890 KB' },
-  { id: 6, name: 'Partner KYC - Sara M.', category: 'Partner', status: 'pending', date: '2026-05-19', size: '1.8 MB' },
+  { id: 6, name: 'Shareholder KYC - Sara M.', category: 'Shareholder', status: 'pending', date: '2026-05-19', size: '1.8 MB' },
   { id: 7, name: 'NDA - TechVentures', category: 'Agreements', status: 'expired', date: '2026-03-01', size: '450 KB' },
   { id: 8, name: 'Tax Registration', category: 'Company', status: 'verified', date: '2026-04-15', size: '320 KB' },
 ];

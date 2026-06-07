@@ -11,11 +11,11 @@ import { FileText, Search, Plus, Eye, Send, Clock, CheckCircle, XCircle, Downloa
 type Props = Record<string, never>;
 
 const agreements = [
-  { id: 1, title: 'Partner Agreement - Ahmed Al-Rashid', type: 'Partner', status: 'signed', date: '2026-05-15', party: 'Ahmed Al-Rashid' },
+  { id: 1, title: 'Shareholder Agreement - Ahmed Al-Rashid', type: 'Shareholder', status: 'signed', date: '2026-05-15', party: 'Ahmed Al-Rashid' },
   { id: 2, title: 'NDA - TechVentures LLC', type: 'NDA', status: 'sent', date: '2026-05-18', party: 'TechVentures LLC' },
   { id: 3, title: 'Shareholder Agreement - Fatima K.', type: 'Shareholder', status: 'viewed', date: '2026-05-17', party: 'Fatima Khalid' },
   { id: 4, title: 'Idea Submission - GreenTech', type: 'Idea Submission', status: 'expired', date: '2026-04-20', party: 'Omar Hassan' },
-  { id: 5, title: 'Partner Agreement - Sara M.', type: 'Partner', status: 'signed', date: '2026-05-10', party: 'Sara Mohammed' },
+  { id: 5, title: 'Shareholder Agreement - Sara M.', type: 'Shareholder', status: 'signed', date: '2026-05-10', party: 'Sara Mohammed' },
   { id: 6, title: 'NDA - InnovateCo', type: 'NDA', status: 'sent', date: '2026-05-19', party: 'InnovateCo' },
 ];
 
@@ -55,7 +55,7 @@ export default function AgreementsPage({}: Props) {
           <SelectTrigger className="w-40"><SelectValue placeholder="Filter by type" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="partner">Partner</SelectItem>
+            <SelectItem value="shareholder">Shareholder</SelectItem>
             <SelectItem value="shareholder">Shareholder</SelectItem>
             <SelectItem value="nda">NDA</SelectItem>
             <SelectItem value="idea submission">Idea Submission</SelectItem>

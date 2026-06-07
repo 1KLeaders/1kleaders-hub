@@ -37,17 +37,17 @@ interface SuperAdminDashboardProps {
 
 const platformMetrics = [
   { title: 'Total Users', value: '2,847', change: '+156 this month', icon: Users, color: 'emerald' },
-  { title: 'Active Partners', value: '487', change: '+23 this quarter', icon: Shield, color: 'amber' },
+  { title: 'Active Shareholders', value: '487', change: '+23 this quarter', icon: Shield, color: 'amber' },
   { title: 'Platform Revenue', value: '$2.4M', change: '+18.5% YoY', icon: DollarSign, color: 'emerald' },
   { title: 'System Health', value: '99.9%', change: 'All systems operational', icon: Activity, color: 'emerald' },
 ]
 
 const users = [
-  { name: 'Ahmed Al-Rashid', email: 'ahmed@example.com', role: 'Partner', status: 'Active', joined: 'Jan 2024' },
+  { name: 'Ahmed Al-Rashid', email: 'ahmed@example.com', role: 'Shareholder', status: 'Active', joined: 'Jan 2024' },
   { name: 'Sarah Johnson', email: 'sarah@example.com', role: 'Investor', status: 'Active', joined: 'Feb 2024' },
   { name: 'Mohammed Hassan', email: 'mohammed@example.com', role: 'Idea Owner', status: 'Pending', joined: 'Mar 2024' },
   { name: 'Fatima Al-Zahra', email: 'fatima@example.com', role: 'Shareholder', status: 'Active', joined: 'Jan 2024' },
-  { name: 'James Wilson', email: 'james@example.com', role: 'Partner', status: 'Suspended', joined: 'Dec 2023' },
+  { name: 'James Wilson', email: 'james@example.com', role: 'Shareholder', status: 'Suspended', joined: 'Dec 2023' },
   { name: 'Layla Noor', email: 'layla@example.com', role: 'Admin', status: 'Active', joined: 'Nov 2023' },
 ]
 
@@ -107,7 +107,7 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
       {/* Quick Access Cards */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { title: 'User Management', icon: Users, desc: 'Manage roles & access', color: 'emerald', page: 'partners' },
+          { title: 'User Management', icon: Users, desc: 'Manage roles & access', color: 'emerald', page: 'shareholders' },
           { title: 'System Settings', icon: Settings, desc: 'Configure platform', color: 'stone', page: 'settings' },
           { title: 'Financial Overview', icon: DollarSign, desc: 'Revenue & reports', color: 'amber', page: 'agreements' },
           { title: 'Idea Pipeline', icon: Lightbulb, desc: 'Review submissions', color: 'emerald', page: 'idea-submission' },

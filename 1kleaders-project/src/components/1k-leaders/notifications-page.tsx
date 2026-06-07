@@ -13,7 +13,7 @@ const notifications = [
   { id: 3, title: 'Investment milestone reached', desc: 'Your portfolio has exceeded the $2M mark.', type: 'success', time: '3 hours ago', read: false },
   { id: 4, title: 'KYC verification expiring', desc: 'Your identity documents expire in 30 days. Please update.', type: 'warning', time: '6 hours ago', read: true },
   { id: 5, title: 'New idea submitted for review', desc: 'A new idea in the FinTech sector has been submitted.', type: 'info', time: '1 day ago', read: true },
-  { id: 6, title: 'Meeting reminder', desc: 'Partner meeting scheduled for tomorrow at 10 AM.', type: 'action', time: '1 day ago', read: true },
+  { id: 6, title: 'ACTION REQUIRED', desc: 'Approve pending startup submission before tomorrow at 10 AM.', type: 'action', time: '1 day ago', read: false },
   { id: 7, title: 'Dividend payment received', desc: 'Q4 dividend of $12,500 has been credited.', type: 'success', time: '2 days ago', read: true },
   { id: 8, title: 'System maintenance notice', desc: 'Platform maintenance scheduled for Saturday 2 AM.', type: 'warning', time: '3 days ago', read: true },
 ];

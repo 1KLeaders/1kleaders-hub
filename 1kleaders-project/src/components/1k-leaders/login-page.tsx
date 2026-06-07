@@ -8,11 +8,11 @@ import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, ChevronDown, Users, Lightbulb, Handshake, TrendingUp, Shield, UserCircle, Building2, Star, GraduationCap, Rocket } from 'lucide-react';
 import type { Page, DashboardRole } from './types';
 
-interface Props { navigate: (page: Page) => void; type?: 'partner' | 'idea-owner'; onRoleSelect?: (role: DashboardRole) => void; }
+interface Props { navigate: (page: Page) => void; type?: 'shareholder' | 'idea-owner'; onRoleSelect?: (role: DashboardRole) => void; }
 
 const roles: { id: DashboardRole; label: string; icon: React.ReactNode; desc: string }[] = [
   { id: 'shareholder',   label: 'Shareholder',  icon: <Building2 className="w-5 h-5" />,     desc: 'Access shareholder dashboard & portfolio' },
-  { id: 'partner',       label: 'Partner',       icon: <Handshake className="w-5 h-5" />,     desc: 'Manage partnerships & ventures' },
+  { id: 'shareholder',       label: 'Shareholder',       icon: <Handshake className="w-5 h-5" />,     desc: 'Manage shareholderships & ventures' },
   { id: 'investor',      label: 'Investor',      icon: <TrendingUp className="w-5 h-5" />,    desc: 'Track investments & returns' },
   { id: 'idea-owner',    label: 'Idea Owner',    icon: <Lightbulb className="w-5 h-5" />,     desc: 'Submit & manage your ideas' },
   { id: 'co-founder',    label: 'Co-Founder',    icon: <Rocket className="w-5 h-5" />,        desc: 'Build startups as a co-founder' },
@@ -26,7 +26,7 @@ const roles: { id: DashboardRole; label: string; icon: React.ReactNode; desc: st
 
 export default function LoginPage({ navigate, type, onRoleSelect }: Props) {
   const [selectedRole, setSelectedRole] = useState<DashboardRole>(
-    type === 'idea-owner' ? 'idea-owner' : type === 'partner' ? 'partner' : 'shareholder'
+    type === 'idea-owner' ? 'idea-owner' : type === 'shareholder' ? 'shareholder' : 'shareholder'
   );
   const [showPassword, setShowPassword] = useState(false);
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);

@@ -27,7 +27,7 @@ import {
   AlertCircle
 } from 'lucide-react'
 
-interface PartnerDashboardProps {
+interface ShareholderDashboardProps {
   onNavigate: (page: string) => void
 }
 
@@ -35,14 +35,14 @@ const metrics = [
   { title: 'Total Investments', value: '$1.25M', change: '+12.5%', icon: DollarSign, color: 'emerald' },
   { title: 'Active Ventures', value: '8', change: '+2', icon: Briefcase, color: 'amber' },
   { title: 'Average ROI', value: '18.4%', change: '+3.2%', icon: TrendingUp, color: 'emerald' },
-  { title: 'Partner Level', value: 'Gold', change: 'Next: Platinum', icon: Award, color: 'amber' },
+  { title: 'Shareholder Level', value: 'Gold', change: 'Next: Platinum', icon: Award, color: 'amber' },
 ]
 
 const recentActivities = [
   { action: 'Investment confirmed in TechVenture AI', time: '2 hours ago', type: 'success' },
   { action: 'New agreement sent for review', time: '5 hours ago', type: 'info' },
   { action: 'Quarterly dividend received - $12,500', time: '1 day ago', type: 'success' },
-  { action: 'Partner meeting scheduled for March 15', time: '2 days ago', type: 'info' },
+  { action: 'Shareholder meeting scheduled for March 15', time: '2 days ago', type: 'info' },
   { action: 'Idea evaluation completed for GreenTech', time: '3 days ago', type: 'success' },
   { action: 'Document verification pending', time: '4 days ago', type: 'warning' },
 ]
@@ -56,13 +56,13 @@ const activeVentures = [
 ]
 
 const upcomingEvents = [
-  { title: 'Quarterly Partner Meeting', date: 'Mar 15, 2026', time: '10:00 AM', type: 'Meeting' },
+  { title: 'Quarterly Shareholder Meeting', date: 'Mar 15, 2026', time: '10:00 AM', type: 'Meeting' },
   { title: 'Demo Day - Spring Cohort', date: 'Mar 22, 2026', time: '2:00 PM', type: 'Event' },
   { title: 'Investment Committee Review', date: 'Mar 28, 2026', time: '9:00 AM', type: 'Review' },
   { title: 'AGM Annual Meeting', date: 'Apr 5, 2026', time: '11:00 AM', type: 'Meeting' },
 ]
 
-export function PartnerDashboard({ onNavigate }: PartnerDashboardProps) {
+export function ShareholderDashboard({ onNavigate }: ShareholderDashboardProps) {
   return (
     <div className="space-y-6">
       {/* Welcome Card */}
@@ -71,10 +71,10 @@ export function PartnerDashboard({ onNavigate }: PartnerDashboardProps) {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold mb-1">Welcome back, Ahmed! 👋</h1>
-              <p className="text-emerald-100">Your partner dashboard is up to date. Here&apos;s your latest overview.</p>
+              <p className="text-emerald-100">Your shareholder dashboard is up to date. Here&apos;s your latest overview.</p>
             </div>
             <Badge className="bg-amber-500/20 text-amber-200 border-amber-500/30 text-sm px-3 py-1">
-              <Award className="w-3.5 h-3.5 mr-1" /> Gold Partner
+              <Award className="w-3.5 h-3.5 mr-1" /> Gold Shareholder
             </Badge>
           </div>
         </CardContent>
@@ -161,7 +161,7 @@ export function PartnerDashboard({ onNavigate }: PartnerDashboardProps) {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg text-stone-900">Active Ventures</CardTitle>
-            <Button variant="outline" size="sm" className="border-emerald-300 text-emerald-700" onClick={() => onNavigate('partners')}>
+            <Button variant="outline" size="sm" className="border-emerald-300 text-emerald-700" onClick={() => onNavigate('shareholders')}>
               View All
             </Button>
           </div>
@@ -228,13 +228,13 @@ export function PartnerDashboard({ onNavigate }: PartnerDashboardProps) {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-stone-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => onNavigate('partners')}>
+        <Card className="border-stone-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => onNavigate('shareholders')}>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
               <Users className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <p className="font-semibold text-stone-900">Connect Partners</p>
+              <p className="font-semibold text-stone-900">Connect Shareholders</p>
               <p className="text-xs text-stone-500">Network & collaborate</p>
             </div>
           </CardContent>

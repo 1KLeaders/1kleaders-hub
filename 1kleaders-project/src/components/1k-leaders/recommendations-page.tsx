@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -22,7 +23,7 @@ const statusConfig: Record<RecStatus, { label: string; color: string }> = {
   'implemented':   { label: 'Implemented',              color: 'bg-[#e33b5f] text-white border-[#e33b5f]' },
 };
 
-const categories = ['Operational Improvement', 'Governance Suggestion', 'Partnership Opportunity', 'Market Observation', 'Ideas & Feedback', 'Technology Suggestion', 'Other'];
+const categories = ['Operational Improvement', 'Governance Suggestion', 'Shareholder Opportunity', 'Market Observation', 'Ideas & Feedback', 'Technology Suggestion', 'Other'];
 
 const myRecs = [
   { id: 1, title: 'Partner Mentorship Program', category: 'Operational Improvement', status: 'implemented' as RecStatus, date: 'Apr 2, 2026', aiNote: 'Clear, relevant, and actionable. No duplicates found.' },
