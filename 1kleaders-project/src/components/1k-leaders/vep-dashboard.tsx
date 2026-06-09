@@ -19,14 +19,10 @@ const assignedIdeas = [
 ];
 
 const scoringCriteria = [
-  { key: 'problem',    label: 'Problem Clarity',          max: 10, desc: 'Is the problem well-defined and significant?' },
-  { key: 'solution',   label: 'Solution Innovation',      max: 10, desc: 'Is the solution innovative and feasible?' },
-  { key: 'market',     label: 'Market Size & Potential',  max: 10, desc: 'Is there a large enough addressable market?' },
-  { key: 'team',       label: 'Founder / Team Quality',   max: 10, desc: 'Does the team have the skills to execute?' },
-  { key: 'model',      label: 'Business Model Viability', max: 10, desc: 'Is the revenue model credible?' },
-  { key: 'traction',   label: 'Traction / Validation',    max: 10, desc: 'Is there any existing evidence of demand?' },
-  { key: 'risk',       label: 'Risk Assessment',          max: 10, desc: 'Are key risks identified and manageable?' },
-  { key: 'impact',     label: 'Regional Impact',          max: 10, desc: 'Does it benefit the MENA ecosystem?' },
+  { key: 'product',      label: 'Product/Service',          max: 25, desc: 'How strong and innovative is the product or service?' },
+  { key: 'market',       label: 'Market Opportunity',       max: 25, desc: 'Is there a large and accessible market opportunity?' },
+  { key: 'competitive',  label: 'Competitive Advantage',    max: 25, desc: 'Does the startup have a defensible competitive moat?' },
+  { key: 'businessModel',label: 'Business Model',           max: 25, desc: 'Is the revenue model credible and sustainable?' },
 ];
 
 export default function VEPDashboard() {
@@ -55,7 +51,7 @@ export default function VEPDashboard() {
           <h1 className="text-2xl font-bold text-[#222] flex items-center gap-2">
             <ClipboardCheck className="w-6 h-6 text-[#e33b5f]" /> VEP Review Dashboard
           </h1>
-          <p className="text-[#7e7e7e]">Venture Evaluation Panel — score and evaluate assigned ideas</p>
+          <p className="text-[#7e7e7e]">Venture Evaluation Panel — score ideas using the VEP Score framework</p>
         </div>
 
         {/* Stats */}

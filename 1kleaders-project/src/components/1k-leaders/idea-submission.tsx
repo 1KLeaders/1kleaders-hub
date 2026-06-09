@@ -25,8 +25,7 @@ function isHackathonOpen(): boolean {
 }
 
 function isIdeaOwner(role: DashboardRole): boolean {
-  // Idea submission open to: idea-owners, co-founders, partners, shareholders, admins
-  return ['idea-owner', 'partner', 'shareholder', 'admin', 'super-admin', 'user'].includes(role);
+  return role === 'idea-owner';
 }
 
 // Countdown component
@@ -126,6 +125,10 @@ function SuggestionBot({ navigate }: { navigate: (page: string) => void }) {
 
 export default function IdeaSubmission({ role, navigate }: Props) {
   const [section, setSection] = useState(1);
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [otherCategory, setOtherCategory] = useState('');
+  const [selectedRevModel, setSelectedRevModel] = useState('');
+  const [otherRevModel, setOtherRevModel] = useState('');
   const sections = ['Basic Info', 'Problem & Solution', 'Market & Business', 'Team', 'Documents'];
   const progress = (section / sections.length) * 100;
 
@@ -159,9 +162,10 @@ export default function IdeaSubmission({ role, navigate }: Props) {
             {section === 1 && (<>
               <div><Label>Idea Title</Label><Input placeholder="Give your idea a compelling name" /></div>
               <div><Label>Category</Label>
-                <Select><SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
-                  <SelectContent>{['FinTech', 'HealthTech', 'EdTech', 'PropTech', 'CleanTech', 'AgriTech', 'E-Commerce', 'SaaS', 'AI/ML'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}><SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectContent>{['FinTech', 'HealthTech', 'EdTech', 'PropTech', 'CleanTech', 'AgriTech', 'E-Commerce', 'SaaS', 'AI/ML', 'Other'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                 </Select>
+                {selectedCategory === 'Other' && <Input placeholder="Please specify your category..." className="mt-2" value={otherCategory} onChange={e => setOtherCategory(e.target.value)} />}
               </div>
               <div><Label>Idea Description</Label><Textarea placeholder="Describe your idea in detail..." rows={4} /></div>
             </>)}
@@ -173,9 +177,10 @@ export default function IdeaSubmission({ role, navigate }: Props) {
             {section === 3 && (<>
               <div><Label>Target Market</Label><Textarea placeholder="Who are your target customers?" rows={2} /></div>
               <div><Label>Business Model</Label>
-                <Select><SelectTrigger><SelectValue placeholder="Select model" /></SelectTrigger>
-                  <SelectContent>{['SaaS Subscription', 'Marketplace', 'Freemium', 'Licensing', 'Direct Sales', 'Advertising'].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                <Select value={selectedRevModel} onValueChange={setSelectedRevModel}><SelectTrigger><SelectValue placeholder="Select model" /></SelectTrigger>
+                  <SelectContent>{['SaaS Subscription', 'Marketplace', 'Freemium', 'Licensing', 'Direct Sales', 'Advertising', 'Other'].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                 </Select>
+                {selectedRevModel === 'Other' && <Input placeholder="Please specify your revenue model..." className="mt-2" value={otherRevModel} onChange={e => setOtherRevModel(e.target.value)} />}
               </div>
               <div><Label>Revenue Model</Label><Textarea placeholder="How will you generate revenue?" rows={2} /></div>
               <div><Label>Startup Stage</Label>
@@ -256,9 +261,10 @@ export default function IdeaSubmission({ role, navigate }: Props) {
             {section === 1 && (<>
               <div><Label>Idea Title</Label><Input placeholder="Give your idea a compelling name" /></div>
               <div><Label>Category</Label>
-                <Select><SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
-                  <SelectContent>{['FinTech', 'HealthTech', 'EdTech', 'PropTech', 'CleanTech', 'AgriTech', 'E-Commerce', 'SaaS', 'AI/ML'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}><SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectContent>{['FinTech', 'HealthTech', 'EdTech', 'PropTech', 'CleanTech', 'AgriTech', 'E-Commerce', 'SaaS', 'AI/ML', 'Other'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                 </Select>
+                {selectedCategory === 'Other' && <Input placeholder="Please specify your category..." className="mt-2" value={otherCategory} onChange={e => setOtherCategory(e.target.value)} />}
               </div>
               <div><Label>Idea Description</Label><Textarea placeholder="Describe your idea in detail..." rows={4} /></div>
             </>)}
@@ -270,9 +276,10 @@ export default function IdeaSubmission({ role, navigate }: Props) {
             {section === 3 && (<>
               <div><Label>Target Market</Label><Textarea placeholder="Who are your target customers?" rows={2} /></div>
               <div><Label>Business Model</Label>
-                <Select><SelectTrigger><SelectValue placeholder="Select model" /></SelectTrigger>
-                  <SelectContent>{['SaaS Subscription', 'Marketplace', 'Freemium', 'Licensing', 'Direct Sales', 'Advertising'].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                <Select value={selectedRevModel} onValueChange={setSelectedRevModel}><SelectTrigger><SelectValue placeholder="Select model" /></SelectTrigger>
+                  <SelectContent>{['SaaS Subscription', 'Marketplace', 'Freemium', 'Licensing', 'Direct Sales', 'Advertising', 'Other'].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                 </Select>
+                {selectedRevModel === 'Other' && <Input placeholder="Please specify your revenue model..." className="mt-2" value={otherRevModel} onChange={e => setOtherRevModel(e.target.value)} />}
               </div>
               <div><Label>Revenue Model</Label><Textarea placeholder="How will you generate revenue?" rows={2} /></div>
               <div><Label>Startup Stage</Label>

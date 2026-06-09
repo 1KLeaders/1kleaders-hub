@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { TrendingUp, DollarSign, Users, Briefcase, ArrowUpRight, ArrowDownRight, Calendar, CheckCircle, Lightbulb, Rocket, Star, Bot, BarChart3, MessageSquare } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { TrendingUp, DollarSign, Users, Briefcase, ArrowUpRight, ArrowDownRight, Calendar, CheckCircle, Lightbulb, Rocket, Star, Bot, BarChart3, MessageSquare, Linkedin, FileText, ExternalLink, Building2 } from 'lucide-react';
 import type { DashboardRole, DashboardPriority, RoleBadge } from './types';
 import { roleBadgeConfig } from './types';
 
@@ -16,8 +17,8 @@ function DigitalBadge({ role }: { role: RoleBadge }) {
   return <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium border ${config.color}`}>{config.icon} {config.label}</span>;
 }
 
-const dashboards: Record<DashboardRole, { metrics: { label: string; value: string; change: string; up: boolean; icon: any }[]; title: string; subtitle: string }> = {
-  partner: {
+const dashboards: Record<string, { metrics: { label: string; value: string; change: string; up: boolean; icon: any }[]; title: string; subtitle: string }> = {
+  shareholder: {
     title: 'Welcome back, Shareholder',
     subtitle: 'Here\'s your venture portfolio overview',
     metrics: [
@@ -25,6 +26,16 @@ const dashboards: Record<DashboardRole, { metrics: { label: string; value: strin
       { label: 'Active Ventures', value: '8', change: '+2', up: true, icon: Briefcase },
       { label: 'Portfolio ROI', value: '23.4%', change: '+3.2%', up: true, icon: TrendingUp },
       { label: 'Shareholder Level', value: 'Gold', change: 'Next: Platinum', up: true, icon: Users },
+    ],
+  },
+  founder: {
+    title: 'Founder Dashboard',
+    subtitle: 'Manage your startup and track progress',
+    metrics: [
+      { label: 'Startup Stage', value: 'Seed', change: 'Progressing', up: true, icon: Briefcase },
+      { label: 'VEP Score', value: '74/100', change: '+5 this month', up: true, icon: TrendingUp },
+      { label: 'Investor Interest', value: '12', change: '+3 new', up: true, icon: Users },
+      { label: 'Next Milestone', value: '14 days', change: 'Demo Day', up: true, icon: Calendar },
     ],
   },
   'super-admin': {
@@ -110,11 +121,17 @@ const dashboards: Record<DashboardRole, { metrics: { label: string; value: strin
 };
 
 const activities: Record<DashboardRole, { text: string; time: string; type: string }[]> = {
-  partner: [
+  shareholder: [
     { text: 'New venture "GreenTech Solutions" added to portfolio', time: '2 hours ago', type: 'info' },
     { text: 'Monthly ROI report is now available', time: '5 hours ago', type: 'success' },
     { text: 'Shareholder meeting scheduled for tomorrow', time: '1 day ago', type: 'warning' },
     { text: 'Investment milestone reached: $2M+', time: '2 days ago', type: 'success' },
+  ],
+  founder: [
+    { text: 'VEP evaluation completed for your startup', time: '2 hours ago', type: 'success' },
+    { text: 'New investor expressed interest in your pitch', time: '1 day ago', type: 'success' },
+    { text: 'Startup profile updated successfully', time: '2 days ago', type: 'info' },
+    { text: 'Demo Day scheduled for next week', time: '3 days ago', type: 'info' },
   ],
   'super-admin': [
     { text: '15 new user registrations today', time: '1 hour ago', type: 'info' },
@@ -143,7 +160,7 @@ const activities: Record<DashboardRole, { text: string; time: string; type: stri
   'idea-owner': [
     { text: 'Your idea "GreenTech" ranked #1 in CleanTech', time: '1 hour ago', type: 'success' },
     { text: 'VEP feedback is ready for review', time: '5 hours ago', type: 'info' },
-    { text: 'New VVP assignment: Evaluate SmartFarm idea', time: '1 day ago', type: 'warning' },
+    { text: 'New VEP assignment: Evaluate SmartFarm idea', time: '1 day ago', type: 'warning' },
     { text: 'Demo Day registration is open', time: '2 days ago', type: 'warning' },
   ],
   user: [
@@ -164,10 +181,22 @@ const activities: Record<DashboardRole, { text: string; time: string; type: stri
 };
 
 const startupHighlights = [
-  { name: 'GreenTech Solutions', sector: 'CleanTech', stage: 'Series A', roi: '+23%', status: 'Active' },
-  { name: 'HealthConnect', sector: 'HealthTech', stage: 'Seed', roi: '+15%', status: 'Active' },
-  { name: 'EduPay', sector: 'FinTech', stage: 'Pre-Seed', roi: '+8%', status: 'Evaluating' },
-  { name: 'PropEase', sector: 'PropTech', stage: 'Series A', roi: '+31%', status: 'Active' },
+  {
+    name: 'GreenTech Solutions', sector: 'CleanTech', stage: 'Series A', roi: '+23%', status: 'Active',
+    logo: null, companyLinkedIn: '', pitchDeck: '', description: '', founded: '', team: '', website: '', moreInfo: '',
+  },
+  {
+    name: 'HealthConnect', sector: 'HealthTech', stage: 'Seed', roi: '+15%', status: 'Active',
+    logo: null, companyLinkedIn: '', pitchDeck: '', description: '', founded: '', team: '', website: '', moreInfo: '',
+  },
+  {
+    name: 'EduPay', sector: 'FinTech', stage: 'Pre-Seed', roi: '+8%', status: 'Evaluating',
+    logo: null, companyLinkedIn: '', pitchDeck: '', description: '', founded: '', team: '', website: '', moreInfo: '',
+  },
+  {
+    name: 'PropEase', sector: 'PropTech', stage: 'Series A', roi: '+31%', status: 'Active',
+    logo: null, companyLinkedIn: '', pitchDeck: '', description: '', founded: '', team: '', website: '', moreInfo: '',
+  },
 ];
 
 const ideaHighlights = [
@@ -179,6 +208,7 @@ const ideaHighlights = [
 
 export default function DashboardHome({ role, navigate }: Props) {
   const [priority, setPriority] = useState<DashboardPriority>('balanced');
+  const [selectedStartup, setSelectedStartup] = useState<typeof startupHighlights[0] | null>(null);
   const d = dashboards[role];
   const acts = activities[role] || [];
 
@@ -286,7 +316,11 @@ export default function DashboardHome({ role, navigate }: Props) {
           <CardContent>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {startupHighlights.map(s => (
-                <div key={s.name} className="p-3 border rounded-lg hover:shadow-md transition cursor-pointer">
+                <div key={s.name} className="p-3 border rounded-lg hover:shadow-md transition cursor-pointer hover:border-[#e33b5f]/30" onClick={() => setSelectedStartup(s)}>
+                  <div className="w-8 h-8 rounded-lg bg-[#f6f6f6] flex items-center justify-center mb-2 border border-[#e8e8e8]">
+                    {/* [COMPANY LOGO PLACEHOLDER] */}
+                    <Building2 className="w-4 h-4 text-[#9e9e9e]" />
+                  </div>
                   <h4 className="font-semibold text-sm text-[#222]">{s.name}</h4>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="secondary" className="text-xs">{s.sector}</Badge>
@@ -387,6 +421,86 @@ export default function DashboardHome({ role, navigate }: Props) {
           </CardContent>
         </Card>
       )}
+
+      {/* Startup Detail Modal */}
+      <Dialog open={!!selectedStartup} onOpenChange={() => setSelectedStartup(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Startup Profile</DialogTitle>
+          </DialogHeader>
+          {selectedStartup && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-xl bg-[#f6f6f6] border border-[#e8e8e8] flex items-center justify-center flex-shrink-0">
+                  {/* [COMPANY LOGO PLACEHOLDER] */}
+                  <Building2 className="w-8 h-8 text-[#d0d0d0]" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-[#222]">{selectedStartup.name}</h2>
+                  {/* [COMPANY NAME] */}
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <Badge variant="secondary">{selectedStartup.sector}</Badge>
+                    <Badge variant="outline">{selectedStartup.stage}</Badge>
+                    <Badge className={`text-xs ${selectedStartup.status === 'Active' ? 'bg-[#e33b5f]/10 text-[#e33b5f]' : 'bg-[#f07969]/10 text-[#f07969]'}`}>{selectedStartup.status}</Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Description placeholder */}
+              <div className="p-3 bg-[#f6f6f6] rounded-lg border border-dashed border-[#d0d0d0]">
+                <p className="text-xs text-[#9e9e9e] italic">
+                  {selectedStartup.description || '[Company description will appear here]'}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="p-2 bg-[#fbfbfb] rounded-lg">
+                  <p className="text-xs text-[#9e9e9e]">Founded</p>
+                  <p className="font-medium text-[#222]">{selectedStartup.founded || '[Year]'}</p>
+                </div>
+                <div className="p-2 bg-[#fbfbfb] rounded-lg">
+                  <p className="text-xs text-[#9e9e9e]">Team Size</p>
+                  <p className="font-medium text-[#222]">{selectedStartup.team || '[Team size]'}</p>
+                </div>
+                <div className="p-2 bg-[#fbfbfb] rounded-lg">
+                  <p className="text-xs text-[#9e9e9e]">ROI</p>
+                  <p className={`font-bold ${selectedStartup.roi.startsWith('+') ? 'text-[#e33b5f]' : 'text-red-600'}`}>{selectedStartup.roi}</p>
+                </div>
+                <div className="p-2 bg-[#fbfbfb] rounded-lg">
+                  <p className="text-xs text-[#9e9e9e]">Website</p>
+                  <p className="font-medium text-[#222] truncate">{selectedStartup.website || '[Website]'}</p>
+                </div>
+              </div>
+
+              {/* Links */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-[#555353]">
+                  <Linkedin className="w-4 h-4 text-[#9e9e9e]" />
+                  <span className="text-[#9e9e9e] italic">{selectedStartup.companyLinkedIn || '[Company LinkedIn URL]'}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-[#555353]">
+                  <FileText className="w-4 h-4 text-[#9e9e9e]" />
+                  <span className="text-[#9e9e9e] italic">{selectedStartup.pitchDeck || '[Pitch Deck URL]'}</span>
+                </div>
+              </div>
+
+              {/* More info placeholder */}
+              {selectedStartup.moreInfo && (
+                <div className="p-3 bg-[#f6f6f6] rounded-lg">
+                  <p className="text-xs text-[#7e7e7e]">{selectedStartup.moreInfo}</p>
+                </div>
+              )}
+              {!selectedStartup.moreInfo && (
+                <div className="p-3 bg-[#f6f6f6] rounded-lg border border-dashed border-[#d0d0d0]">
+                  <p className="text-xs text-[#9e9e9e] italic">[Additional information, metrics, milestones etc. will appear here]</p>
+                </div>
+              )}
+
+              <Button variant="outline" className="w-full" onClick={() => setSelectedStartup(null)}>Close</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

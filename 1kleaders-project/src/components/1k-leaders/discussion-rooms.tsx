@@ -7,10 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageSquare, Send, Plus, Users, Lock, Video, Search, Hash, ArrowRight, Shield } from 'lucide-react';
-import type { DashboardRole, Page } from './types';
+import type { DashboardRole } from './types';
 import { roleBadgeConfig } from './types';
 
-interface Props { role: DashboardRole; navigate?: (page: Page) => void; }
+interface Props { role: DashboardRole; }
 
 const rooms = [
   { id: 1, name: 'General Shareholders', members: 42, lastMessage: 'Q4 dividend discussion ongoing...', time: '5 min ago', type: 'general', unread: 3 },
@@ -29,7 +29,7 @@ const messages = [
   { id: 6, sender: 'Fatima Khalid', role: 'shareholder' as const, text: 'The deadline is May 30th. Please make sure to cast your vote before then.', time: '10:48 AM', initials: 'FK' },
 ];
 
-function DigitalBadge({ role }: { role: 'shareholder' | 'investor' | 'partner' | 'idea-owner' | 'admin' | 'super-admin' | 'user' | 'vvp' }) {
+function DigitalBadge({ role }: { role: 'shareholder' | 'investor' | 'idea-owner' | 'admin' | 'super-admin' | 'user' | 'founder' }) {
   const config = roleBadgeConfig[role];
   if (!config) return null;
   return (
@@ -39,7 +39,7 @@ function DigitalBadge({ role }: { role: 'shareholder' | 'investor' | 'partner' |
   );
 }
 
-export default function DiscussionRooms({ role, navigate }: Props) {
+export default function DiscussionRooms({ role }: Props) {
   const [selectedRoom, setSelectedRoom] = useState<number | null>(1);
   const [message, setMessage] = useState('');
   const [search, setSearch] = useState('');
@@ -141,12 +141,12 @@ export default function DiscussionRooms({ role, navigate }: Props) {
                 <div className="space-y-4">
                   {messages.map(msg => (
                     <div key={msg.id} className="flex items-start gap-3">
-                      <Avatar className="w-8 h-8 cursor-pointer hover:ring-2 hover:ring-[#e33b5f]/50 transition" onClick={() => navigate && navigate('profile')}>
+                      <Avatar className="w-8 h-8">
                         <AvatarFallback className="bg-[#e33b5f]/10 text-[#c02d4f] text-xs font-semibold">{msg.initials}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-medium text-[#222] cursor-pointer hover:text-[#e33b5f] transition" onClick={() => navigate && navigate('profile')}>{msg.sender}</span>
+                          <span className="text-sm font-medium text-[#222]">{msg.sender}</span>
                           <DigitalBadge role={msg.role} />
                           <span className="text-xs text-[#9e9e9e]">{msg.time}</span>
                         </div>

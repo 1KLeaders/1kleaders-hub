@@ -9,10 +9,10 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   LayoutDashboard, FileText, Users, Settings, Bell, Handshake, Lightbulb, LogOut,
   Menu, X, ChevronRight, FolderOpen, Calendar, MessageSquare, Bot, BarChart3,
-  ClipboardCheck, Mail, Star, ClipboardList, Shield, FileCheck, MessageCircle,
+  Mail, Star, Shield, FileCheck, MessageCircle, Rocket,
 } from 'lucide-react';
 import type { Page, DashboardRole } from './types';
-import { roleBadgeConfig, IDEA_OWNER_PAGES, WAITING_LIST_PAGES } from './types';
+import { roleBadgeConfig } from './types';
 
 interface Props {
   navigate: (page: Page) => void;
@@ -23,12 +23,12 @@ interface Props {
 }
 
 const roleLabels: Record<DashboardRole, string> = {
-  partner: 'Shareholder',
   'super-admin': 'Super Admin',
   admin: 'Admin',
   shareholder: 'Shareholder',
   investor: 'Investor',
   'idea-owner': 'Idea Owner',
+  founder: 'Founder',
   user: 'User / Prospect',
   'waiting-list': 'Waiting List',
   temporary: 'Temporary Account',
@@ -38,14 +38,14 @@ interface NavItem {
   icon: React.ElementType;
   label: string;
   page: Page;
-  roles?: DashboardRole[]; // if set, only these roles see this item
-  hideFor?: DashboardRole[]; // these roles do NOT see this item
+  roles?: DashboardRole[];
+  hideFor?: DashboardRole[];
 }
 
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', page: 'dashboard' },
   { icon: Lightbulb, label: 'Idea Submission', page: 'idea-submission' },
-  { icon: BarChart3, label: 'Idea Ranking', page: 'idea-ranking', hideFor: ['idea-owner', 'waiting-list', 'temporary', 'user'] },
+  { icon: BarChart3, label: 'Idea Ranking', page: 'idea-ranking', hideFor: ['idea-owner', 'waiting-list', 'temporary', 'user', 'founder'] },
   { icon: Calendar, label: 'Calendar', page: 'calendar', hideFor: ['idea-owner', 'waiting-list', 'temporary'] },
   { icon: MessageSquare, label: 'Discussion Rooms', page: 'discussion-rooms', hideFor: ['idea-owner', 'waiting-list', 'temporary', 'user'] },
   { icon: Bot, label: 'AI Assistant', page: 'ai-assistant' },
@@ -56,7 +56,15 @@ const navItems: NavItem[] = [
   { icon: Settings, label: 'Settings', page: 'settings' },
 ];
 
-// Waiting-list / temporary: only show KYC onboarding + core pages
+// Founder: own startup page + standard tools
+const founderNavItems: NavItem[] = [
+  { icon: LayoutDashboard, label: 'Dashboard', page: 'dashboard' },
+  { icon: Rocket, label: 'My Startup Page', page: 'idea-submission' },
+  { icon: Bot, label: 'AI Assistant', page: 'ai-assistant' },
+  { icon: Bell, label: 'Notifications', page: 'notifications' },
+  { icon: Settings, label: 'Settings', page: 'settings' },
+];
+
 const waitlistNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', page: 'dashboard' },
   { icon: FileCheck, label: 'KYC & Onboarding', page: 'kyc-onboarding' },
@@ -66,6 +74,7 @@ const waitlistNavItems: NavItem[] = [
 
 function getNavItems(role: DashboardRole): NavItem[] {
   if (role === 'waiting-list' || role === 'temporary') return waitlistNavItems;
+  if (role === 'founder') return founderNavItems;
   return navItems.filter(item => {
     if (item.roles && !item.roles.includes(role)) return false;
     if (item.hideFor && item.hideFor.includes(role)) return false;
@@ -85,7 +94,7 @@ export default function DashboardLayout({ navigate, role, setRole, currentPage, 
   const badgeInfo = roleBadgeConfig[roleBadgeKey];
   const visibleNav = getNavItems(role);
   const isAdmin = role === 'admin' || role === 'super-admin';
-  const isVEP = role === 'partner' || role === 'shareholder' || isAdmin;
+  const isVEP = role === 'shareholder' || isAdmin;
   const isMAB = isAdmin;
 
   return (
@@ -93,7 +102,6 @@ export default function DashboardLayout({ navigate, role, setRole, currentPage, 
       {sidebarOpen && <div className="fixed inset-0 bg-black/30 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
       <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-[#141414] flex flex-col transform transition-transform lg:transform-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-        {/* Logo — clicks back to dashboard */}
         <div className="p-4 flex items-center gap-3 border-b border-white/10">
           <button onClick={() => handleNav('dashboard')} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <img src="/logo-light-mid.png" alt="1KLeaders" className="h-8 object-contain" />
@@ -136,10 +144,6 @@ export default function DashboardLayout({ navigate, role, setRole, currentPage, 
                   <Shield className="w-4 h-4" />MAB Dashboard
                 </button>
               )}
-              <button onClick={() => handleNav('recommendations')}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'recommendations' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
-                <MessageCircle className="w-4 h-4" />AI Recommendations
-              </button>
             </>
           )}
 
@@ -151,10 +155,6 @@ export default function DashboardLayout({ navigate, role, setRole, currentPage, 
               <button onClick={() => handleNav('newsletter-tracking')}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'newsletter-tracking' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
                 <Mail className="w-4 h-4" />Newsletter Tracking
-              </button>
-              <button onClick={() => handleNav('vvp-assignments')}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'vvp-assignments' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
-                <ClipboardCheck className="w-4 h-4" />VVP Assignments
               </button>
             </>
           )}

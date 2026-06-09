@@ -17,20 +17,33 @@ import NotificationsPage from '@/components/1k-leaders/notifications-page';
 import ProfilePage from '@/components/1k-leaders/profile-page';
 import CalendarPage from '@/components/1k-leaders/calendar-page';
 import DiscussionRooms from '@/components/1k-leaders/discussion-rooms';
-import AIAssistant from '@/components/1k-leaders/ai-assistant';
-import VVPAssignments from '@/components/1k-leaders/vvp-assignments';
+import RecommendationsPage from '@/components/1k-leaders/recommendations-page';
 import NewsletterTracking from '@/components/1k-leaders/newsletter-tracking';
 import VEPDashboard from '@/components/1k-leaders/vep-dashboard';
-import MABDashboard from '@/components/1k-leaders/mab-dashboard';
-import RecommendationsPage from '@/components/1k-leaders/recommendations-page';
+
+// MAB Dashboard (inline placeholder since no separate file yet)
+function MABDashboard() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-[#222] flex items-center gap-2">
+          🛡️ MAB Dashboard
+        </h1>
+        <p className="text-[#7e7e7e]">Management Advisory Board — evaluate startups using MAB criteria</p>
+      </div>
+      <div className="p-8 text-center bg-white rounded-xl border border-[#f0f0f0]">
+        <p className="text-[#9e9e9e] text-sm">MAB Dashboard coming soon — criteria: Product & Tech, Product Market Fit, Risk Assessment, Business Model, Team</p>
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
   const [currentPage, setCurrentPage] = useState<Page>('landing');
-  const [dashboardRole, setDashboardRole] = useState<DashboardRole>('partner');
+  const [dashboardRole, setDashboardRole] = useState<DashboardRole>('shareholder');
 
   const navigate = (page: Page) => setCurrentPage(page);
 
-  // Landing & Auth pages
   if (currentPage === 'landing') return <LandingPage navigate={navigate} />;
   if (currentPage === 'waitlist') return <WaitlistForm navigate={navigate} />;
   if (currentPage === 'login') return <LoginPage navigate={navigate} onRoleSelect={setDashboardRole} />;
@@ -38,7 +51,6 @@ export default function Home() {
   if (currentPage === 'idea-owner-login') return <LoginPage navigate={navigate} type="idea-owner" onRoleSelect={setDashboardRole} />;
   if (currentPage === 'onboarding') return <OnboardingKYC navigate={navigate} />;
 
-  // Dashboard pages - all wrapped in DashboardLayout
   const renderDashboardContent = () => {
     switch (currentPage) {
       case 'dashboard':
@@ -50,23 +62,21 @@ export default function Home() {
       case 'agreements':
         return <AgreementsPage />;
       case 'documents':
-        return <DocumentsPage role={dashboardRole} />;
+        return <DocumentsPage />;
       case 'partners':
-        return <PartnersPage navigate={navigate} />;
+        return <PartnersPage role={dashboardRole} navigate={navigate} />;
       case 'settings':
         return <SettingsPage />;
       case 'notifications':
-        return <NotificationsPage navigate={navigate} />;
+        return <NotificationsPage navigate={navigate} role={dashboardRole} />;
       case 'profile':
-        return <ProfilePage navigate={navigate} role={dashboardRole} />;
+        return <ProfilePage navigate={navigate} />;
       case 'calendar':
         return <CalendarPage role={dashboardRole} />;
       case 'discussion-rooms':
-        return <DiscussionRooms role={dashboardRole} navigate={navigate} />;
+        return <DiscussionRooms role={dashboardRole} />;
       case 'ai-assistant':
-        return <AIAssistant />;
-      case 'vvp-assignments':
-        return <VVPAssignments />;
+        return <RecommendationsPage />;
       case 'newsletter-tracking':
         return <NewsletterTracking />;
       case 'vep-dashboard':
@@ -85,7 +95,7 @@ export default function Home() {
   const dashboardPages: Page[] = [
     'dashboard', 'idea-submission', 'idea-ranking', 'agreements', 'documents',
     'partners', 'settings', 'notifications', 'profile', 'calendar',
-    'discussion-rooms', 'ai-assistant', 'vvp-assignments', 'newsletter-tracking',
+    'discussion-rooms', 'ai-assistant', 'newsletter-tracking',
     'vep-dashboard', 'mab-dashboard', 'recommendations', 'kyc-onboarding',
   ];
 

@@ -245,8 +245,12 @@ export default function CalendarPage({ role }: Props) {
         <div className="w-2 h-2 rounded-full bg-[#e33b5f]/50 animate-pulse" />
       </div>
 
+      {/* ==================== TWO COLUMN LAYOUT ==================== */}
+      <div className="grid lg:grid-cols-2 gap-6 items-start">
+        {/* LEFT: Calendar */}
+        <div>
       {/* ==================== iPHONE CALENDAR ==================== */}
-      <div className="bg-white rounded-2xl shadow-sm border border-[#f0f0f0] overflow-hidden mb-6">
+      <div className="bg-white rounded-2xl shadow-sm border border-[#f0f0f0] overflow-hidden mb-4">
         {/* Month navigation - Apple style */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-[#f0f0f0]">
           <button onClick={prev} className="w-9 h-9 rounded-full hover:bg-[#f6f6f6] flex items-center justify-center transition-colors">
@@ -328,10 +332,14 @@ export default function CalendarPage({ role }: Props) {
           })}
         </div>
       </div>
+        </div>{/* end LEFT column */}
+
+        {/* RIGHT COLUMN: Selected Day, Meeting Voting, Document Expiry */}
+        <div className="space-y-4">
 
       {/* ==================== SELECTED DAY DETAIL ==================== */}
       {selectedDay && (
-        <div className="mb-6">
+        <div className="mb-4">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-14 h-14 rounded-2xl bg-[#e33b5f] flex flex-col items-center justify-center text-white shadow-lg shadow-emerald-200">
               <span className="text-[11px] font-medium leading-none">{monthNames[currentMonth].slice(0, 3).toUpperCase()}</span>
@@ -420,7 +428,7 @@ export default function CalendarPage({ role }: Props) {
                       </div>
                       <p className="text-xs text-[#9e9e9e] mt-0.5">by {vote.initiatedBy} &bull; {vote.participants.length} participants</p>
                     </div>
-                    {vote.status === 'voting' && (role === 'partner' || role === 'shareholder' || role === 'super-admin' || role === 'admin') && (
+                    {vote.status === 'voting' && (role === 'shareholder' || role === 'super-admin' || role === 'admin') && (
                       <Button size="sm" className="bg-[#e33b5f] hover:bg-[#c02d4f] rounded-xl text-xs h-8" onClick={() => confirmMeeting(vote.id)}>
                         <Check className="w-3 h-3 mr-1" /> Confirm
                       </Button>
@@ -536,6 +544,9 @@ export default function CalendarPage({ role }: Props) {
           ))}
         </div>
       </div>
+
+        </div>{/* end RIGHT column */}
+      </div>{/* end two-column grid */}
     </div>
   );
 }
