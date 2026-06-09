@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   LayoutDashboard, FileText, Users, Settings, Bell, Handshake, Lightbulb, LogOut,
   Menu, X, ChevronRight, FolderOpen, Calendar, MessageSquare, Bot, BarChart3,
-  Mail, Star, Shield, FileCheck, MessageCircle, Rocket,
+  Mail, Star, Shield, FileCheck, MessageCircle,
 } from 'lucide-react';
 import type { Page, DashboardRole } from './types';
 import { roleBadgeConfig } from './types';
@@ -42,27 +42,23 @@ interface NavItem {
   hideFor?: DashboardRole[];
 }
 
-const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', page: 'dashboard' },
-  { icon: Lightbulb, label: 'Idea Submission', page: 'idea-submission' },
-  { icon: BarChart3, label: 'Idea Ranking', page: 'idea-ranking', hideFor: ['idea-owner', 'waiting-list', 'temporary', 'user', 'founder'] },
-  { icon: Calendar, label: 'Calendar', page: 'calendar', hideFor: ['idea-owner', 'waiting-list', 'temporary'] },
-  { icon: MessageSquare, label: 'Discussion Rooms', page: 'discussion-rooms', hideFor: ['idea-owner', 'waiting-list', 'temporary', 'user'] },
-  { icon: Bot, label: 'AI Assistant', page: 'ai-assistant' },
-  { icon: FileText, label: 'Agreements', page: 'agreements', hideFor: ['idea-owner', 'waiting-list', 'user'] },
-  { icon: FolderOpen, label: 'Documents', page: 'documents', hideFor: ['idea-owner', 'waiting-list', 'user'] },
-  { icon: Handshake, label: 'Shareholders', page: 'partners', hideFor: ['idea-owner', 'waiting-list', 'temporary', 'user'] },
-  { icon: Bell, label: 'Notifications', page: 'notifications' },
-  { icon: Settings, label: 'Settings', page: 'settings' },
-];
+// Standard access roles — get the same base pages
+const standardRoles: DashboardRole[] = ['shareholder', 'founder', 'idea-owner', 'investor', 'user'];
 
-// Founder: own startup page + standard tools
-const founderNavItems: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', page: 'dashboard' },
-  { icon: Rocket, label: 'My Startup Page', page: 'idea-submission' },
-  { icon: Bot, label: 'AI Assistant', page: 'ai-assistant' },
-  { icon: Bell, label: 'Notifications', page: 'notifications' },
-  { icon: Settings, label: 'Settings', page: 'settings' },
+const navItems: NavItem[] = [
+  { icon: LayoutDashboard, label: 'Dashboard',       page: 'dashboard' },
+  { icon: Lightbulb,       label: 'Idea Submission', page: 'idea-submission' },
+  { icon: Calendar,        label: 'Calendar',        page: 'calendar',          hideFor: ['waiting-list', 'temporary'] },
+  { icon: MessageSquare,   label: 'Discussion Rooms',page: 'discussion-rooms',  hideFor: ['waiting-list', 'temporary'] },
+  { icon: Bot,             label: 'AI Assistant',    page: 'ai-assistant' },
+  { icon: FolderOpen,      label: 'Documents',       page: 'documents',         hideFor: ['waiting-list', 'temporary'] },
+  { icon: Handshake,       label: 'Shareholders',    page: 'partners',          hideFor: ['waiting-list', 'temporary'] },
+  // Idea Ranking — admin/super-admin only
+  { icon: BarChart3,       label: 'Idea Ranking',    page: 'idea-ranking',      roles: ['admin', 'super-admin'] },
+  // Agreements — admin/super-admin only (it's an assignment/management page)
+  { icon: FileText,        label: 'Agreements',      page: 'agreements',        roles: ['admin', 'super-admin'] },
+  { icon: Bell,            label: 'Notifications',   page: 'notifications' },
+  { icon: Settings,        label: 'Settings',        page: 'settings' },
 ];
 
 const waitlistNavItems: NavItem[] = [
@@ -74,7 +70,6 @@ const waitlistNavItems: NavItem[] = [
 
 function getNavItems(role: DashboardRole): NavItem[] {
   if (role === 'waiting-list' || role === 'temporary') return waitlistNavItems;
-  if (role === 'founder') return founderNavItems;
   return navItems.filter(item => {
     if (item.roles && !item.roles.includes(role)) return false;
     if (item.hideFor && item.hideFor.includes(role)) return false;
@@ -94,7 +89,7 @@ export default function DashboardLayout({ navigate, role, setRole, currentPage, 
   const badgeInfo = roleBadgeConfig[roleBadgeKey];
   const visibleNav = getNavItems(role);
   const isAdmin = role === 'admin' || role === 'super-admin';
-  const isVEP = role === 'shareholder' || isAdmin;
+  const isVEP = isAdmin;
   const isMAB = isAdmin;
 
   return (
