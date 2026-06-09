@@ -5,19 +5,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Mail, Lock, Eye, EyeOff, ChevronDown, Users, Lightbulb, TrendingUp, Shield, UserCircle, Building2, Star, Rocket } from 'lucide-react';
+import { ArrowLeft, Mail, Lock, Eye, EyeOff, ChevronDown, Users, Lightbulb, Handshake, TrendingUp, Shield, UserCircle, Building2, Star, GraduationCap, Rocket } from 'lucide-react';
 import type { Page, DashboardRole } from './types';
 
 interface Props { navigate: (page: Page) => void; type?: 'shareholder' | 'idea-owner'; onRoleSelect?: (role: DashboardRole) => void; }
 
 const roles: { id: DashboardRole; label: string; icon: React.ReactNode; desc: string }[] = [
-  { id: 'shareholder',   label: 'Shareholder',   icon: <Building2 className="w-5 h-5" />,     desc: 'Access shareholder dashboard & portfolio' },
-  { id: 'investor',      label: 'Investor',       icon: <TrendingUp className="w-5 h-5" />,    desc: 'Track investments & returns' },
-  { id: 'idea-owner',    label: 'Idea Owner',     icon: <Lightbulb className="w-5 h-5" />,     desc: 'Submit & manage your ideas' },
-  { id: 'founder',       label: 'Founder',        icon: <Rocket className="w-5 h-5" />,        desc: 'Build startups as a founder' },
-  { id: 'admin',         label: 'Admin',          icon: <Shield className="w-5 h-5" />,        desc: 'Admin dashboard & controls' },
-  { id: 'super-admin',   label: 'Super Admin',    icon: <Star className="w-5 h-5" />,          desc: 'Full system access & management' },
-  { id: 'user',          label: 'User',           icon: <UserCircle className="w-5 h-5" />,    desc: 'Standard user access' },
+  { id: 'shareholder',   label: 'Shareholder',  icon: <Building2 className="w-5 h-5" />,     desc: 'Access shareholder dashboard & portfolio' },
+  { id: 'shareholder',       label: 'Shareholder',       icon: <Handshake className="w-5 h-5" />,     desc: 'Manage shareholderships & ventures' },
+  { id: 'investor',      label: 'Investor',      icon: <TrendingUp className="w-5 h-5" />,    desc: 'Track investments & returns' },
+  { id: 'idea-owner',    label: 'Idea Owner',    icon: <Lightbulb className="w-5 h-5" />,     desc: 'Submit & manage your ideas' },
+  { id: 'co-founder',    label: 'Co-Founder',    icon: <Rocket className="w-5 h-5" />,        desc: 'Build startups as a co-founder' },
+  { id: 'advisor',       label: 'Advisor',       icon: <GraduationCap className="w-5 h-5" />, desc: 'Share expertise & guide ventures' },
+  { id: 'vep-member',    label: 'VEP Member',    icon: <Users className="w-5 h-5" />,         desc: 'Venture Evaluation Panel access' },
+  { id: 'mab-member',    label: 'MAB Member',    icon: <Star className="w-5 h-5" />,          desc: 'Management Advisory Board access' },
+  { id: 'admin',         label: 'Admin',         icon: <Shield className="w-5 h-5" />,        desc: 'Admin dashboard & controls' },
+  { id: 'super-admin',   label: 'Super Admin',   icon: <Star className="w-5 h-5" />,          desc: 'Full system access & management' },
+  { id: 'user',          label: 'User',          icon: <UserCircle className="w-5 h-5" />,    desc: 'Standard user access' },
 ];
 
 export default function LoginPage({ navigate, type, onRoleSelect }: Props) {
