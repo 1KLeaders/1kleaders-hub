@@ -54,7 +54,7 @@ const navItems: NavItem[] = [
   { icon: FolderOpen,      label: 'Documents',       page: 'documents',         hideFor: ['waiting-list', 'temporary'] },
   { icon: Handshake,       label: 'Shareholders',    page: 'partners',          hideFor: ['waiting-list', 'temporary'] },
   // Idea Ranking — admin/super-admin only
-  { icon: BarChart3,       label: 'Idea Ranking',    page: 'idea-ranking',      roles: ['admin', 'super-admin'] },
+  { icon: BarChart3,       label: 'Idea Ranking',    page: 'idea-ranking',      roles: ['admin', 'super-admin', 'idea-owner'] },
   // Agreements — admin/super-admin only (it's an assignment/management page)
   { icon: FileText,        label: 'Agreements',      page: 'agreements',        roles: ['admin', 'super-admin'] },
   { icon: Bell,            label: 'Notifications',   page: 'notifications' },
