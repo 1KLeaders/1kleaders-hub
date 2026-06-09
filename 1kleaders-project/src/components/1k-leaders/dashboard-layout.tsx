@@ -26,12 +26,10 @@ const roleLabels: Record<DashboardRole, string> = {
   'super-admin': 'Super Admin',
   admin: 'Admin',
   shareholder: 'Shareholder',
-  investor: 'Investor',
   'idea-owner': 'Idea Owner',
   founder: 'Founder',
   user: 'User / Prospect',
   'waiting-list': 'Waiting List',
-  temporary: 'Temporary Account',
 };
 
 interface NavItem {
@@ -43,16 +41,16 @@ interface NavItem {
 }
 
 // Standard access roles — get the same base pages
-const standardRoles: DashboardRole[] = ['shareholder', 'founder', 'idea-owner', 'investor', 'user'];
+const standardRoles: DashboardRole[] = ['shareholder', 'founder', 'idea-owner', 'user'];
 
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard',       page: 'dashboard' },
   { icon: Lightbulb,       label: 'Idea Submission', page: 'idea-submission' },
-  { icon: Calendar,        label: 'Calendar',        page: 'calendar',          hideFor: ['waiting-list', 'temporary'] },
-  { icon: MessageSquare,   label: 'Discussion Rooms',page: 'discussion-rooms',  hideFor: ['waiting-list', 'temporary'] },
+  { icon: Calendar,        label: 'Calendar',        page: 'calendar',          hideFor: ['waiting-list'] },
+  { icon: MessageSquare,   label: 'Discussion Rooms',page: 'discussion-rooms',  hideFor: ['waiting-list'] },
   { icon: Bot,             label: 'AI Assistant',    page: 'ai-assistant' },
-  { icon: FolderOpen,      label: 'Documents',       page: 'documents',         hideFor: ['waiting-list', 'temporary'] },
-  { icon: Handshake,       label: 'Shareholders',    page: 'partners',          hideFor: ['waiting-list', 'temporary'] },
+  { icon: FolderOpen,      label: 'Documents',       page: 'documents',         hideFor: ['waiting-list'] },
+  { icon: Handshake,       label: 'Shareholders',    page: 'partners',          hideFor: ['waiting-list'] },
   // Idea Ranking — admin/super-admin only
   { icon: BarChart3,       label: 'Idea Ranking',    page: 'idea-ranking',      roles: ['admin', 'super-admin', 'idea-owner'] },
   // Agreements — admin/super-admin only (it's an assignment/management page)
@@ -69,7 +67,7 @@ const waitlistNavItems: NavItem[] = [
 ];
 
 function getNavItems(role: DashboardRole): NavItem[] {
-  if (role === 'waiting-list' || role === 'temporary') return waitlistNavItems;
+  if (role === 'waiting-list') return waitlistNavItems;
   return navItems.filter(item => {
     if (item.roles && !item.roles.includes(role)) return false;
     if (item.hideFor && item.hideFor.includes(role)) return false;

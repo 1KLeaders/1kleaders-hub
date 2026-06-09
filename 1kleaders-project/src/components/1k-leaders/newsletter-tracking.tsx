@@ -26,10 +26,10 @@ const newsletters = [
 const readerDetails = [
   { name: 'Ahmed Al-Rashid', role: 'shareholder' as RoleBadge, opened: true, clicked: true, interacted: true, lastActivity: '2 hours ago' },
   { name: 'Fatima Khalid', role: 'shareholder' as RoleBadge, opened: true, clicked: true, interacted: false, lastActivity: '5 hours ago' },
-  { name: 'Omar Hassan', role: 'investor' as RoleBadge, opened: true, clicked: false, interacted: false, lastActivity: '1 day ago' },
+  { name: 'Omar Hassan', role: 'shareholder' as RoleBadge, opened: true, clicked: false, interacted: false, lastActivity: '1 day ago' },
   { name: 'Sara Mohammed', role: 'user' as RoleBadge, opened: true, clicked: true, interacted: true, lastActivity: '3 hours ago' },
   { name: 'Khalid Nasser', role: 'shareholder' as RoleBadge, opened: false, clicked: false, interacted: false, lastActivity: '-' },
-  { name: 'Noura Ali', role: 'investor' as RoleBadge, opened: true, clicked: false, interacted: false, lastActivity: '6 hours ago' },
+  { name: 'Noura Ali', role: 'shareholder' as RoleBadge, opened: true, clicked: false, interacted: false, lastActivity: '6 hours ago' },
   { name: 'Tariq Ibrahim', role: 'shareholder' as RoleBadge, opened: false, clicked: false, interacted: false, lastActivity: '-' },
   { name: 'Layla Abdullah', role: 'idea-owner' as RoleBadge, opened: true, clicked: true, interacted: true, lastActivity: '1 hour ago' },
 ];

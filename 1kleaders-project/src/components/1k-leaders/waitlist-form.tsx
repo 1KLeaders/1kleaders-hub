@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowLeft, ArrowRight, Check, User, Briefcase, Heart } from 'lucide-react';
@@ -12,30 +11,108 @@ import type { Page } from './types';
 
 interface Props { navigate: (page: Page) => void; }
 
-const industries = ['Technology', 'Healthcare', 'Finance', 'Real Estate', 'Education', 'Energy', 'Retail', 'Manufacturing', 'Media', 'Agriculture'];
-const skills = ['Leadership', 'Strategy', 'Marketing', 'Sales', 'Product Management', 'Engineering', 'Design', 'Finance', 'Operations', 'Legal'];
-const interests = ['Angel Investing', 'Venture Capital', 'Seed Funding', 'Growth Equity', 'Impact Investing', 'Startup Mentoring', 'Board Advisory'];
-const sectors = ['FinTech', 'HealthTech', 'EdTech', 'PropTech', 'CleanTech', 'AgriTech', 'E-Commerce', 'SaaS', 'AI/ML', 'IoT'];
-const stages = ['Idea Stage', 'Pre-Seed', 'Seed', 'Series A', 'Early Growth', 'Scaling'];
-const sources = ['LinkedIn', 'Twitter/X', 'Friend/Colleague', 'Event/Conference', 'News Article', 'Search Engine', 'Other'];
-const userTypes = ['Prospective Partner', 'Prospective Shareholder', 'Prospective Investor', 'Idea Owner', 'Co-Founder'];
+// Match exact industry list from 1kleaders.com/join
+const industries = [
+  'Advanced Manufacturing','Aerospace','Agriculture','Agtech','Animal Health',
+  'Arts, Culture & Entertainment','Brand & Retail','Crypto & Digital Assets','Deeptech',
+  'Education','Energy','Enterprise & AI','Environment','Financial Services','Fintech',
+  'Food & Beverage','Healthcare & Wellness','Insurtech','Logistics and Supply Chain',
+  'Maritime','Media & Advertising','Medtech','Mobility','New Materials','Real Estate Tech',
+  'Robotics','Safetytech','Security','Semiconductors','Smart Cities','Sportech',
+  'Sustainability','Technology','Tourism','Transportation and Mobility','Travel & Hospitality','Other',
+];
+
+// Match exact expertise domains from 1kleaders.com/join
+const expertiseDomains = [
+  'Marketing','Technology','Finance','Strategy and Management','Operations','Legal',
+  'Compliance and Risk','Public Relations and Communications','Sales','Human Resources',
+  'Product Development','Project Management','Data Analytics','Full-time Entrepreneur','Other',
+];
+
+// Job levels from 1kleaders.com/join
+const jobLevels = ['C-Level','EVP/SVP','VP','Director','Manager','Associate','Co-Founder','Other'];
+
+// Leader profiles from 1kleaders.com/join
+const leaderProfiles = [
+  { value: 'co-founder', label: 'Co-Founder', desc: 'Ambitious entrepreneur who wants to build a startup or join a team of builders.' },
+  { value: 'advisor', label: 'Advisor', desc: 'Expert in your field, high career ambitions, ready to extend knowledge to a team of builders.' },
+  { value: 'idea-owner', label: 'Idea Owner', desc: 'Unique tech idea, want to build it, but don\'t have the time or resources.' },
+  { value: 'investor', label: 'Investor', desc: 'Angel investor interested in qualitative and quantitative returns.' },
+];
+
+const genders = ['Male', 'Female'];
+
+// Full country list (abbreviated for readability)
+const countries = [
+  'Afghanistan','Albania','Algeria','Andorra','Angola','Argentina','Armenia','Australia','Austria',
+  'Azerbaijan','Bahamas','Bahrain','Bangladesh','Belarus','Belgium','Belize','Benin','Bhutan',
+  'Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Brunei Darussalam','Bulgaria','Burundi',
+  'Cabo Verde','Cambodia','Cameroon','Canada','Chad','Chile','China','Colombia','Comoros','Congo',
+  'Costa Rica','Croatia','Cuba','Cyprus','Czechia','Denmark','Djibouti','Dominican Republic',
+  'Ecuador','Egypt','El Salvador','Eritrea','Estonia','Eswatini','Ethiopia','Fiji','Finland',
+  'France','Gabon','Gambia','Georgia','Germany','Ghana','Greece','Guatemala','Guinea','Haiti',
+  'Honduras','Hong Kong','Hungary','Iceland','India','Indonesia','Iran','Iraq','Ireland','Israel',
+  'Italy','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kuwait','Kyrgyzstan','Laos','Latvia',
+  'Lebanon','Libya','Liechtenstein','Lithuania','Luxembourg','Madagascar','Malaysia','Maldives',
+  'Mali','Malta','Mauritania','Mauritius','Mexico','Moldova','Monaco','Mongolia','Montenegro',
+  'Morocco','Mozambique','Myanmar','Namibia','Nepal','Netherlands','New Zealand','Nicaragua',
+  'Niger','Nigeria','Norway','Oman','Pakistan','Palestine','Panama','Papua New Guinea','Paraguay',
+  'Peru','Philippines','Poland','Portugal','Qatar','Romania','Russian Federation','Rwanda',
+  'Saudi Arabia','Senegal','Serbia','Sierra Leone','Singapore','Slovakia','Slovenia','Somalia',
+  'South Africa','South Korea','South Sudan','Spain','Sri Lanka','Sudan','Sweden','Switzerland',
+  'Syria','Taiwan','Tajikistan','Tanzania','Thailand','Togo','Trinidad and Tobago','Tunisia',
+  'Turkey','Turkmenistan','Uganda','Ukraine','United Arab Emirates',
+  'United Kingdom','United States of America','Uruguay','Uzbekistan','Venezuela','Vietnam',
+  'Yemen','Zambia','Zimbabwe',
+];
 
 export default function WaitlistForm({ navigate }: Props) {
   const [step, setStep] = useState(1);
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
-  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
-  const [selectedSectors, setSelectedSectors] = useState<string[]>([]);
-  const [selectedUserTypes, setSelectedUserTypes] = useState<string[]>([]);
-  const [selectedStages, setSelectedStages] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
-  const [selectedCountry, setSelectedCountry] = useState('');
-  const [otherCountry, setOtherCountry] = useState('');
-  const [selectedSource, setSelectedSource] = useState('');
-  const [otherSource, setOtherSource] = useState('');
+
+  // Step 1 - Contact Information
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phoneCountry, setPhoneCountry] = useState('SA(+966)');
+  const [phone, setPhone] = useState('');
+  const [linkedin, setLinkedin] = useState('');
+
+  // Step 2 - Organization Information
+  const [orgName, setOrgName] = useState('');
+  const [orgWebsite, setOrgWebsite] = useState('');
+  const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
+  const [orgCountry, setOrgCountry] = useState('');
+  const [jobLevel, setJobLevel] = useState('');
+  const [yearsExperience, setYearsExperience] = useState<number | ''>('');
+
+  // Step 3 - Leader Profile
+  const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
+  const [nationality, setNationality] = useState('');
+  const [gender, setGender] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [selectedExpertise, setSelectedExpertise] = useState<string[]>([]);
 
   const toggleItem = (arr: string[], setArr: (v: string[]) => void, item: string) => {
     setArr(arr.includes(item) ? arr.filter(i => i !== item) : [...arr, item]);
   };
+
+  const phonePrefixes = [
+    'AF(+93)','AL(+355)','DZ(+213)','AD(+376)','AO(+244)','AR(+54)','AM(+374)',
+    'AU(+61)','AT(+43)','AZ(+994)','BS(+1)','BH(+973)','BD(+880)','BE(+32)',
+    'BR(+55)','BG(+359)','CA(+1)','CL(+56)','CN(+86)','CO(+57)','HR(+385)',
+    'CZ(+420)','DK(+45)','EG(+20)','EE(+372)','FI(+358)','FR(+33)','GE(+995)',
+    'DE(+49)','GH(+233)','GR(+30)','HK(+852)','HU(+36)','IN(+91)','ID(+62)',
+    'IR(+98)','IQ(+964)','IE(+353)','IL(+972)','IT(+39)','JP(+81)','JO(+962)',
+    'KZ(+7)','KE(+254)','KW(+965)','LB(+961)','MY(+60)','MX(+52)','MA(+212)',
+    'NL(+31)','NZ(+64)','NG(+234)','NO(+47)','OM(+968)','PK(+92)','PS(+970)',
+    'PH(+63)','PL(+48)','PT(+351)','QA(+974)','RO(+40)','RU(+7)','SA(+966)',
+    'SG(+65)','ZA(+27)','KR(+82)','ES(+34)','SE(+46)','CH(+41)','TW(+886)',
+    'TH(+66)','TN(+216)','TR(+90)','AE(+971)','GB(+44)','US(+1)','UZ(+998)',
+    'VE(+58)','VN(+84)','YE(+967)','ZM(+260)','ZW(+263)',
+  ];
+
+  const requiredStar = <span className="text-[#e33b5f] ml-0.5">*</span>;
 
   if (submitted) {
     return (
@@ -64,9 +141,9 @@ export default function WaitlistForm({ navigate }: Props) {
         {/* Step Indicator */}
         <div className="flex items-center justify-center gap-4 mb-8">
           {[
-            { n: 1, label: 'Personal Info', icon: User },
-            { n: 2, label: 'Professional', icon: Briefcase },
-            { n: 3, label: 'Interest', icon: Heart },
+            { n: 1, label: 'Contact Info', icon: User },
+            { n: 2, label: 'Organization', icon: Briefcase },
+            { n: 3, label: 'Leader Profile', icon: Heart },
           ].map((s, i) => (
             <div key={s.n} className="flex items-center">
               <div className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition ${step >= s.n ? 'bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] text-white' : 'bg-[#f0f0f0] text-[#7e7e7e]'}`}>
@@ -82,140 +159,171 @@ export default function WaitlistForm({ navigate }: Props) {
         <Card className="border-[#f0f0f0]">
           <CardHeader>
             <CardTitle className="text-xl text-[#222]" style={{ fontFamily: 'var(--font-rethink-sans), Rethink Sans, sans-serif' }}>
-              {step === 1 && 'Personal Information'}
-              {step === 2 && 'Professional Information'}
-              {step === 3 && 'Interests & Preferences'}
+              {step === 1 && '1. Contact Information'}
+              {step === 2 && '2. Organization Information'}
+              {step === 3 && '3. Leader Profile'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+
+            {/* ── STEP 1: Contact Information ── */}
             {step === 1 && (
               <>
                 <div className="grid sm:grid-cols-2 gap-4">
-                  <div><Label className="text-[#222]">Full Name</Label><Input placeholder="Enter your full name" className="border-[#f0f0f0] focus:border-[#e33b5f]" /></div>
-                  <div><Label className="text-[#222]">Email</Label><Input type="email" placeholder="your@email.com" className="border-[#f0f0f0] focus:border-[#e33b5f]" /></div>
-                </div>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div><Label className="text-[#222]">Phone Number</Label><Input placeholder="+966 5x xxx xxxx" className="border-[#f0f0f0] focus:border-[#e33b5f]" /></div>
-                  <div><Label className="text-[#222]">Country</Label>
-                    <Select value={selectedCountry} onValueChange={setSelectedCountry}><SelectTrigger className="border-[#f0f0f0]"><SelectValue placeholder="Select country" /></SelectTrigger>
-                      <SelectContent>
-                        {['Saudi Arabia', 'UAE', 'Kuwait', 'Qatar', 'Bahrain', 'Oman', 'Egypt', 'Jordan', 'Other'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    {selectedCountry === 'Other' && (
-                      <Input placeholder="Please specify your country..." className="border-[#f0f0f0] mt-2" value={otherCountry} onChange={e => setOtherCountry(e.target.value)} />
-                    )}
+                  <div>
+                    <Label className="text-[#222]">First Name {requiredStar}</Label>
+                    <Input placeholder="First name" className="border-[#f0f0f0] focus:border-[#e33b5f]" value={firstName} onChange={e => setFirstName(e.target.value)} required />
+                  </div>
+                  <div>
+                    <Label className="text-[#222]">Last Name {requiredStar}</Label>
+                    <Input placeholder="Last name" className="border-[#f0f0f0] focus:border-[#e33b5f]" value={lastName} onChange={e => setLastName(e.target.value)} required />
                   </div>
                 </div>
-                <div><Label className="text-[#222]">City</Label><Input placeholder="Enter your city" className="border-[#f0f0f0] focus:border-[#e33b5f]" /></div>
+                <div>
+                  <Label className="text-[#222]">Email {requiredStar}</Label>
+                  <Input type="email" placeholder="your@email.com" className="border-[#f0f0f0] focus:border-[#e33b5f]" value={email} onChange={e => setEmail(e.target.value)} required />
+                </div>
+                <div>
+                  <Label className="text-[#222]">Phone Number {requiredStar}</Label>
+                  <div className="flex gap-2">
+                    <Select value={phoneCountry} onValueChange={setPhoneCountry}>
+                      <SelectTrigger className="border-[#f0f0f0] w-36 shrink-0">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {phonePrefixes.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Input placeholder="5x xxx xxxx" className="border-[#f0f0f0] focus:border-[#e33b5f] flex-1" value={phone} onChange={e => setPhone(e.target.value)} required />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-[#222]">LinkedIn Profile URL {requiredStar}</Label>
+                  <Input placeholder="https://linkedin.com/in/yourprofile" className="border-[#f0f0f0] focus:border-[#e33b5f]" value={linkedin} onChange={e => setLinkedin(e.target.value)} required />
+                </div>
               </>
             )}
 
+            {/* ── STEP 2: Organization Information ── */}
             {step === 2 && (
               <>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div><Label className="text-[#222]">Current Role / Position</Label><Input placeholder="e.g., CEO, CTO, Manager" className="border-[#f0f0f0] focus:border-[#e33b5f]" /></div>
-                  <div><Label className="text-[#222]">Company / Organization</Label><Input placeholder="Enter company name" className="border-[#f0f0f0] focus:border-[#e33b5f]" /></div>
-                </div>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div><Label className="text-[#222]">Years of Experience</Label>
-                    <Select><SelectTrigger className="border-[#f0f0f0]"><SelectValue placeholder="Select" /></SelectTrigger>
-                      <SelectContent>
-                        {['0-2 years', '3-5 years', '6-10 years', '11-15 years', '16-20 years', '20+ years'].map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div><Label className="text-[#222]">Industry / Sector</Label>
-                    <Select><SelectTrigger className="border-[#f0f0f0]"><SelectValue placeholder="Select industry" /></SelectTrigger>
-                      <SelectContent>
-                        {industries.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div>
+                  <Label className="text-[#222]">Organization Name {requiredStar}</Label>
+                  <Input placeholder="Enter your organization name" className="border-[#f0f0f0] focus:border-[#e33b5f]" value={orgName} onChange={e => setOrgName(e.target.value)} required />
                 </div>
                 <div>
-                  <Label className="text-[#222]">Areas of Expertise</Label>
+                  <Label className="text-[#222]">Organization Website {requiredStar}</Label>
+                  <Input placeholder="https://yourcompany.com" className="border-[#f0f0f0] focus:border-[#e33b5f]" value={orgWebsite} onChange={e => setOrgWebsite(e.target.value)} required />
+                </div>
+                <div>
+                  <Label className="text-[#222]">Organization Industry / Sector (select all that apply) {requiredStar}</Label>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {skills.map(s => (
-                      <button key={s} onClick={() => toggleItem(selectedSkills, setSelectedSkills, s)}
-                        className={`px-3 py-1 rounded-full text-xs font-medium border transition ${selectedSkills.includes(s) ? 'bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] text-white border-[#e33b5f]' : 'bg-white text-[#555353] border-[#f0f0f0] hover:border-[#e33b5f]'}`}>
-                        {s}
+                    {industries.map(ind => (
+                      <button
+                        key={ind}
+                        type="button"
+                        onClick={() => toggleItem(selectedIndustries, setSelectedIndustries, ind)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium border transition ${selectedIndustries.includes(ind) ? 'bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] text-white border-[#e33b5f]' : 'bg-white text-[#555353] border-[#f0f0f0] hover:border-[#e33b5f]'}`}>
+                        {ind}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <Label className="text-[#222]">Relevant Skills</Label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {['Negotiation', 'Fundraising', 'Team Building', 'Project Management', 'Data Analysis', 'Communication', 'Risk Management', 'Innovation'].map(s => (
-                      <button key={s} onClick={() => toggleItem(selectedSkills, setSelectedSkills, s)}
-                        className={`px-3 py-1 rounded-full text-xs font-medium border transition ${selectedSkills.includes(s) ? 'bg-[#f07969] text-white border-[#f07969]' : 'bg-white text-[#555353] border-[#f0f0f0] hover:border-[#f07969]'}`}>
-                        {s}
-                      </button>
-                    ))}
-                  </div>
+                  <Label className="text-[#222]">Where is your Organization based? {requiredStar}</Label>
+                  <Select value={orgCountry} onValueChange={setOrgCountry}>
+                    <SelectTrigger className="border-[#f0f0f0]"><SelectValue placeholder="Select an Option" /></SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {countries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div><Label className="text-[#222]">LinkedIn Profile URL</Label><Input placeholder="https://linkedin.com/in/yourprofile" className="border-[#f0f0f0] focus:border-[#e33b5f]" /></div>
-                <div><Label className="text-[#222]">Professional Summary</Label><Textarea placeholder="Brief summary of your professional background and achievements..." rows={3} className="border-[#f0f0f0] focus:border-[#e33b5f]" /></div>
+                <div>
+                  <Label className="text-[#222]">What is your job level in the organization? {requiredStar}</Label>
+                  <Select value={jobLevel} onValueChange={setJobLevel}>
+                    <SelectTrigger className="border-[#f0f0f0]"><SelectValue placeholder="Select an Option" /></SelectTrigger>
+                    <SelectContent>
+                      {jobLevels.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-[#222]">Years of Experience {requiredStar}</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={60}
+                    placeholder="e.g. 10"
+                    className="border-[#f0f0f0] focus:border-[#e33b5f] w-36"
+                    value={yearsExperience}
+                    onChange={e => setYearsExperience(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value)))}
+                  />
+                </div>
               </>
             )}
 
+            {/* ── STEP 3: Leader Profile ── */}
             {step === 3 && (
               <>
                 <div>
-                  <Label className="text-[#222]">I am a...</Label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {userTypes.map(t => (
-                      <button key={t} onClick={() => toggleItem(selectedUserTypes, setSelectedUserTypes, t)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition ${selectedUserTypes.includes(t) ? 'bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] text-white border-[#e33b5f]' : 'bg-white text-[#555353] border-[#f0f0f0] hover:border-[#e33b5f]'}`}>
-                        {t}
+                  <Label className="text-[#222]">Select the profile that best describes you {requiredStar}</Label>
+                  <p className="text-xs text-[#7e7e7e] mt-1 mb-3">Select all that apply</p>
+                  <div className="space-y-3">
+                    {leaderProfiles.map(p => (
+                      <button
+                        key={p.value}
+                        type="button"
+                        onClick={() => toggleItem(selectedProfiles, setSelectedProfiles, p.value)}
+                        className={`w-full text-left px-4 py-3 rounded-lg border transition ${selectedProfiles.includes(p.value) ? 'border-[#e33b5f] bg-[#e33b5f]/5' : 'border-[#f0f0f0] bg-white hover:border-[#e33b5f]/50'}`}>
+                        <div className="flex items-start gap-3">
+                          <div className={`w-4 h-4 mt-0.5 rounded border-2 flex items-center justify-center shrink-0 ${selectedProfiles.includes(p.value) ? 'border-[#e33b5f] bg-[#e33b5f]' : 'border-[#ccc]'}`}>
+                            {selectedProfiles.includes(p.value) && <Check className="w-3 h-3 text-white" />}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-[#222] text-sm">{p.label}</p>
+                            <p className="text-xs text-[#7e7e7e] mt-0.5">{p.desc}</p>
+                          </div>
+                        </div>
                       </button>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <Label className="text-[#222]">Investment Interests</Label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {interests.map(i => (
-                      <button key={i} onClick={() => toggleItem(selectedInterests, setSelectedInterests, i)}
-                        className={`px-3 py-1 rounded-full text-xs font-medium border transition ${selectedInterests.includes(i) ? 'bg-[#f07969] text-white border-[#f07969]' : 'bg-white text-[#555353] border-[#f0f0f0]'}`}>
-                        {i}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-[#222]">Sector Preferences</Label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {sectors.map(s => (
-                      <button key={s} onClick={() => toggleItem(selectedSectors, setSelectedSectors, s)}
-                        className={`px-3 py-1 rounded-full text-xs font-medium border transition ${selectedSectors.includes(s) ? 'bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] text-white border-[#e33b5f]' : 'bg-white text-[#555353] border-[#f0f0f0]'}`}>
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-[#222]">Startup Stage Preferences</Label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {stages.map(s => (
-                      <button key={s} onClick={() => toggleItem(selectedStages, setSelectedStages, s)}
-                        className={`px-3 py-1 rounded-full text-xs font-medium border transition ${selectedStages.includes(s) ? 'bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] text-white border-[#e33b5f]' : 'bg-white text-[#555353] border-[#f0f0f0]'}`}>
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div><Label className="text-[#222]">Motivation for Joining</Label><Textarea placeholder="What drives you to join 1K Leaders?" rows={3} className="border-[#f0f0f0] focus:border-[#e33b5f]" /></div>
-                <div><Label className="text-[#222]">How did you hear about us?</Label>
-                  <Select value={selectedSource} onValueChange={setSelectedSource}><SelectTrigger className="border-[#f0f0f0]"><SelectValue placeholder="Select source" /></SelectTrigger>
-                    <SelectContent>{sources.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                  <Label className="text-[#222]">What is your Nationality? {requiredStar}</Label>
+                  <Select value={nationality} onValueChange={setNationality}>
+                    <SelectTrigger className="border-[#f0f0f0]"><SelectValue placeholder="Select an Option" /></SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {countries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
                   </Select>
-                  {selectedSource === 'Other' && (
-                    <Input placeholder="Please specify how you heard about us..." className="border-[#f0f0f0] mt-2" value={otherSource} onChange={e => setOtherSource(e.target.value)} />
-                  )}
                 </div>
-                <div><Label className="text-[#222]">Additional Information</Label><Textarea placeholder="Anything else you'd like to share?" rows={2} className="border-[#f0f0f0] focus:border-[#e33b5f]" /></div>
+                <div>
+                  <Label className="text-[#222]">What is your Gender? {requiredStar}</Label>
+                  <Select value={gender} onValueChange={setGender}>
+                    <SelectTrigger className="border-[#f0f0f0]"><SelectValue placeholder="Select an Option" /></SelectTrigger>
+                    <SelectContent>
+                      {genders.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-[#222]">Date of Birth {requiredStar}</Label>
+                  <Input type="date" className="border-[#f0f0f0] focus:border-[#e33b5f]" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} required />
+                </div>
+                <div>
+                  <Label className="text-[#222]">In which domain is your expertise, or where would you like to innovate? (select all that apply) {requiredStar}</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {expertiseDomains.map(d => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => toggleItem(selectedExpertise, setSelectedExpertise, d)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium border transition ${selectedExpertise.includes(d) ? 'bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] text-white border-[#e33b5f]' : 'bg-white text-[#555353] border-[#f0f0f0] hover:border-[#e33b5f]'}`}>
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </>
             )}
 

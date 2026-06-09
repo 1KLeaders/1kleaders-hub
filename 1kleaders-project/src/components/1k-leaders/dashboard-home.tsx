@@ -19,13 +19,13 @@ function DigitalBadge({ role }: { role: RoleBadge }) {
 
 const dashboards: Record<string, { metrics: { label: string; value: string; change: string; up: boolean; icon: any }[]; title: string; subtitle: string }> = {
   shareholder: {
-    title: 'Welcome back, Shareholder',
-    subtitle: 'Here\'s your venture portfolio overview',
+    title: 'Shareholder Dashboard',
+    subtitle: 'Your shareholding, investments & portfolio overview',
     metrics: [
-      { label: 'Total Investments', value: '$2.4M', change: '+12.5%', up: true, icon: DollarSign },
-      { label: 'Active Ventures', value: '8', change: '+2', up: true, icon: Briefcase },
-      { label: 'Portfolio ROI', value: '23.4%', change: '+3.2%', up: true, icon: TrendingUp },
-      { label: 'Shareholder Level', value: 'Gold', change: 'Next: Platinum', up: true, icon: Users },
+      { label: 'Total Shares', value: '15,000', change: '+500 allocated', up: true, icon: Briefcase },
+      { label: 'Portfolio Value', value: '$3.2M', change: '+8.4%', up: true, icon: DollarSign },
+      { label: 'Dividends YTD', value: '$45K', change: '+12%', up: true, icon: TrendingUp },
+      { label: 'Voting Power', value: '4.2%', change: 'Active', up: true, icon: Users },
     ],
   },
   founder: {
@@ -58,26 +58,7 @@ const dashboards: Record<string, { metrics: { label: string; value: string; chan
       { label: 'Upcoming Meetings', value: '5', change: 'Today: 2', up: true, icon: Calendar },
     ],
   },
-  shareholder: {
-    title: 'Shareholder Dashboard',
-    subtitle: 'Your shareholding and voting overview',
-    metrics: [
-      { label: 'Total Shares', value: '15,000', change: '+500 allocated', up: true, icon: Briefcase },
-      { label: 'Current Value', value: '$3.2M', change: '+8.4%', up: true, icon: DollarSign },
-      { label: 'Dividends YTD', value: '$45K', change: '+12%', up: true, icon: TrendingUp },
-      { label: 'Voting Power', value: '4.2%', change: 'Active', up: true, icon: Users },
-    ],
-  },
-  investor: {
-    title: 'Investor Dashboard',
-    subtitle: 'Track your investments and discover opportunities',
-    metrics: [
-      { label: 'Total Invested', value: '$1.8M', change: '+$200K', up: true, icon: DollarSign },
-      { label: 'Portfolio Value', value: '$2.3M', change: '+27.8%', up: true, icon: TrendingUp },
-      { label: 'Returns', value: '$500K', change: '+15.2%', up: true, icon: ArrowUpRight },
-      { label: 'Active Investments', value: '6', change: '+1 new', up: true, icon: Briefcase },
-    ],
-  },
+
   'idea-owner': {
     title: 'Idea Owner Dashboard',
     subtitle: 'Track your idea progress and feedback',
@@ -106,16 +87,6 @@ const dashboards: Record<string, { metrics: { label: string; value: string; chan
       { label: 'Queue Position', value: '#127', change: 'Moving up', up: true, icon: Briefcase },
       { label: 'Verification Steps', value: '2/4', change: '50% complete', up: false, icon: CheckCircle },
       { label: 'Est. Wait Time', value: '~2 weeks', change: 'Processing', up: true, icon: Calendar },
-    ],
-  },
-  temporary: {
-    title: 'Temporary Access',
-    subtitle: 'Limited account with basic features',
-    metrics: [
-      { label: 'Account Type', value: 'Temporary', change: 'Limited', up: false, icon: Users },
-      { label: 'Time Remaining', value: '14 days', change: 'Expiring soon', up: false, icon: Calendar },
-      { label: 'Features Available', value: 'Basic', change: '3 of 12', up: false, icon: Briefcase },
-      { label: 'Upgrade Status', value: 'Pending', change: 'Apply now', up: false, icon: TrendingUp },
     ],
   },
 };
@@ -150,12 +121,7 @@ const activities: Record<DashboardRole, { text: string; time: string; type: stri
     { text: 'New voting proposal: Board expansion', time: '3 hours ago', type: 'warning' },
     { text: 'Discussion room: Investment Committee is active', time: '6 hours ago', type: 'info' },
     { text: 'Share value increased by 2.3%', time: '2 days ago', type: 'success' },
-  ],
-  investor: [
-    { text: 'Startup "AI Health" seeking Series A funding', time: '1 hour ago', type: 'info' },
-    { text: 'Your investment in "CleanEnergy" grew 15%', time: '4 hours ago', type: 'success' },
-    { text: 'New opportunity matching your interests', time: '6 hours ago', type: 'info' },
-    { text: 'Idea Ranking updated - check top ideas', time: '1 day ago', type: 'info' },
+    { text: 'New startup opportunity matching your interests', time: '3 days ago', type: 'info' },
   ],
   'idea-owner': [
     { text: 'Your idea "GreenTech" ranked #1 in CleanTech', time: '1 hour ago', type: 'success' },
@@ -172,11 +138,7 @@ const activities: Record<DashboardRole, { text: string; time: string; type: stri
     { text: 'Please verify your email to proceed', time: 'Just now', type: 'warning' },
     { text: 'Your queue position moved up by 5 spots', time: '1 day ago', type: 'success' },
     { text: 'Verification documents required', time: '2 days ago', type: 'warning' },
-  ],
-  temporary: [
-    { text: 'Upgrade to a full account for complete access', time: 'Just now', type: 'warning' },
-    { text: 'Your temporary access expires in 14 days', time: '1 day ago', type: 'warning' },
-    { text: 'Explore basic features available to you', time: '3 days ago', type: 'info' },
+    { text: 'Complete your profile to move up the waitlist', time: '3 days ago', type: 'info' },
   ],
 };
 
@@ -408,16 +370,6 @@ export default function DashboardHome({ role, navigate }: Props) {
             <h3 className="text-lg font-semibold text-[#f07969] mb-2">Verify Your Account</h3>
             <p className="text-[#f07969] text-sm mb-4">Complete the verification steps to gain full platform access and move up the waitlist.</p>
             <Button className="bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] hover:opacity-90" onClick={() => navigate('onboarding')}>Start Verification</Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {role === 'temporary' && (
-        <Card className="border-[#e33b5f]/20 bg-[#e33b5f]/5">
-          <CardContent className="p-6 text-center">
-            <h3 className="text-lg font-semibold text-[#e33b5f] mb-2">Upgrade to Full Account</h3>
-            <p className="text-[#e33b5f] text-sm mb-4">Get complete access to all platform features by applying for a full account.</p>
-            <Button className="bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] hover:opacity-90" onClick={() => navigate('waitlist')}>Apply Now</Button>
           </CardContent>
         </Card>
       )}

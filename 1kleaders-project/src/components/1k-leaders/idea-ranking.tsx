@@ -31,7 +31,7 @@ const ideas = [
     mab: { productTech: 20, productMarketFit: 21, riskAssessment: 15, businessModel: 18, team: 22 },
   },
   {
-    id: 3, title: 'EduPay: Student Micro-Financing', owner: 'Omar Hassan', ownerRole: 'investor' as RoleBadge,
+    id: 3, title: 'EduPay: Student Micro-Financing', owner: 'Omar Hassan', ownerRole: 'shareholder' as RoleBadge,
     category: 'FinTech', status: 'under-review',
     description: 'Micro-financing platform for university students with income-share agreements and mentorship programs.',
     submittedDate: '2026-05-12',

@@ -23,13 +23,13 @@ const rooms = [
 const messages = [
   { id: 1, sender: 'Ahmed Al-Rashid', role: 'shareholder' as const, text: 'I think the Q4 dividend distribution looks promising. The 12% increase is better than expected.', time: '10:15 AM', initials: 'AR' },
   { id: 2, sender: 'Fatima Khalid', role: 'shareholder' as const, text: 'Agreed. The CleanEnergy venture is showing strong returns. Should we discuss reinvestment options?', time: '10:22 AM', initials: 'FK' },
-  { id: 3, sender: 'Omar Hassan', role: 'investor' as const, text: 'I\'d like to see the detailed financial projections before we make any decisions on reinvestment.', time: '10:30 AM', initials: 'OH' },
+  { id: 3, sender: 'Omar Hassan', role: 'shareholder' as const, text: 'I\'d like to see the detailed financial projections before we make any decisions on reinvestment.', time: '10:30 AM', initials: 'OH' },
   { id: 4, sender: 'Sara Mohammed', role: 'shareholder' as const, text: 'The projections are available in the Documents section. I\'ll share the link.', time: '10:35 AM', initials: 'SM' },
   { id: 5, sender: 'Khalid Nasser', role: 'shareholder' as const, text: 'Thanks Sara. Also, the voting proposal for board expansion - when is the deadline?', time: '10:42 AM', initials: 'KN' },
   { id: 6, sender: 'Fatima Khalid', role: 'shareholder' as const, text: 'The deadline is May 30th. Please make sure to cast your vote before then.', time: '10:48 AM', initials: 'FK' },
 ];
 
-function DigitalBadge({ role }: { role: 'shareholder' | 'investor' | 'idea-owner' | 'admin' | 'super-admin' | 'user' | 'founder' }) {
+function DigitalBadge({ role }: { role: 'shareholder' | 'idea-owner' | 'admin' | 'super-admin' | 'user' | 'founder' }) {
   const config = roleBadgeConfig[role];
   if (!config) return null;
   return (
