@@ -46,12 +46,20 @@ export default function SettingsPage({}: Props) {
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
-                <div><Label>Full Name</Label><Input defaultValue="Ahmed Al-Rashid" /></div>
-                <div><Label>Email</Label><Input defaultValue="ahmed@1kleaders.com" /></div>
+                <div><Label>Full Name <span className="text-[#e33b5f]">*</span></Label><Input defaultValue="Ahmed Al-Rashid" required /></div>
+                <div><Label>Email <span className="text-[#e33b5f]">*</span></Label><Input defaultValue="ahmed@1kleaders.com" required /></div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
-                <div><Label>Phone</Label><Input defaultValue="+966 55 123 4567" /></div>
-                <div><Label>Location</Label><Input defaultValue="Riyadh, Saudi Arabia" /></div>
+                <div><Label>Phone <span className="text-[#e33b5f]">*</span></Label><Input defaultValue="+966 55 123 4567" required /></div>
+                <div><Label>Location <span className="text-[#e33b5f]">*</span></Label><Input defaultValue="Riyadh, Saudi Arabia" required /></div>
+              </div>
+              <div>
+                <Label>LinkedIn Profile URL <span className="text-[#e33b5f]">*</span></Label>
+                <div className="relative mt-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[#9e9e9e] font-medium pointer-events-none">linkedin.com/in/</span>
+                  <Input defaultValue="ahmed-alrashid" className="pl-[7.5rem]" required placeholder="your-profile-slug" />
+                </div>
+                <p className="text-xs text-[#9e9e9e] mt-1">Required — used for your public shareholder profile.</p>
               </div>
               <div><Label>Bio</Label><Input defaultValue="Venture partner with 15+ years in tech investments" /></div>
               <Button className="bg-[#e33b5f] hover:bg-[#c02d4f]"><Save className="w-4 h-4 mr-2" /> Save Changes</Button>
