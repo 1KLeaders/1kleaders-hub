@@ -27,7 +27,7 @@ CREATE TABLE profiles (
 
   -- Professional
   linkedin_url        TEXT,
-  current_role        TEXT,
+  job_title           TEXT,
   org_name            TEXT,
   org_website         TEXT,
   org_country         TEXT,
