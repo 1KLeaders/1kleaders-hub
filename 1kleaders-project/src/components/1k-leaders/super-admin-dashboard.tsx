@@ -5,14 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
   Users,
   Shield,
   DollarSign,
@@ -27,9 +19,6 @@ import {
   AlertTriangle,
   BarChart3,
   Cpu,
-  Eye,
-  Edit,
-  Trash2,
   Rocket,
   Clock,
   CheckCheck,
@@ -53,12 +42,6 @@ const platformMetrics = [
 const adminActions = [
   { action: 'Schema initialised — Supabase connected', admin: 'System', time: 'Just now' },
 ]
-
-const statusColors: Record<string, string> = {
-  Active: 'bg-emerald-100 text-emerald-700',
-  Pending: 'bg-amber-100 text-amber-700',
-  Suspended: 'bg-red-100 text-red-700',
-}
 
 type WaitlistRow = {
   id: string
@@ -247,49 +230,17 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* User Management Table */}
+        {/* User Management Table — will be wired to Supabase profiles table */}
         <Card className="lg:col-span-2 border-stone-200">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg text-stone-900">User Management</CardTitle>
-              <Button variant="outline" size="sm">Add User</Button>
+              <Button variant="outline" size="sm" onClick={() => onNavigate('partners')}>View All</Button>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Joined</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium text-stone-900 text-sm">{user.name}</p>
-                          <p className="text-xs text-stone-400">{user.email}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell><Badge variant="outline" className="text-xs">{user.role}</Badge></TableCell>
-                      <TableCell><Badge className={statusColors[user.status] || 'bg-stone-100 text-stone-700'}>{user.status}</Badge></TableCell>
-                      <TableCell className="text-sm text-stone-500">{user.joined}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Eye className="w-3.5 h-3.5" /></Button>
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Edit className="w-3.5 h-3.5" /></Button>
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-500"><Trash2 className="w-3.5 h-3.5" /></Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="flex items-center justify-center py-10 text-[#7e7e7e] text-sm">
+              User management will display live data from Supabase once auth is connected.
             </div>
           </CardContent>
         </Card>
