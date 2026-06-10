@@ -20,6 +20,7 @@ import DiscussionRooms from '@/components/1k-leaders/discussion-rooms';
 import RecommendationsPage from '@/components/1k-leaders/recommendations-page';
 import NewsletterTracking from '@/components/1k-leaders/newsletter-tracking';
 import VEPDashboard from '@/components/1k-leaders/vep-dashboard';
+import { SuperAdminDashboard } from '@/components/1k-leaders/super-admin-dashboard';
 
 // MAB Dashboard (inline placeholder since no separate file yet)
 function MABDashboard() {
@@ -83,6 +84,8 @@ export default function Home() {
         return <VEPDashboard />;
       case 'mab-dashboard':
         return <MABDashboard />;
+      case 'admin-dashboard':
+        return <SuperAdminDashboard onNavigate={navigate} />;
       case 'recommendations':
         return <RecommendationsPage />;
       case 'kyc-onboarding':
@@ -97,6 +100,7 @@ export default function Home() {
     'partners', 'settings', 'notifications', 'profile', 'calendar',
     'discussion-rooms', 'ai-assistant', 'newsletter-tracking',
     'vep-dashboard', 'mab-dashboard', 'recommendations', 'kyc-onboarding',
+    'admin-dashboard',
   ];
 
   if (dashboardPages.includes(currentPage)) {
