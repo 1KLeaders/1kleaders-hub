@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -33,41 +33,25 @@ import {
   Rocket,
   Clock,
   CheckCheck,
+  Loader2,
+  RefreshCw,
 } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 
 interface SuperAdminDashboardProps {
   onNavigate: (page: string) => void
 }
 
+// Placeholder metrics — will be replaced with live DB counts in a future update
 const platformMetrics = [
-  { title: 'Total Users', value: '2,847', change: '+156 this month', icon: Users, color: 'emerald' },
-  { title: 'Active Shareholders', value: '487', change: '+23 this quarter', icon: Shield, color: 'amber' },
-  { title: 'Platform Revenue', value: '$2.4M', change: '+18.5% YoY', icon: DollarSign, color: 'emerald' },
+  { title: 'Total Users', value: '—', change: 'Loading...', icon: Users, color: 'emerald' },
+  { title: 'Active Shareholders', value: '—', change: 'Loading...', icon: Shield, color: 'amber' },
+  { title: 'Platform Revenue', value: '—', change: 'Loading...', icon: DollarSign, color: 'emerald' },
   { title: 'System Health', value: '99.9%', change: 'All systems operational', icon: Activity, color: 'emerald' },
 ]
 
-const users = [
-  { name: 'Ahmed Al-Rashid', email: 'ahmed@example.com', role: 'Shareholder', status: 'Active', joined: 'Jan 2024' },
-  { name: 'Sarah Johnson', email: 'sarah@example.com', role: 'Investor', status: 'Active', joined: 'Feb 2024' },
-  { name: 'Mohammed Hassan', email: 'mohammed@example.com', role: 'Idea Owner', status: 'Pending', joined: 'Mar 2024' },
-  { name: 'Fatima Al-Zahra', email: 'fatima@example.com', role: 'Shareholder', status: 'Active', joined: 'Jan 2024' },
-  { name: 'James Wilson', email: 'james@example.com', role: 'Shareholder', status: 'Suspended', joined: 'Dec 2023' },
-  { name: 'Layla Noor', email: 'layla@example.com', role: 'Admin', status: 'Active', joined: 'Nov 2023' },
-]
-
-const initialPendingStartups = [
-  { id: 1, name: 'NanoHealth AI', founder: 'Rania Khalil', sector: 'HealthTech', stage: 'Seed', submitted: '2026-06-01', status: 'pending' as 'pending' | 'approved' | 'rejected' },
-  { id: 2, name: 'SolarGrid MENA', founder: 'Tariq Al-Farsi', sector: 'CleanTech', stage: 'Pre-Seed', submitted: '2026-06-03', status: 'pending' as 'pending' | 'approved' | 'rejected' },
-  { id: 3, name: 'FinCore Platform', founder: 'Sara Nasser', sector: 'FinTech', stage: 'Series A', submitted: '2026-06-05', status: 'pending' as 'pending' | 'approved' | 'rejected' },
-]
-
 const adminActions = [
-  { action: 'Approved KYC for Sarah Johnson', admin: 'System', time: '10 min ago' },
-  { action: 'Updated platform fee structure', admin: 'Ahmed K.', time: '1 hour ago' },
-  { action: 'Suspended user James Wilson', admin: 'Layla N.', time: '3 hours ago' },
-  { action: 'Deployed system update v3.2.1', admin: 'System', time: '6 hours ago' },
-  { action: 'Created new agreement template', admin: 'Fatima A.', time: '1 day ago' },
-  { action: 'Exported quarterly financial report', admin: 'Ahmed K.', time: '2 days ago' },
+  { action: 'Schema initialised — Supabase connected', admin: 'System', time: 'Just now' },
 ]
 
 const statusColors: Record<string, string> = {
@@ -76,15 +60,56 @@ const statusColors: Record<string, string> = {
   Suspended: 'bg-red-100 text-red-700',
 }
 
-export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
-  const [pendingStartups, setPendingStartups] = useState(initialPendingStartups)
+type WaitlistRow = {
+  id: string
+  created_at: string
+  first_name: string
+  last_name: string
+  email: string
+  org_name: string
+  leader_profiles: string[]
+  status: 'pending' | 'approved' | 'rejected' | 'parked' | 'more-info-required'
+  admin_notes: string | null
+}
 
-  const approveStartup = (id: number) => {
-    setPendingStartups(prev => prev.map(s => s.id === id ? { ...s, status: 'approved' as const } : s))
+export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
+  const [waitlist, setWaitlist] = useState<WaitlistRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [updating, setUpdating] = useState<string | null>(null)
+
+  const fetchWaitlist = async () => {
+    setLoading(true)
+    setError(null)
+    const { data, error } = await supabase
+      .from('waitlist_submissions')
+      .select('id, created_at, first_name, last_name, email, org_name, leader_profiles, status, admin_notes')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      setError('Failed to load waitlist. Check Supabase connection.')
+      console.error(error)
+    } else {
+      setWaitlist(data as WaitlistRow[])
+    }
+    setLoading(false)
   }
-  const rejectStartup = (id: number) => {
-    setPendingStartups(prev => prev.map(s => s.id === id ? { ...s, status: 'rejected' as const } : s))
+
+  useEffect(() => { fetchWaitlist() }, [])
+
+  const updateStatus = async (id: string, status: WaitlistRow['status']) => {
+    setUpdating(id)
+    const { error } = await supabase
+      .from('waitlist_submissions')
+      .update({ status, reviewed_at: new Date().toISOString() })
+      .eq('id', id)
+    if (!error) {
+      setWaitlist(prev => prev.map(r => r.id === id ? { ...r, status } : r))
+    }
+    setUpdating(null)
   }
+
+  const pendingCount = waitlist.filter(r => r.status === 'pending').length
 
   return (
     <div className="space-y-6">
@@ -123,49 +148,77 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
         ))}
       </div>
 
-      {/* Startup Approvals */}
+      {/* Waitlist Review Queue — live from Supabase */}
       <Card className="border-amber-200">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg text-stone-900 flex items-center gap-2">
-              <Rocket className="w-5 h-5 text-[#e33b5f]" /> Startup Approvals
+              <Users className="w-5 h-5 text-[#e33b5f]" /> Waitlist Review Queue
             </CardTitle>
-            <Badge className="bg-amber-100 text-amber-700">{pendingStartups.filter(s => s.status === 'pending').length} Pending</Badge>
+            <div className="flex items-center gap-2">
+              {!loading && <Badge className="bg-amber-100 text-amber-700">{pendingCount} Pending</Badge>}
+              <Button size="sm" variant="outline" onClick={fetchWaitlist} disabled={loading} className="h-7 px-2">
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {pendingStartups.map(startup => (
-              <div key={startup.id} className={`flex items-center justify-between p-3 rounded-lg border transition ${
-                startup.status === 'approved' ? 'bg-emerald-50 border-emerald-200' :
-                startup.status === 'rejected' ? 'bg-red-50 border-red-200' :
-                'bg-amber-50 border-amber-200'
-              }`}>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-sm text-stone-900">{startup.name}</p>
-                    {startup.status === 'approved' && <Badge className="bg-emerald-100 text-emerald-700 text-xs">Approved</Badge>}
-                    {startup.status === 'rejected' && <Badge className="bg-red-100 text-red-700 text-xs">Rejected</Badge>}
-                    {startup.status === 'pending' && <Badge className="bg-amber-100 text-amber-700 text-xs flex items-center gap-1"><Clock className="w-2.5 h-2.5" /> Pending</Badge>}
+          {error && (
+            <p className="text-sm text-red-500 text-center py-4">{error}</p>
+          )}
+          {loading && !error && (
+            <div className="flex items-center justify-center py-8 gap-2 text-[#7e7e7e]">
+              <Loader2 className="w-4 h-4 animate-spin" /> Loading submissions...
+            </div>
+          )}
+          {!loading && !error && waitlist.length === 0 && (
+            <p className="text-sm text-[#7e7e7e] text-center py-8">No waitlist submissions yet.</p>
+          )}
+          {!loading && !error && waitlist.length > 0 && (
+            <div className="space-y-3">
+              {waitlist.map(row => (
+                <div key={row.id} className={`flex items-center justify-between p-3 rounded-lg border transition ${
+                  row.status === 'approved' ? 'bg-emerald-50 border-emerald-200' :
+                  row.status === 'rejected' ? 'bg-red-50 border-red-200' :
+                  row.status === 'parked'   ? 'bg-stone-50 border-stone-200' :
+                  'bg-amber-50 border-amber-200'
+                }`}>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-semibold text-sm text-stone-900">{row.first_name} {row.last_name}</p>
+                      {row.status === 'pending'  && <Badge className="bg-amber-100 text-amber-700 text-xs flex items-center gap-1"><Clock className="w-2.5 h-2.5" /> Pending</Badge>}
+                      {row.status === 'approved' && <Badge className="bg-emerald-100 text-emerald-700 text-xs">Approved</Badge>}
+                      {row.status === 'rejected' && <Badge className="bg-red-100 text-red-700 text-xs">Rejected</Badge>}
+                      {row.status === 'parked'   && <Badge className="bg-stone-100 text-stone-600 text-xs">Parked</Badge>}
+                    </div>
+                    <p className="text-xs text-stone-500 truncate">
+                      {row.email} · {row.org_name} · {row.leader_profiles?.join(', ')} · {new Date(row.created_at).toLocaleDateString()}
+                    </p>
                   </div>
-                  <p className="text-xs text-stone-500">Founder: {startup.founder} · {startup.sector} · {startup.stage} · Submitted {startup.submitted}</p>
+                  {row.status === 'pending' && (
+                    <div className="flex gap-2 flex-shrink-0 ml-2">
+                      <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-8"
+                        disabled={updating === row.id} onClick={() => updateStatus(row.id, 'approved')}>
+                        {updating === row.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><CheckCircle2 className="w-3.5 h-3.5 mr-1" />Approve</>}
+                      </Button>
+                      <Button size="sm" variant="outline" className="border-stone-300 text-stone-600 h-8"
+                        disabled={updating === row.id} onClick={() => updateStatus(row.id, 'parked')}>
+                        Park
+                      </Button>
+                      <Button size="sm" variant="outline" className="border-red-300 text-red-600 hover:bg-red-50 h-8"
+                        disabled={updating === row.id} onClick={() => updateStatus(row.id, 'rejected')}>
+                        <XCircle className="w-3.5 h-3.5 mr-1" />Reject
+                      </Button>
+                    </div>
+                  )}
+                  {row.status !== 'pending' && (
+                    <CheckCheck className={`w-5 h-5 flex-shrink-0 ml-2 ${row.status === 'approved' ? 'text-emerald-500' : row.status === 'rejected' ? 'text-red-400' : 'text-stone-400'}`} />
+                  )}
                 </div>
-                {startup.status === 'pending' && (
-                  <div className="flex gap-2 flex-shrink-0">
-                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-8" onClick={() => approveStartup(startup.id)}>
-                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Approve
-                    </Button>
-                    <Button size="sm" variant="outline" className="border-red-300 text-red-600 hover:bg-red-50 h-8" onClick={() => rejectStartup(startup.id)}>
-                      <XCircle className="w-3.5 h-3.5 mr-1" /> Reject
-                    </Button>
-                  </div>
-                )}
-                {startup.status !== 'pending' && (
-                  <CheckCheck className={`w-5 h-5 ${startup.status === 'approved' ? 'text-emerald-500' : 'text-red-400'}`} />
-                )}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

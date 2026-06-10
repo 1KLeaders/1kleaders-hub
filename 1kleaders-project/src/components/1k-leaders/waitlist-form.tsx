@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, ArrowRight, Check, User, Briefcase, Heart } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, User, Briefcase, Heart, Loader2 } from 'lucide-react';
 import type { Page } from './types';
+import { supabase } from '@/lib/supabase';
 
 interface Props { navigate: (page: Page) => void; }
 
@@ -69,6 +70,8 @@ const countries = [
 export default function WaitlistForm({ navigate }: Props) {
   const [step, setStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Step 1 - Contact Information
   const [firstName, setFirstName] = useState('');
@@ -111,6 +114,37 @@ export default function WaitlistForm({ navigate }: Props) {
     'TH(+66)','TN(+216)','TR(+90)','AE(+971)','GB(+44)','US(+1)','UZ(+998)',
     'VE(+58)','VN(+84)','YE(+967)','ZM(+260)','ZW(+263)',
   ];
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    setSubmitError(null);
+    const { error } = await supabase.from('waitlist_submissions').insert({
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      phone_country_code: phoneCountry,
+      phone_number: phone,
+      linkedin_url: linkedin,
+      org_name: orgName,
+      org_website: orgWebsite,
+      org_industries: selectedIndustries,
+      org_country: orgCountry,
+      job_level: jobLevel,
+      years_experience: Number(yearsExperience),
+      leader_profiles: selectedProfiles,
+      nationality,
+      gender,
+      date_of_birth: dateOfBirth,
+      expertise_domains: selectedExpertise,
+    });
+    setIsSubmitting(false);
+    if (error) {
+      setSubmitError('Something went wrong. Please try again.');
+      console.error('Waitlist submission error:', error);
+    } else {
+      setSubmitted(true);
+    }
+  };
 
   const requiredStar = <span className="text-[#e33b5f] ml-0.5">*</span>;
 
@@ -334,7 +368,22 @@ export default function WaitlistForm({ navigate }: Props) {
               {step < 3 ? (
                 <Button className="bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] hover:opacity-90 text-white font-bold" onClick={() => setStep(step + 1)}>Next <ArrowRight className="w-4 h-4 ml-2" /></Button>
               ) : (
-                <Button className="bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] hover:opacity-90 text-white font-bold" onClick={() => setSubmitted(true)}>Submit Application <Check className="w-4 h-4 ml-2" /></Button>
+                <>
+                  {submitError && (
+                    <p className="text-sm text-[#e33b5f] text-center">{submitError}</p>
+                  )}
+                  <Button
+                    className="bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] hover:opacity-90 text-white font-bold"
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...</>
+                    ) : (
+                      <>Submit Application <Check className="w-4 h-4 ml-2" /></>
+                    )}
+                  </Button>
+                </>
               )}
             </div>
           </CardContent>
