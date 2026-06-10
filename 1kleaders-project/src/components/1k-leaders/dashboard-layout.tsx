@@ -145,6 +145,10 @@ export default function DashboardLayout({ navigate, role, setRole, currentPage, 
             <>
               <Separator className="my-3 bg-white/10" />
               <p className="text-xs text-[#7e7e7e] uppercase tracking-wider mb-2 px-2">Admin Tools</p>
+              <button onClick={() => handleNav('admin-dashboard')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'admin-dashboard' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
+                <Shield className="w-4 h-4" />Admin Dashboard
+              </button>
               <button onClick={() => handleNav('newsletter-tracking')}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'newsletter-tracking' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
                 <Mail className="w-4 h-4" />Newsletter Tracking

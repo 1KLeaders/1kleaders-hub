@@ -21,6 +21,7 @@ export type Page =
   | 'newsletter-tracking'
   | 'vep-dashboard'
   | 'mab-dashboard'
+  | 'admin-dashboard'
   | 'recommendations';
 
 // 'investor' merged into 'shareholder'

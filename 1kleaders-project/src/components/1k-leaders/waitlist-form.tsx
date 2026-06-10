@@ -215,7 +215,14 @@ export default function WaitlistForm({ navigate }: Props) {
                 </div>
                 <div>
                   <Label className="text-[#222]">Email {requiredStar}</Label>
-                  <Input type="email" placeholder="your@email.com" className="border-[#f0f0f0] focus:border-[#e33b5f]" value={email} onChange={e => setEmail(e.target.value)} required />
+                  <Input
+                    type="email"
+                    placeholder="your@email.com"
+                    className="border-[#f0f0f0] focus:border-[#e33b5f]"
+                    value={email}
+                    onChange={e => setEmail(e.target.value.replace(/\s/g, ''))}
+                    required
+                  />
                 </div>
                 <div>
                   <Label className="text-[#222]">Phone Number {requiredStar}</Label>
@@ -228,12 +235,25 @@ export default function WaitlistForm({ navigate }: Props) {
                         {phonePrefixes.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                       </SelectContent>
                     </Select>
-                    <Input placeholder="5x xxx xxxx" className="border-[#f0f0f0] focus:border-[#e33b5f] flex-1" value={phone} onChange={e => setPhone(e.target.value)} required />
+                    <Input
+                      placeholder="5x xxx xxxx"
+                      className="border-[#f0f0f0] focus:border-[#e33b5f] flex-1"
+                      value={phone}
+                      onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
+                      inputMode="numeric"
+                      required
+                    />
                   </div>
                 </div>
                 <div>
                   <Label className="text-[#222]">LinkedIn Profile URL {requiredStar}</Label>
-                  <Input placeholder="https://linkedin.com/in/yourprofile" className="border-[#f0f0f0] focus:border-[#e33b5f]" value={linkedin} onChange={e => setLinkedin(e.target.value)} required />
+                  <Input
+                    placeholder="https://linkedin.com/in/yourprofile"
+                    className="border-[#f0f0f0] focus:border-[#e33b5f]"
+                    value={linkedin}
+                    onChange={e => setLinkedin(e.target.value.replace(/\s/g, ''))}
+                    required
+                  />
                 </div>
               </>
             )}
