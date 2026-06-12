@@ -28,16 +28,7 @@ const dashboards: Record<string, { metrics: { label: string; value: string; chan
       { label: 'Voting Power', value: '4.2%', change: 'Active', up: true, icon: Users },
     ],
   },
-  founder: {
-    title: 'Founder Dashboard',
-    subtitle: 'Manage your startup and track progress',
-    metrics: [
-      { label: 'Startup Stage', value: 'Seed', change: 'Progressing', up: true, icon: Briefcase },
-      { label: 'VEP Score', value: '74/100', change: '+5 this month', up: true, icon: TrendingUp },
-      { label: 'Investor Interest', value: '12', change: '+3 new', up: true, icon: Users },
-      { label: 'Next Milestone', value: '14 days', change: 'Demo Day', up: true, icon: Calendar },
-    ],
-  },
+  'super-admin': {
     title: 'Super Admin Panel',
     subtitle: 'Full platform control and monitoring',
     metrics: [
