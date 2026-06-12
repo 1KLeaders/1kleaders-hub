@@ -3,7 +3,10 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Info, AlertTriangle, CheckCircle, Trash2, Zap, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Bell, Info, AlertTriangle, CheckCircle, Trash2, Zap, X, Send, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Page, DashboardRole } from './types';
 
 interface Props { navigate: (page: Page) => void; role?: DashboardRole; }
@@ -16,12 +19,13 @@ interface Notification {
   time: string;
   read: boolean;
   actionRequired?: boolean;
+  audience?: string;
 }
 
 const initialNotifications: Notification[] = [
   { id: 1, title: 'New partnership opportunity', desc: 'A new venture matching your interests has been posted.', type: 'info', time: '5 min ago', read: false },
   { id: 2, title: 'Agreement ready for signature', desc: 'Your partner agreement has been sent via DocuSign.', type: 'action', time: '1 hour ago', read: false, actionRequired: true },
-  { id: 3, title: 'Investment milestone reached', desc: 'Your portfolio has exceeded the $2M mark.', type: 'success', time: '3 hours ago', read: false },
+  { id: 3, title: 'Q4 dividend distribution', desc: 'Your portfolio dividend for Q4 has been processed.', type: 'success', time: '3 hours ago', read: false },
   { id: 4, title: 'KYC verification expiring', desc: 'Your identity documents expire in 30 days. Please update.', type: 'warning', time: '6 hours ago', read: true },
   { id: 5, title: 'New idea submitted for review', desc: 'A new idea in the FinTech sector has been submitted.', type: 'info', time: '1 day ago', read: true },
   { id: 6, title: 'Startup approval pending', desc: 'Approve pending startup submission before tomorrow at 10 AM.', type: 'action', time: '1 day ago', read: false, actionRequired: true },
@@ -30,15 +34,29 @@ const initialNotifications: Notification[] = [
 ];
 
 const typeConfig: Record<string, { icon: any; color: string }> = {
-  info: { icon: Info, color: 'bg-[#f6f6f6] text-[#555353]' },
-  action: { icon: Bell, color: 'bg-[#f07969]/10 text-[#f07969]' },
-  success: { icon: CheckCircle, color: 'bg-[#e33b5f]/10 text-[#e33b5f]' },
+  info:    { icon: Info,          color: 'bg-[#f6f6f6] text-[#555353]' },
+  action:  { icon: Bell,          color: 'bg-[#f07969]/10 text-[#f07969]' },
+  success: { icon: CheckCircle,   color: 'bg-[#e33b5f]/10 text-[#e33b5f]' },
   warning: { icon: AlertTriangle, color: 'bg-red-100 text-red-600' },
 };
 
+const audienceOptions = [
+  { value: 'all',         label: 'All Users' },
+  { value: 'shareholder', label: 'Shareholders only' },
+  { value: 'user',        label: 'Users only' },
+  { value: 'admin',       label: 'Admins only' },
+];
+
 export default function NotificationsPage({ navigate, role }: Props) {
   const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
+  const [showCompose, setShowCompose] = useState(false);
   const isAdmin = role === 'admin' || role === 'super-admin';
+
+  // Compose state
+  const [composeTitle, setComposeTitle] = useState('');
+  const [composeDesc, setComposeDesc]   = useState('');
+  const [composeType, setComposeType]   = useState('info');
+  const [composeAudience, setComposeAudience] = useState('all');
 
   const toggleActionRequired = (id: number) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, actionRequired: !n.actionRequired } : n));
@@ -48,12 +66,26 @@ export default function NotificationsPage({ navigate, role }: Props) {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
-  const markAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-  };
+  const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  const clearAll = () => setNotifications([]);
 
-  const clearAll = () => {
-    setNotifications([]);
+  const sendNotification = () => {
+    if (!composeTitle.trim() || !composeDesc.trim()) return;
+    const audienceLabel = audienceOptions.find(a => a.value === composeAudience)?.label || 'All Users';
+    setNotifications(prev => [{
+      id: Date.now(),
+      title: composeTitle,
+      desc: composeDesc,
+      type: composeType,
+      time: 'Just now',
+      read: false,
+      audience: audienceLabel,
+    }, ...prev]);
+    setComposeTitle('');
+    setComposeDesc('');
+    setComposeType('info');
+    setComposeAudience('all');
+    setShowCompose(false);
   };
 
   return (
@@ -63,22 +95,95 @@ export default function NotificationsPage({ navigate, role }: Props) {
           <h1 className="text-2xl font-bold text-[#222]">Notifications</h1>
           <p className="text-[#7e7e7e]">Stay updated with the latest platform activity</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          {isAdmin && (
+            <Button
+              size="sm"
+              className="bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] text-white"
+              onClick={() => setShowCompose(v => !v)}
+            >
+              {showCompose ? <><ChevronUp className="w-4 h-4 mr-1" /> Hide Composer</> : <><Plus className="w-4 h-4 mr-1" /> New Notification</>}
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={markAllRead}>Mark All Read</Button>
           <Button variant="outline" size="sm" className="text-red-600" onClick={clearAll}><Trash2 className="w-4 h-4 mr-1" /> Clear All</Button>
         </div>
       </div>
 
+      {/* Admin Compose Panel */}
+      {isAdmin && showCompose && (
+        <Card className="border-[#e33b5f]/20 bg-[#e33b5f]/5">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2 text-[#e33b5f]">
+              <Send className="w-4 h-4" /> Broadcast Notification
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-[#222] text-sm">Title</Label>
+                <Input
+                  placeholder="Notification title"
+                  className="border-[#f0f0f0] mt-1"
+                  value={composeTitle}
+                  onChange={e => setComposeTitle(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label className="text-[#222] text-sm">Type</Label>
+                <Select value={composeType} onValueChange={setComposeType}>
+                  <SelectTrigger className="border-[#f0f0f0] mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="info">ℹ️ Info</SelectItem>
+                    <SelectItem value="success">✅ Success</SelectItem>
+                    <SelectItem value="warning">⚠️ Warning</SelectItem>
+                    <SelectItem value="action">🔔 Action Required</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label className="text-[#222] text-sm">Message</Label>
+              <textarea
+                className="w-full mt-1 px-3 py-2 border border-[#f0f0f0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#e33b5f]/30 resize-none"
+                rows={3}
+                placeholder="Write your notification message..."
+                value={composeDesc}
+                onChange={e => setComposeDesc(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex-1 min-w-40">
+                <Label className="text-[#222] text-sm">Send to</Label>
+                <Select value={composeAudience} onValueChange={setComposeAudience}>
+                  <SelectTrigger className="border-[#f0f0f0] mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {audienceOptions.map(a => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                className="bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] text-white mt-5"
+                onClick={sendNotification}
+                disabled={!composeTitle.trim() || !composeDesc.trim()}
+              >
+                <Send className="w-4 h-4 mr-2" /> Send Notification
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {isAdmin && (
         <div className="flex items-start gap-3 p-3 bg-[#e33b5f]/5 border border-[#e33b5f]/20 rounded-lg">
           <Zap className="w-4 h-4 text-[#e33b5f] mt-0.5 flex-shrink-0" />
           <p className="text-xs text-[#555353]">
-            <span className="font-semibold text-[#e33b5f]">Admin tip:</span> Click <span className="font-semibold">⚡ Mark Action Required</span> on any notification to flag it with a red ACTION REQUIRED sticker visible to all users.
+            <span className="font-semibold text-[#e33b5f]">Admin tip:</span> Use <span className="font-semibold">New Notification</span> to broadcast to specific user groups. Click <span className="font-semibold">⚡ Mark Action Required</span> on any notification to flag it with a red ACTION REQUIRED badge.
           </p>
         </div>
       )}
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <Badge className="bg-[#e33b5f]/10 text-[#c02d4f]">{notifications.filter(n => !n.read).length} Unread</Badge>
         {notifications.filter(n => n.actionRequired).length > 0 && (
           <Badge className="bg-red-600 text-white animate-pulse">{notifications.filter(n => n.actionRequired).length} Action Required</Badge>
@@ -93,11 +198,10 @@ export default function NotificationsPage({ navigate, role }: Props) {
               <div className="p-8 text-center text-[#9e9e9e] text-sm">No notifications</div>
             )}
             {notifications.map(n => {
-              const tc = typeConfig[n.type];
+              const tc = typeConfig[n.type] || typeConfig.info;
               const Icon = tc.icon;
               return (
                 <div key={n.id} className={`flex items-start gap-3 p-4 hover:bg-[#fbfbfb] transition relative ${n.actionRequired ? 'bg-red-50 border-l-4 border-l-red-500' : !n.read ? 'bg-[#fafafa]' : ''}`}>
-                  {/* ACTION REQUIRED sticker */}
                   {n.actionRequired && (
                     <div className="absolute top-3 right-12 flex items-center gap-1 px-2 py-0.5 bg-red-600 text-white text-[10px] font-bold rounded-full uppercase tracking-wider animate-pulse">
                       <Zap className="w-2.5 h-2.5" /> Action Required
@@ -110,6 +214,9 @@ export default function NotificationsPage({ navigate, role }: Props) {
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className={`text-sm font-medium ${!n.read ? 'text-[#222]' : 'text-[#555353]'}`}>{n.title}</p>
                       {!n.read && <span className="w-2 h-2 rounded-full bg-[#e33b5f]/50" />}
+                      {n.audience && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-[#e33b5f]/30 text-[#e33b5f]">→ {n.audience}</Badge>
+                      )}
                     </div>
                     <p className="text-xs text-[#7e7e7e] mt-0.5">{n.desc}</p>
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -125,7 +232,9 @@ export default function NotificationsPage({ navigate, role }: Props) {
                       )}
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" className="flex-shrink-0 mt-5" onClick={() => deleteNotification(n.id)}><Trash2 className="w-4 h-4 text-[#9e9e9e]" /></Button>
+                  <Button variant="ghost" size="sm" className="flex-shrink-0 mt-5" onClick={() => deleteNotification(n.id)}>
+                    <Trash2 className="w-4 h-4 text-[#9e9e9e]" />
+                  </Button>
                 </div>
               );
             })}

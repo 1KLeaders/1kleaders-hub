@@ -38,7 +38,6 @@ const dashboards: Record<string, { metrics: { label: string; value: string; chan
       { label: 'Next Milestone', value: '14 days', change: 'Demo Day', up: true, icon: Calendar },
     ],
   },
-  'super-admin': {
     title: 'Super Admin Panel',
     subtitle: 'Full platform control and monitoring',
     metrics: [
@@ -59,16 +58,6 @@ const dashboards: Record<string, { metrics: { label: string; value: string; chan
     ],
   },
 
-  'idea-owner': {
-    title: 'Idea Owner Dashboard',
-    subtitle: 'Track your idea progress and feedback',
-    metrics: [
-      { label: 'Submitted Ideas', value: '3', change: '1 under review', up: true, icon: Briefcase },
-      { label: 'Evaluation Progress', value: '72%', change: 'Stage 4/6', up: true, icon: TrendingUp },
-      { label: 'VEP Score', value: '8.5/10', change: '+0.5', up: true, icon: CheckCircle },
-      { label: 'Demo Day', value: '15 days', change: 'Upcoming', up: true, icon: Calendar },
-    ],
-  },
   user: {
     title: 'Welcome to 1K Leaders',
     subtitle: 'Explore the platform and get started',
@@ -79,30 +68,15 @@ const dashboards: Record<string, { metrics: { label: string; value: string; chan
       { label: 'Announcements', value: '3', change: 'New', up: true, icon: Calendar },
     ],
   },
-  'waiting-list': {
-    title: 'Waiting List Account',
-    subtitle: 'Your account is pending verification',
-    metrics: [
-      { label: 'Account Status', value: 'Unverified', change: 'Action required', up: false, icon: Users },
-      { label: 'Queue Position', value: '#127', change: 'Moving up', up: true, icon: Briefcase },
-      { label: 'Verification Steps', value: '2/4', change: '50% complete', up: false, icon: CheckCircle },
-      { label: 'Est. Wait Time', value: '~2 weeks', change: 'Processing', up: true, icon: Calendar },
-    ],
-  },
 };
 
 const activities: Record<DashboardRole, { text: string; time: string; type: string }[]> = {
   shareholder: [
-    { text: 'New venture "GreenTech Solutions" added to portfolio', time: '2 hours ago', type: 'info' },
-    { text: 'Monthly ROI report is now available', time: '5 hours ago', type: 'success' },
-    { text: 'Shareholder meeting scheduled for tomorrow', time: '1 day ago', type: 'warning' },
-    { text: 'Investment milestone reached: $2M+', time: '2 days ago', type: 'success' },
-  ],
-  founder: [
-    { text: 'VEP evaluation completed for your startup', time: '2 hours ago', type: 'success' },
-    { text: 'New investor expressed interest in your pitch', time: '1 day ago', type: 'success' },
-    { text: 'Startup profile updated successfully', time: '2 days ago', type: 'info' },
-    { text: 'Demo Day scheduled for next week', time: '3 days ago', type: 'info' },
+    { text: 'Q4 dividend distribution announced', time: '1 hour ago', type: 'success' },
+    { text: 'New voting proposal: Board expansion', time: '3 hours ago', type: 'warning' },
+    { text: 'Discussion room: Investment Committee is active', time: '6 hours ago', type: 'info' },
+    { text: 'Share value increased by 2.3%', time: '2 days ago', type: 'success' },
+    { text: 'New startup opportunity matching your interests', time: '3 days ago', type: 'info' },
   ],
   'super-admin': [
     { text: '15 new user registrations today', time: '1 hour ago', type: 'info' },
@@ -116,29 +90,10 @@ const activities: Record<DashboardRole, { text: string; time: string; type: stri
     { text: 'Document submission deadline approaching', time: '4 hours ago', type: 'warning' },
     { text: 'Welcome email sent to 2 new verified partners', time: '5 hours ago', type: 'success' },
   ],
-  shareholder: [
-    { text: 'Q4 dividend distribution announced', time: '1 hour ago', type: 'success' },
-    { text: 'New voting proposal: Board expansion', time: '3 hours ago', type: 'warning' },
-    { text: 'Discussion room: Investment Committee is active', time: '6 hours ago', type: 'info' },
-    { text: 'Share value increased by 2.3%', time: '2 days ago', type: 'success' },
-    { text: 'New startup opportunity matching your interests', time: '3 days ago', type: 'info' },
-  ],
-  'idea-owner': [
-    { text: 'Your idea "GreenTech" ranked #1 in CleanTech', time: '1 hour ago', type: 'success' },
-    { text: 'VEP feedback is ready for review', time: '5 hours ago', type: 'info' },
-    { text: 'New VEP assignment: Evaluate SmartFarm idea', time: '1 day ago', type: 'warning' },
-    { text: 'Demo Day registration is open', time: '2 days ago', type: 'warning' },
-  ],
   user: [
     { text: 'Complete your profile to unlock more features', time: 'Just now', type: 'warning' },
     { text: 'New opportunity posted in FinTech sector', time: '3 hours ago', type: 'info' },
     { text: 'Try the AI Idea Assistant to refine your ideas', time: '1 day ago', type: 'info' },
-  ],
-  'waiting-list': [
-    { text: 'Please verify your email to proceed', time: 'Just now', type: 'warning' },
-    { text: 'Your queue position moved up by 5 spots', time: '1 day ago', type: 'success' },
-    { text: 'Verification documents required', time: '2 days ago', type: 'warning' },
-    { text: 'Complete your profile to move up the waitlist', time: '3 days ago', type: 'info' },
   ],
 };
 
@@ -364,15 +319,6 @@ export default function DashboardHome({ role, navigate }: Props) {
         </CardContent>
       </Card>
 
-      {role === 'waiting-list' && (
-        <Card className="border-[#f07969]/20 bg-[#f07969]/5">
-          <CardContent className="p-6 text-center">
-            <h3 className="text-lg font-semibold text-[#f07969] mb-2">Verify Your Account</h3>
-            <p className="text-[#f07969] text-sm mb-4">Complete the verification steps to gain full platform access and move up the waitlist.</p>
-            <Button className="bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] hover:opacity-90" onClick={() => navigate('onboarding')}>Start Verification</Button>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Startup Detail Modal */}
       <Dialog open={!!selectedStartup} onOpenChange={() => setSelectedStartup(null)}>

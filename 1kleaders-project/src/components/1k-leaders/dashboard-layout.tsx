@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   LayoutDashboard, FileText, Users, Settings, Bell, Handshake, Lightbulb, LogOut,
   Menu, X, ChevronRight, FolderOpen, Calendar, MessageSquare, Bot, BarChart3,
-  Mail, Star, Shield, FileCheck, MessageCircle,
+  Mail, Star, Shield, MessageCircle,
 } from 'lucide-react';
 import type { Page, DashboardRole } from './types';
 import { roleBadgeConfig } from './types';
@@ -26,10 +26,7 @@ const roleLabels: Record<DashboardRole, string> = {
   'super-admin': 'Super Admin',
   admin: 'Admin',
   shareholder: 'Shareholder',
-  'idea-owner': 'Idea Owner',
-  founder: 'Founder',
-  user: 'User / Prospect',
-  'waiting-list': 'Waiting List',
+  user: 'User',
 };
 
 interface NavItem {
@@ -37,40 +34,25 @@ interface NavItem {
   label: string;
   page: Page;
   roles?: DashboardRole[];
-  hideFor?: DashboardRole[];
 }
 
-// Standard access roles — get the same base pages
-const standardRoles: DashboardRole[] = ['shareholder', 'founder', 'idea-owner', 'user'];
-
 const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard',       page: 'dashboard' },
-  { icon: Lightbulb,       label: 'Idea Submission', page: 'idea-submission' },
-  { icon: Calendar,        label: 'Calendar',        page: 'calendar',          hideFor: ['waiting-list'] },
-  { icon: MessageSquare,   label: 'Discussion Rooms',page: 'discussion-rooms',  hideFor: ['waiting-list'] },
-  { icon: Bot,             label: 'AI Assistant',    page: 'ai-assistant' },
-  { icon: FolderOpen,      label: 'Documents',       page: 'documents',         hideFor: ['waiting-list'] },
-  { icon: Handshake,       label: 'Shareholders',    page: 'partners',          hideFor: ['waiting-list'] },
-  // Idea Ranking — admin/super-admin only
-  { icon: BarChart3,       label: 'Idea Ranking',    page: 'idea-ranking',      roles: ['admin', 'super-admin', 'idea-owner'] },
-  // Agreements — admin/super-admin only (it's an assignment/management page)
-  { icon: FileText,        label: 'Agreements',      page: 'agreements',        roles: ['admin', 'super-admin'] },
-  { icon: Bell,            label: 'Notifications',   page: 'notifications' },
-  { icon: Settings,        label: 'Settings',        page: 'settings' },
-];
-
-const waitlistNavItems: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', page: 'dashboard' },
-  { icon: FileCheck, label: 'KYC & Onboarding', page: 'kyc-onboarding' },
-  { icon: Bell, label: 'Notifications', page: 'notifications' },
-  { icon: Settings, label: 'Settings', page: 'settings' },
+  { icon: LayoutDashboard, label: 'Dashboard',        page: 'dashboard' },
+  { icon: Lightbulb,       label: 'Idea Submission',  page: 'idea-submission' },
+  { icon: Calendar,        label: 'Calendar',         page: 'calendar' },
+  { icon: MessageSquare,   label: 'Discussion Rooms', page: 'discussion-rooms' },
+  { icon: Bot,             label: 'AI Assistant',     page: 'ai-assistant' },
+  { icon: FolderOpen,      label: 'Documents',        page: 'documents' },
+  { icon: Handshake,       label: 'Shareholders',     page: 'partners' },
+  { icon: BarChart3,       label: 'Idea Ranking',     page: 'idea-ranking',   roles: ['admin', 'super-admin'] },
+  { icon: FileText,        label: 'Agreements',       page: 'agreements',     roles: ['admin', 'super-admin'] },
+  { icon: Bell,            label: 'Notifications',    page: 'notifications' },
+  { icon: Settings,        label: 'Settings',         page: 'settings' },
 ];
 
 function getNavItems(role: DashboardRole): NavItem[] {
-  if (role === 'waiting-list') return waitlistNavItems;
   return navItems.filter(item => {
     if (item.roles && !item.roles.includes(role)) return false;
-    if (item.hideFor && item.hideFor.includes(role)) return false;
     return true;
   });
 }

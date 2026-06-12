@@ -86,6 +86,21 @@ export default function ProfilePage({ navigate, role = 'shareholder' }: Props) {
         <Card className="lg:col-span-2">
           <CardHeader><CardTitle className="text-base">About & Expertise</CardTitle></CardHeader>
           <CardContent className="space-y-4">
+            <div className="grid sm:grid-cols-3 gap-4">
+              <div className="p-3 rounded-lg bg-[#f6f6f6] border border-[#f0f0f0]">
+                <p className="text-xs text-[#9e9e9e] mb-1">Company</p>
+                <p className="text-sm font-medium text-[#222]">Al-Rashid Ventures</p>
+              </div>
+              <div className="p-3 rounded-lg bg-[#f6f6f6] border border-[#f0f0f0]">
+                <p className="text-xs text-[#9e9e9e] mb-1">Primary Sector</p>
+                <p className="text-sm font-medium text-[#222]">Technology</p>
+              </div>
+              <div className="p-3 rounded-lg bg-[#f6f6f6] border border-[#f0f0f0]">
+                <p className="text-xs text-[#9e9e9e] mb-1">Years of Experience</p>
+                <p className="text-sm font-medium text-[#222]">15+ years</p>
+              </div>
+            </div>
+            <Separator />
             <div>
               <p className="text-sm font-medium text-[#444] mb-2">Skills & Expertise</p>
               <div className="flex flex-wrap gap-2">

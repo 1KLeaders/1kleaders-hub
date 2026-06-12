@@ -51,8 +51,9 @@ type WaitlistRow = {
   email: string
   org_name: string
   leader_profiles: string[]
-  status: 'pending' | 'approved' | 'rejected' | 'parked' | 'more-info-required'
+  status: 'pending' | 'meeting-scheduled' | 'approved' | 'rejected' | 'parked' | 'more-info-required'
   admin_notes: string | null
+  meeting_date?: string | null
 }
 
 export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
@@ -60,13 +61,14 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [updating, setUpdating] = useState<string | null>(null)
+  const [meetingDateInputs, setMeetingDateInputs] = useState<Record<string, string>>({})
 
   const fetchWaitlist = async () => {
     setLoading(true)
     setError(null)
     const { data, error } = await supabase
       .from('waitlist_submissions')
-      .select('id, created_at, first_name, last_name, email, org_name, leader_profiles, status, admin_notes')
+      .select('id, created_at, first_name, last_name, email, org_name, leader_profiles, status, admin_notes, meeting_date')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -80,19 +82,35 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
 
   useEffect(() => { fetchWaitlist() }, [])
 
-  const updateStatus = async (id: string, status: WaitlistRow['status']) => {
+  const updateStatus = async (id: string, status: WaitlistRow['status'], extra: Record<string, unknown> = {}) => {
     setUpdating(id)
     const { error } = await supabase
       .from('waitlist_submissions')
-      .update({ status, reviewed_at: new Date().toISOString() })
+      .update({ status, reviewed_at: new Date().toISOString(), ...extra })
       .eq('id', id)
     if (!error) {
-      setWaitlist(prev => prev.map(r => r.id === id ? { ...r, status } : r))
+      setWaitlist(prev => prev.map(r => r.id === id ? { ...r, status, ...extra } : r))
     }
     setUpdating(null)
   }
 
+  const scheduleMeeting = async (id: string) => {
+    const date = meetingDateInputs[id]
+    await updateStatus(id, 'meeting-scheduled', { meeting_date: date || null })
+  }
+
+  const undoDecision = (id: string) => updateStatus(id, 'meeting-scheduled')
+
   const pendingCount = waitlist.filter(r => r.status === 'pending').length
+  const meetingCount = waitlist.filter(r => r.status === 'meeting-scheduled').length
+
+  const statusStyle = (status: WaitlistRow['status']) => {
+    if (status === 'approved')          return 'bg-emerald-50 border-emerald-200'
+    if (status === 'rejected')          return 'bg-red-50 border-red-200'
+    if (status === 'parked')            return 'bg-stone-50 border-stone-200'
+    if (status === 'meeting-scheduled') return 'bg-blue-50 border-blue-200'
+    return 'bg-amber-50 border-amber-200'
+  }
 
   return (
     <div className="space-y-6">
@@ -139,7 +157,8 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
               <Users className="w-5 h-5 text-[#e33b5f]" /> Waitlist Review Queue
             </CardTitle>
             <div className="flex items-center gap-2">
-              {!loading && <Badge className="bg-amber-100 text-amber-700">{pendingCount} Pending</Badge>}
+              {!loading && pendingCount > 0 && <Badge className="bg-amber-100 text-amber-700">{pendingCount} Pending</Badge>}
+              {!loading && meetingCount > 0 && <Badge className="bg-blue-100 text-blue-700">{meetingCount} Meeting Scheduled</Badge>}
               <Button size="sm" variant="outline" onClick={fetchWaitlist} disabled={loading} className="h-7 px-2">
                 <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
               </Button>
@@ -147,9 +166,7 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
           </div>
         </CardHeader>
         <CardContent>
-          {error && (
-            <p className="text-sm text-red-500 text-center py-4">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-500 text-center py-4">{error}</p>}
           {loading && !error && (
             <div className="flex items-center justify-center py-8 gap-2 text-[#7e7e7e]">
               <Loader2 className="w-4 h-4 animate-spin" /> Loading submissions...
@@ -161,42 +178,70 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
           {!loading && !error && waitlist.length > 0 && (
             <div className="space-y-3">
               {waitlist.map(row => (
-                <div key={row.id} className={`flex items-center justify-between p-3 rounded-lg border transition ${
-                  row.status === 'approved' ? 'bg-emerald-50 border-emerald-200' :
-                  row.status === 'rejected' ? 'bg-red-50 border-red-200' :
-                  row.status === 'parked'   ? 'bg-stone-50 border-stone-200' :
-                  'bg-amber-50 border-amber-200'
-                }`}>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-semibold text-sm text-stone-900">{row.first_name} {row.last_name}</p>
-                      {row.status === 'pending'  && <Badge className="bg-amber-100 text-amber-700 text-xs flex items-center gap-1"><Clock className="w-2.5 h-2.5" /> Pending</Badge>}
-                      {row.status === 'approved' && <Badge className="bg-emerald-100 text-emerald-700 text-xs">Approved</Badge>}
-                      {row.status === 'rejected' && <Badge className="bg-red-100 text-red-700 text-xs">Rejected</Badge>}
-                      {row.status === 'parked'   && <Badge className="bg-stone-100 text-stone-600 text-xs">Parked</Badge>}
+                <div key={row.id} className={`p-3 rounded-lg border transition ${statusStyle(row.status)}`}>
+                  <div className="flex items-start justify-between gap-2 flex-wrap">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold text-sm text-stone-900">{row.first_name} {row.last_name}</p>
+                        {row.status === 'pending'            && <Badge className="bg-amber-100 text-amber-700 text-xs flex items-center gap-1"><Clock className="w-2.5 h-2.5" /> Pending</Badge>}
+                        {row.status === 'meeting-scheduled'  && <Badge className="bg-blue-100 text-blue-700 text-xs flex items-center gap-1"><Rocket className="w-2.5 h-2.5" /> Meeting Scheduled{row.meeting_date ? ` — ${new Date(row.meeting_date).toLocaleDateString()}` : ''}</Badge>}
+                        {row.status === 'approved'           && <Badge className="bg-emerald-100 text-emerald-700 text-xs">Approved</Badge>}
+                        {row.status === 'rejected'           && <Badge className="bg-red-100 text-red-700 text-xs">Rejected</Badge>}
+                        {row.status === 'parked'             && <Badge className="bg-stone-100 text-stone-600 text-xs">Parked — awaiting more info</Badge>}
+                      </div>
+                      <p className="text-xs text-stone-500 truncate mt-0.5">
+                        {row.email} · {row.org_name} · {row.leader_profiles?.join(', ')} · {new Date(row.created_at).toLocaleDateString()}
+                      </p>
                     </div>
-                    <p className="text-xs text-stone-500 truncate">
-                      {row.email} · {row.org_name} · {row.leader_profiles?.join(', ')} · {new Date(row.created_at).toLocaleDateString()}
-                    </p>
+
+                    {/* STEP 1: Pending → Schedule Meeting */}
+                    {row.status === 'pending' && (
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <input
+                          type="datetime-local"
+                          className="text-xs border border-stone-200 rounded px-2 py-1 h-8"
+                          value={meetingDateInputs[row.id] || ''}
+                          onChange={e => setMeetingDateInputs(prev => ({ ...prev, [row.id]: e.target.value }))}
+                        />
+                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white h-8"
+                          disabled={updating === row.id} onClick={() => scheduleMeeting(row.id)}>
+                          {updating === row.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Rocket className="w-3.5 h-3.5 mr-1" />Schedule Meeting</>}
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* STEP 2: Meeting Scheduled → Approve / Reject / Park */}
+                    {row.status === 'meeting-scheduled' && (
+                      <div className="flex gap-2 flex-shrink-0">
+                        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-8"
+                          disabled={updating === row.id} onClick={() => updateStatus(row.id, 'approved')}>
+                          {updating === row.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><CheckCircle2 className="w-3.5 h-3.5 mr-1" />Approve</>}
+                        </Button>
+                        <Button size="sm" variant="outline" className="border-stone-300 text-stone-600 h-8"
+                          disabled={updating === row.id} onClick={() => updateStatus(row.id, 'parked')}>
+                          Park
+                        </Button>
+                        <Button size="sm" variant="outline" className="border-red-300 text-red-600 hover:bg-red-50 h-8"
+                          disabled={updating === row.id} onClick={() => updateStatus(row.id, 'rejected')}>
+                          <XCircle className="w-3.5 h-3.5 mr-1" />Reject
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Post-decision: Undo */}
+                    {(row.status === 'approved' || row.status === 'rejected' || row.status === 'parked') && (
+                      <Button size="sm" variant="outline" className="h-8 text-xs border-stone-300 text-stone-500 flex-shrink-0"
+                        disabled={updating === row.id} onClick={() => undoDecision(row.id)}>
+                        {updating === row.id ? <Loader2 className="w-3 h-3 animate-spin" /> : '↩ Undo'}
+                      </Button>
+                    )}
                   </div>
-                  {row.status === 'pending' && (
-                    <div className="flex gap-2 flex-shrink-0 ml-2">
-                      <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-8"
-                        disabled={updating === row.id} onClick={() => updateStatus(row.id, 'approved')}>
-                        {updating === row.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><CheckCircle2 className="w-3.5 h-3.5 mr-1" />Approve</>}
-                      </Button>
-                      <Button size="sm" variant="outline" className="border-stone-300 text-stone-600 h-8"
-                        disabled={updating === row.id} onClick={() => updateStatus(row.id, 'parked')}>
-                        Park
-                      </Button>
-                      <Button size="sm" variant="outline" className="border-red-300 text-red-600 hover:bg-red-50 h-8"
-                        disabled={updating === row.id} onClick={() => updateStatus(row.id, 'rejected')}>
-                        <XCircle className="w-3.5 h-3.5 mr-1" />Reject
-                      </Button>
-                    </div>
-                  )}
-                  {row.status !== 'pending' && (
-                    <CheckCheck className={`w-5 h-5 flex-shrink-0 ml-2 ${row.status === 'approved' ? 'text-emerald-500' : row.status === 'rejected' ? 'text-red-400' : 'text-stone-400'}`} />
+
+                  {/* Parked note */}
+                  {row.status === 'parked' && (
+                    <p className="text-xs text-stone-500 mt-2 pl-1">
+                      📋 Parked applicants are held pending additional information or a future cohort. They will not receive platform access until approved.
+                    </p>
                   )}
                 </div>
               ))}

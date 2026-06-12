@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageSquare, Send, Plus, Users, Lock, Video, Search, Hash, ArrowRight, Shield } from 'lucide-react';
+import { MessageSquare, Send, Plus, Users, Lock, Search, Hash, ArrowRight, Shield } from 'lucide-react';
 import type { DashboardRole } from './types';
 import { roleBadgeConfig } from './types';
 
@@ -133,7 +133,6 @@ export default function DiscussionRooms({ role }: Props) {
                       <Users className="w-3 h-3 mr-1" />{rooms.find(r => r.id === selectedRoom)?.members} members
                     </Badge>
                   </div>
-                  <Button variant="outline" size="sm"><Video className="w-4 h-4 mr-1" /> Video Call</Button>
                 </div>
               </CardHeader>
 

@@ -5,19 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Mail, Lock, Eye, EyeOff, ChevronDown, Users, Lightbulb, Shield, UserCircle, Building2, Star, Rocket, Clock } from 'lucide-react';
+import { ArrowLeft, Mail, Lock, Eye, EyeOff, ChevronDown, Users, Shield, UserCircle, Building2, Star } from 'lucide-react';
 import type { Page, DashboardRole } from './types';
 
 interface Props { navigate: (page: Page) => void; type?: 'shareholder' | 'idea-owner'; onRoleSelect?: (role: DashboardRole) => void; }
 
 const roles: { id: DashboardRole; label: string; icon: React.ReactNode; desc: string }[] = [
-  { id: 'shareholder',   label: 'Shareholder',    icon: <Building2 className="w-5 h-5" />,     desc: 'Access shareholder dashboard & portfolio' },
-  { id: 'idea-owner',    label: 'Idea Owner',      icon: <Lightbulb className="w-5 h-5" />,     desc: 'Submit & manage your ideas' },
-  { id: 'founder',       label: 'Founder',         icon: <Rocket className="w-5 h-5" />,        desc: 'Build startups as a founder' },
-  { id: 'admin',         label: 'Admin',           icon: <Shield className="w-5 h-5" />,        desc: 'Admin dashboard & controls' },
-  { id: 'super-admin',   label: 'Super Admin',     icon: <Star className="w-5 h-5" />,          desc: 'Full system access & management' },
-  { id: 'user',          label: 'User',            icon: <UserCircle className="w-5 h-5" />,    desc: 'Standard user access' },
-  { id: 'waiting-list',  label: 'Waiting List',    icon: <Clock className="w-5 h-5" />,         desc: 'Pending verification & platform access' },
+  { id: 'shareholder',  label: 'Shareholder', icon: <Building2 className="w-5 h-5" />,  desc: 'Full partner with shareholding access' },
+  { id: 'user',         label: 'User',         icon: <UserCircle className="w-5 h-5" />, desc: 'Platform member — subroles assigned separately' },
+  { id: 'admin',        label: 'Admin',        icon: <Shield className="w-5 h-5" />,     desc: 'Admin dashboard & controls' },
+  { id: 'super-admin',  label: 'Super Admin',  icon: <Star className="w-5 h-5" />,       desc: 'Full system access & management' },
 ];
 
 export default function LoginPage({ navigate, type, onRoleSelect }: Props) {

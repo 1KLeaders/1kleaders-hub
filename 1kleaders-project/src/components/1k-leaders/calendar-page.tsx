@@ -174,7 +174,19 @@ export default function CalendarPage({ role }: Props) {
           <h1 className="text-2xl font-bold text-[#222]">Calendar</h1>
           <p className="text-[#9e9e9e] text-sm">Manage meetings, deadlines & document alerts</p>
         </div>
-        <Dialog open={showNewVoteDialog} onOpenChange={setShowNewVoteDialog}>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-[#5059C9] text-[#5059C9] hover:bg-[#5059C9]/5 gap-2"
+            onClick={() => window.open('https://teams.microsoft.com', '_blank')}
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20.625 5.4h-3.937V3.375A1.125 1.125 0 0015.563 2.25h-7.5a1.125 1.125 0 00-1.125 1.125V5.4H2.812a.563.563 0 00-.562.563v8.625a3.375 3.375 0 003.375 3.375h.938a5.625 5.625 0 005.437 4.125 5.625 5.625 0 005.438-4.125h.937A3.375 3.375 0 0021.75 14.25V5.963a.563.563 0 00-.563-.563zm-9 13.35a4.5 4.5 0 110-9 4.5 4.5 0 010 9z"/>
+            </svg>
+            Connect Microsoft Teams
+          </Button>
+          <Dialog open={showNewVoteDialog} onOpenChange={setShowNewVoteDialog}>
           <DialogTrigger asChild>
             <Button className="bg-[#e33b5f] hover:bg-[#c02d4f] rounded-xl shadow-sm" size="sm">
               <Vote className="w-4 h-4 mr-1.5" /> New Meeting Vote
@@ -216,6 +228,7 @@ export default function CalendarPage({ role }: Props) {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Legend chips */}
