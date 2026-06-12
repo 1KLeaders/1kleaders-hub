@@ -88,8 +88,6 @@ export default function Home() {
         return <SuperAdminDashboard onNavigate={navigate} />;
       case 'recommendations':
         return <RecommendationsPage />;
-      case 'kyc-onboarding':
-        return <OnboardingKYC navigate={navigate} />;
       default:
         return <DashboardHome role={dashboardRole} navigate={navigate} />;
     }
@@ -99,8 +97,7 @@ export default function Home() {
     'dashboard', 'idea-submission', 'idea-ranking', 'agreements', 'documents',
     'partners', 'settings', 'notifications', 'profile', 'calendar',
     'discussion-rooms', 'ai-assistant', 'newsletter-tracking',
-    'vep-dashboard', 'mab-dashboard', 'recommendations', 'kyc-onboarding',
-    'admin-dashboard',
+    'vep-dashboard', 'mab-dashboard', 'recommendations', 'admin-dashboard',
   ];
 
   if (dashboardPages.includes(currentPage)) {
