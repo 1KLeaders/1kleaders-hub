@@ -59,6 +59,16 @@ const dashboards: Record<string, { metrics: { label: string; value: string; chan
       { label: 'Announcements', value: '3', change: 'New', up: true, icon: Calendar },
     ],
   },
+  developer: {
+    title: '🛠 Developer View',
+    subtitle: 'Full platform access — use the role switcher to preview any view',
+    metrics: [
+      { label: 'Auth Status', value: 'Live', change: 'Supabase connected', up: true, icon: CheckCircle },
+      { label: 'RLS Policies', value: 'Active', change: 'JWT claims OK', up: true, icon: Users },
+      { label: 'DB Tables', value: '5', change: 'All seeded', up: true, icon: Briefcase },
+      { label: 'Deploy', value: 'Vercel', change: 'Auto-deploy on', up: true, icon: TrendingUp },
+    ],
+  },
 };
 
 const activities: Record<DashboardRole, { text: string; time: string; type: string }[]> = {
@@ -85,6 +95,11 @@ const activities: Record<DashboardRole, { text: string; time: string; type: stri
     { text: 'Complete your profile to unlock more features', time: 'Just now', type: 'warning' },
     { text: 'New opportunity posted in FinTech sector', time: '3 hours ago', type: 'info' },
     { text: 'Try the AI Idea Assistant to refine your ideas', time: '1 day ago', type: 'info' },
+  ],
+  developer: [
+    { text: 'Auth context loaded — session active', time: 'Just now', type: 'success' },
+    { text: 'JWT app_role claim: developer ✓', time: 'Just now', type: 'success' },
+    { text: 'Use the role switcher in the sidebar to preview any view', time: 'Just now', type: 'info' },
   ],
 };
 
