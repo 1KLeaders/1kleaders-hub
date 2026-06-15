@@ -179,6 +179,7 @@ function NewBadgeCreator({ isSuperAdmin }: { isSuperAdmin: boolean }) {
   );
 }
 
+export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
 
   const [waitlist, setWaitlist] = useState<WaitlistRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -249,6 +250,8 @@ function NewBadgeCreator({ isSuperAdmin }: { isSuperAdmin: boolean }) {
     }
     setInviting(null)
   }
+
+  const undoDecision = (id: string) => updateStatus(id, 'meeting-scheduled')
 
   const pendingCount = waitlist.filter(r => r.status === 'pending').length
   const meetingCount = waitlist.filter(r => r.status === 'meeting-scheduled').length
