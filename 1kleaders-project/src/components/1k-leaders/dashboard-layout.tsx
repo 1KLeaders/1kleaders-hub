@@ -46,12 +46,12 @@ const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard',        page: 'dashboard' },
   { icon: Lightbulb,       label: 'Idea Submission',  page: 'idea-submission' },
   { icon: Calendar,        label: 'Calendar',         page: 'calendar' },
-  { icon: MessageSquare,   label: 'Discussion Rooms', page: 'discussion-rooms' },
+  { icon: MessageSquare,   label: 'Discussion Rooms', page: 'discussion-rooms', roles: ['shareholder', 'admin', 'super-admin', 'developer'] },
   { icon: Bot,             label: 'AI Assistant',     page: 'ai-assistant' },
   { icon: FolderOpen,      label: 'Documents',        page: 'documents' },
-  { icon: Handshake,       label: 'Shareholders',     page: 'partners' },
-  { icon: BarChart3,       label: 'Idea Ranking',     page: 'idea-ranking',   roles: ['admin', 'super-admin'] },
-  { icon: FileText,        label: 'Agreements',       page: 'agreements',     roles: ['admin', 'super-admin'] },
+  { icon: Handshake,       label: 'Shareholders',     page: 'partners',          roles: ['shareholder', 'admin', 'super-admin', 'developer'] },
+  { icon: BarChart3,       label: 'Idea Ranking',     page: 'idea-ranking',      roles: ['admin', 'super-admin', 'developer'] },
+  { icon: FileText,        label: 'Agreements',       page: 'agreements',        roles: ['admin', 'super-admin', 'developer'] },
   { icon: Bell,            label: 'Notifications',    page: 'notifications' },
   { icon: Settings,        label: 'Settings',         page: 'settings' },
 ];
@@ -75,7 +75,7 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
   const roleBadgeKey = role as keyof typeof roleBadgeConfig;
   const badgeInfo = roleBadgeConfig[roleBadgeKey];
   const visibleNav = getNavItems(role);
-  const isAdmin = role === 'admin' || role === 'super-admin';
+  const isAdmin = role === 'admin' || role === 'super-admin' || role === 'developer';
   const isVEP = isAdmin;
   const isMAB = isAdmin;
 
@@ -149,6 +149,23 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
               </button>
             </>
           )}
+          {/* Founder startup page — shown when user has founder subrole */}
+          {profile?.subroles?.includes('founder') && (
+            <>
+              <Separator className="my-3 bg-white/10" />
+              <p className="text-xs text-[#7e7e7e] uppercase tracking-wider mb-2 px-2">My Startup</p>
+              <button onClick={() => handleNav('startup-page')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'startup-page' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
+                🚀 Startup Page
+              </button>
+            </>
+          )}
+          {/* Bug report — visible to all */}
+          <Separator className="my-3 bg-white/10" />
+          <button onClick={() => handleNav('bug-report')}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'bug-report' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
+            🐛 Report a Bug
+          </button>
         </ScrollArea>
 
         <div className="p-3 border-t border-white/10 space-y-2">

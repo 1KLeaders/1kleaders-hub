@@ -175,17 +175,19 @@ export default function CalendarPage({ role }: Props) {
           <p className="text-[#9e9e9e] text-sm">Manage meetings, deadlines & document alerts</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-[#5059C9] text-[#5059C9] hover:bg-[#5059C9]/5 gap-2"
-            onClick={() => window.open('https://teams.microsoft.com', '_blank')}
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M20.625 5.4h-3.937V3.375A1.125 1.125 0 0015.563 2.25h-7.5a1.125 1.125 0 00-1.125 1.125V5.4H2.812a.563.563 0 00-.562.563v8.625a3.375 3.375 0 003.375 3.375h.938a5.625 5.625 0 005.437 4.125 5.625 5.625 0 005.438-4.125h.937A3.375 3.375 0 0021.75 14.25V5.963a.563.563 0 00-.563-.563zm-9 13.35a4.5 4.5 0 110-9 4.5 4.5 0 010 9z"/>
-            </svg>
-            Connect Microsoft Teams
-          </Button>
+          {(role === 'admin' || role === 'super-admin' || role === 'developer' || role === 'shareholder') && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-[#5059C9] text-[#5059C9] hover:bg-[#5059C9]/5 gap-2"
+              onClick={() => window.open('https://teams.microsoft.com', '_blank')}
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20.625 5.4h-3.937V3.375A1.125 1.125 0 0015.563 2.25h-7.5a1.125 1.125 0 00-1.125 1.125V5.4H2.812a.563.563 0 00-.562.563v8.625a3.375 3.375 0 003.375 3.375h.938a5.625 5.625 0 005.437 4.125 5.625 5.625 0 005.438-4.125h.937A3.375 3.375 0 0021.75 14.25V5.963a.563.563 0 00-.563-.563zm-9 13.35a4.5 4.5 0 110-9 4.5 4.5 0 010 9z"/>
+              </svg>
+              Connect Microsoft Teams
+            </Button>
+          )}
           <Dialog open={showNewVoteDialog} onOpenChange={setShowNewVoteDialog}>
           <DialogTrigger asChild>
             <Button className="bg-[#e33b5f] hover:bg-[#c02d4f] rounded-xl shadow-sm" size="sm">
@@ -374,6 +376,10 @@ export default function CalendarPage({ role }: Props) {
               {selectedDayEvents.map(e => {
                 const colors = typeColors[e.type] || typeColors.meeting;
                 const Icon = e.type === 'meeting' ? Video : e.type === 'newsletter' ? Mail : e.type === 'expiry' ? AlertTriangle : Clock;
+                const eventDate = new Date(e.date);
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const isPast = eventDate < today;
                 return (
                   <div key={e.id} className={`flex items-start gap-3 p-4 ${colors.light} rounded-2xl border border-transparent hover:border-[#f0f0f0] transition-colors`}>
                     <div className={`w-10 h-10 rounded-xl ${colors.bg} flex items-center justify-center flex-shrink-0 shadow-sm`}>
@@ -385,16 +391,39 @@ export default function CalendarPage({ role }: Props) {
                         <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{e.time}</span>
                         <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{e.location}</span>
                       </div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="inline-flex items-center gap-1 text-[10px] text-[#9e9e9e] bg-white px-2 py-0.5 rounded-full border border-[#f0f0f0]">
-                          <Mail className="w-2.5 h-2.5" /> Email reminder
-                        </span>
-                        {(e.type === 'deadline' || e.type === 'expiry') && (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-[#e33b5f] bg-white px-2 py-0.5 rounded-full border border-[#f0f0f0]">
-                            <Phone className="w-2.5 h-2.5" /> WhatsApp
+                      {/* Past meeting info */}
+                      {isPast && e.type === 'meeting' && (
+                        <div className="mt-3 space-y-2">
+                          <p className="text-[10px] font-semibold text-[#9e9e9e] uppercase tracking-wider">Meeting Record</p>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              onClick={() => alert('Meeting report download coming soon — will link to uploaded Teams report.')}
+                              className="flex items-center gap-1.5 text-xs px-2.5 py-1 bg-white border border-[#e33b5f]/30 text-[#e33b5f] rounded-full hover:bg-[#e33b5f]/5 transition"
+                            >
+                              📄 Download Report
+                            </button>
+                            <button
+                              onClick={() => alert('Attendance list coming soon — pulled from Teams attendance report.')}
+                              className="flex items-center gap-1.5 text-xs px-2.5 py-1 bg-white border border-[#f0f0f0] text-[#555353] rounded-full hover:border-[#e33b5f]/30 transition"
+                            >
+                              👥 View Attendance
+                            </button>
+                          </div>
+                          <p className="text-[10px] text-[#9e9e9e]">Attendance reports are uploaded by admins via the MS Teams report upload (Phase 3).</p>
+                        </div>
+                      )}
+                      {!isPast && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="inline-flex items-center gap-1 text-[10px] text-[#9e9e9e] bg-white px-2 py-0.5 rounded-full border border-[#f0f0f0]">
+                            <Mail className="w-2.5 h-2.5" /> Email reminder
                           </span>
-                        )}
-                      </div>
+                          {(e.type === 'deadline' || e.type === 'expiry') && (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-[#e33b5f] bg-white px-2 py-0.5 rounded-full border border-[#f0f0f0]">
+                              <Phone className="w-2.5 h-2.5" /> WhatsApp
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

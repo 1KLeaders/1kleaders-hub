@@ -24,7 +24,12 @@ import {
   CheckCheck,
   Loader2,
   RefreshCw,
+  Tag,
+  Plus,
+  X,
 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase'
 
 interface SuperAdminDashboardProps {
@@ -56,7 +61,125 @@ type WaitlistRow = {
   meeting_date?: string | null
 }
 
-export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
+const BADGE_COLORS = [
+  { label: 'Red',    value: 'bg-red-100 text-red-700 border-red-200' },
+  { label: 'Blue',   value: 'bg-blue-100 text-blue-700 border-blue-200' },
+  { label: 'Green',  value: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  { label: 'Purple', value: 'bg-purple-100 text-purple-700 border-purple-200' },
+  { label: 'Amber',  value: 'bg-amber-100 text-amber-700 border-amber-200' },
+  { label: 'Pink',   value: 'bg-pink-100 text-pink-700 border-pink-200' },
+  { label: 'Teal',   value: 'bg-teal-100 text-teal-700 border-teal-200' },
+  { label: 'Stone',  value: 'bg-stone-100 text-stone-700 border-stone-200' },
+];
+
+const BADGE_ICONS = ['⭐','🏆','🔑','💎','🎯','🌟','🛠','🔬','📊','🤝','🚀','💡','🛡️','⚡','🌍'];
+
+function NewBadgeCreator({ isSuperAdmin }: { isSuperAdmin: boolean }) {
+  const [open,    setOpen]    = useState(false);
+  const [label,   setLabel]   = useState('');
+  const [icon,    setIcon]    = useState('⭐');
+  const [color,   setColor]   = useState(BADGE_COLORS[0].value);
+  const [saved,   setSaved]   = useState(false);
+  const [badges,  setBadges]  = useState<{ id: string; label: string; icon: string; color: string }[]>([]);
+
+  if (!isSuperAdmin) return null;
+
+  const createBadge = () => {
+    if (!label.trim()) return;
+    const newBadge = { id: Date.now().toString(), label: label.trim(), icon, color };
+    setBadges(prev => [...prev, newBadge]);
+    setLabel(''); setIcon('⭐'); setColor(BADGE_COLORS[0].value);
+    setSaved(true); setTimeout(() => setSaved(false), 2000);
+    // TODO: persist to Supabase custom_badges table
+  };
+
+  return (
+    <Card className="border-purple-200">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg text-stone-900 flex items-center gap-2">
+            <Tag className="w-5 h-5 text-purple-600" /> Badge Manager
+            <span className="text-xs font-normal text-purple-500 ml-1">Super Admin only</span>
+          </CardTitle>
+          <Button size="sm" variant="outline" className="border-purple-200 text-purple-700 h-7" onClick={() => setOpen(v => !v)}>
+            {open ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5 mr-1" />}
+            {open ? 'Close' : 'New Badge'}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Existing custom badges */}
+        {badges.length > 0 && (
+          <div>
+            <p className="text-xs font-medium text-[#9e9e9e] uppercase tracking-wider mb-2">Custom Badges</p>
+            <div className="flex flex-wrap gap-2">
+              {badges.map(b => (
+                <div key={b.id} className="flex items-center gap-1">
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border ${b.color}`}>
+                    {b.icon} {b.label}
+                  </span>
+                  <button onClick={() => setBadges(prev => prev.filter(x => x.id !== b.id))} className="text-[#9e9e9e] hover:text-red-500">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Creator form */}
+        {open && (
+          <div className="p-4 bg-purple-50 border border-purple-100 rounded-lg space-y-4">
+            <p className="text-sm font-medium text-purple-800">Create New Badge</p>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs text-[#444]">Badge Label</Label>
+                <Input className="mt-1 border-[#f0f0f0] bg-white" placeholder="e.g. Mentor, Advisor" value={label} onChange={e => setLabel(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs text-[#444]">Icon</Label>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {BADGE_ICONS.map(ic => (
+                    <button key={ic} onClick={() => setIcon(ic)}
+                      className={`w-8 h-8 rounded-lg text-sm transition ${icon === ic ? 'bg-purple-200 ring-2 ring-purple-400' : 'bg-white border border-[#f0f0f0] hover:border-purple-300'}`}>
+                      {ic}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-[#444]">Color</Label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {BADGE_COLORS.map(c => (
+                  <button key={c.value} onClick={() => setColor(c.value)}
+                    className={`px-2.5 py-1 rounded text-xs font-medium border transition ${c.value} ${color === c.value ? 'ring-2 ring-offset-1 ring-purple-400' : ''}`}>
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {label && (
+              <div>
+                <p className="text-xs text-[#9e9e9e] mb-1">Preview</p>
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border ${color}`}>{icon} {label}</span>
+              </div>
+            )}
+            <Button className="bg-purple-600 hover:bg-purple-700 text-white" onClick={createBadge} disabled={!label.trim()}>
+              {saved ? <><CheckCheck className="w-4 h-4 mr-2" />Badge Created!</> : <><Plus className="w-4 h-4 mr-2" />Create Badge</>}
+            </Button>
+          </div>
+        )}
+
+        {!open && badges.length === 0 && (
+          <p className="text-sm text-[#9e9e9e] text-center py-2">No custom badges yet. Click "New Badge" to create one.</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+
   const [waitlist, setWaitlist] = useState<WaitlistRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -99,7 +222,33 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
     await updateStatus(id, 'meeting-scheduled', { meeting_date: date || null })
   }
 
-  const undoDecision = (id: string) => updateStatus(id, 'meeting-scheduled')
+  const [inviting, setInviting] = useState<string | null>(null)
+
+  const approveAndInvite = async (row: WaitlistRow) => {
+    setInviting(row.id)
+    try {
+      const res = await fetch('/api/auth/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email:       row.email,
+          first_name:  row.first_name,
+          last_name:   row.last_name,
+          role:        'user',
+          waitlist_id: row.id,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        alert(`Invite failed: ${json.error}`)
+      } else {
+        setWaitlist(prev => prev.map(r => r.id === row.id ? { ...r, status: 'approved' as const } : r))
+      }
+    } catch (e) {
+      alert('Network error — could not send invite.')
+    }
+    setInviting(null)
+  }
 
   const pendingCount = waitlist.filter(r => r.status === 'pending').length
   const meetingCount = waitlist.filter(r => r.status === 'meeting-scheduled').length
@@ -214,8 +363,9 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
                     {row.status === 'meeting-scheduled' && (
                       <div className="flex gap-2 flex-shrink-0">
                         <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-8"
-                          disabled={updating === row.id} onClick={() => updateStatus(row.id, 'approved')}>
-                          {updating === row.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><CheckCircle2 className="w-3.5 h-3.5 mr-1" />Approve</>}
+                          disabled={updating === row.id || inviting === row.id}
+                          onClick={() => approveAndInvite(row)}>
+                          {inviting === row.id ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />Inviting...</> : <><CheckCircle2 className="w-3.5 h-3.5 mr-1" />Approve & Invite</>}
                         </Button>
                         <Button size="sm" variant="outline" className="border-stone-300 text-stone-600 h-8"
                           disabled={updating === row.id} onClick={() => updateStatus(row.id, 'parked')}>
@@ -339,6 +489,9 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
           </div>
         </CardContent>
       </Card>
+      {/* New Badge Creator — Super Admin only */}
+      <NewBadgeCreator isSuperAdmin={true} />
+
     </div>
   )
 }

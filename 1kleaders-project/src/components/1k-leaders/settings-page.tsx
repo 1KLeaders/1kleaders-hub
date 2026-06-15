@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { User, Lock, Bell, Shield, Save, Loader2, Check, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { User, Lock, Bell, Shield, Save, Loader2, Check, Eye, EyeOff, AlertCircle, X } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { supabase } from '@/lib/supabase';
 
@@ -26,6 +26,53 @@ const expertiseDomains = [
   'Marketing','Technology','Finance','Strategy and Management','Operations','Legal',
   'Compliance and Risk','Sales','Human Resources','Product Development','Data Analytics','Other',
 ];
+
+function EmailChangeSection() {
+  const [newEmail,  setNewEmail]  = useState('');
+  const [sending,   setSending]   = useState(false);
+  const [sent,      setSent]      = useState(false);
+  const [err,       setErr]       = useState<string | null>(null);
+  const [open,      setOpen]      = useState(false);
+
+  async function changeEmail() {
+    setErr(null);
+    if (!newEmail || !newEmail.includes('@')) return setErr('Enter a valid email address.');
+    setSending(true);
+    const { error } = await supabase.auth.updateUser({ email: newEmail });
+    setSending(false);
+    if (error) return setErr(error.message);
+    setSent(true);
+    setNewEmail('');
+  }
+
+  return (
+    <div className="mt-2">
+      {!open ? (
+        <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="h-7 text-xs">Change Email</Button>
+      ) : (
+        <div className="mt-2 p-3 border border-[#f0f0f0] rounded-lg bg-[#fafafa] space-y-2">
+          {sent ? (
+            <div className="flex items-center gap-2 text-sm text-emerald-600">
+              <Check className="w-4 h-4" /> Confirmation emails sent. Check both inboxes to confirm the change.
+            </div>
+          ) : (
+            <>
+              <Label className="text-xs">New Email Address</Label>
+              <div className="flex gap-2">
+                <Input className="border-[#f0f0f0] text-sm h-8 flex-1" placeholder="new@email.com" value={newEmail} onChange={e => setNewEmail(e.target.value.replace(/\s/g,''))} />
+                <Button size="sm" className="h-8 bg-[#e33b5f] text-white" onClick={changeEmail} disabled={sending}>
+                  {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Send Confirmation'}
+                </Button>
+                <Button size="sm" variant="outline" className="h-8" onClick={() => setOpen(false)}><X className="w-3.5 h-3.5" /></Button>
+              </div>
+              {err && <p className="text-xs text-red-600">{err}</p>}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   const { profile, refreshProfile } = useAuth();
@@ -288,8 +335,11 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div>
                 <Label>Email Address</Label>
-                <Input className="mt-1 border-[#f0f0f0] bg-[#f6f6f6]" value={profile?.email ?? ''} disabled />
-                <p className="text-xs text-[#9e9e9e] mt-1">Contact an admin to change your email address.</p>
+                <div className="flex gap-2 mt-1">
+                  <Input className="border-[#f0f0f0] flex-1" value={profile?.email ?? ''} disabled />
+                </div>
+                <p className="text-xs text-[#9e9e9e] mt-1">To change your email, use the button below. A confirmation will be sent to both your old and new address.</p>
+                <EmailChangeSection />
               </div>
               <Separator />
               <p className="text-sm font-medium text-[#222]">Change Password</p>

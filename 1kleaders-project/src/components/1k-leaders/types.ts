@@ -21,6 +21,8 @@ export type Page =
   | 'vep-dashboard'
   | 'mab-dashboard'
   | 'admin-dashboard'
+  | 'startup-page'
+  | 'bug-report'
   | 'recommendations';
 
 // Main access roles — controls what pages/nav items a user sees
@@ -71,6 +73,16 @@ export const subRoleConfig: Record<SubRole, { label: string; color: string; icon
   founder:       roleBadgeConfig['founder'],
   'vep-builder': roleBadgeConfig['vep-builder'],
   'mab-builder': roleBadgeConfig['mab-builder'],
+};
+
+// Custom badges created by super-admins at runtime
+export type CustomBadge = {
+  id: string;
+  label: string;
+  color: string;
+  icon: string;
+  created_by: string;
+  created_at: string;
 };
 
 

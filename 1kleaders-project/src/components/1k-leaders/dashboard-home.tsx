@@ -24,8 +24,8 @@ const dashboards: Record<string, { metrics: { label: string; value: string; chan
     metrics: [
       { label: 'Total Shares', value: '15,000', change: '+500 allocated', up: true, icon: Briefcase },
       { label: 'Portfolio Value', value: '$3.2M', change: '+8.4%', up: true, icon: DollarSign },
-      { label: 'Dividends YTD', value: '$45K', change: '+12%', up: true, icon: TrendingUp },
-      { label: 'Voting Power', value: '4.2%', change: 'Active', up: true, icon: Users },
+      { label: '# Startups', value: '8', change: '+2 this round', up: true, icon: Rocket, page: 'startups' },
+      { label: '# Startups (Active)', value: '5', change: '3 evaluating', up: true, icon: TrendingUp, page: 'startups' },
     ],
   },
   'super-admin': {

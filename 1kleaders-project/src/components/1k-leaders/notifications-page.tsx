@@ -5,8 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Bell, Info, AlertTriangle, CheckCircle, Trash2, Zap, X, Send, Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { Bell, Info, AlertTriangle, CheckCircle, Trash2, Zap, Send, Plus, ChevronDown, ChevronUp, Check, X } from 'lucide-react';
 import type { Page, DashboardRole } from './types';
 
 interface Props { navigate: (page: Page) => void; role?: DashboardRole; }
@@ -27,10 +26,7 @@ const initialNotifications: Notification[] = [
   { id: 2, title: 'Agreement ready for signature', desc: 'Your partner agreement has been sent via DocuSign.', type: 'action', time: '1 hour ago', read: false, actionRequired: true },
   { id: 3, title: 'Q4 dividend distribution', desc: 'Your portfolio dividend for Q4 has been processed.', type: 'success', time: '3 hours ago', read: false },
   { id: 4, title: 'KYC verification expiring', desc: 'Your identity documents expire in 30 days. Please update.', type: 'warning', time: '6 hours ago', read: true },
-  { id: 5, title: 'New idea submitted for review', desc: 'A new idea in the FinTech sector has been submitted.', type: 'info', time: '1 day ago', read: true },
-  { id: 6, title: 'Startup approval pending', desc: 'Approve pending startup submission before tomorrow at 10 AM.', type: 'action', time: '1 day ago', read: false, actionRequired: true },
-  { id: 7, title: 'Dividend payment received', desc: 'Q4 dividend of $12,500 has been credited.', type: 'success', time: '2 days ago', read: true },
-  { id: 8, title: 'System maintenance notice', desc: 'Platform maintenance scheduled for Saturday 2 AM.', type: 'warning', time: '3 days ago', read: true },
+  { id: 5, title: 'System maintenance notice', desc: 'Platform maintenance scheduled for Saturday 2 AM.', type: 'warning', time: '3 days ago', read: true },
 ];
 
 const typeConfig: Record<string, { icon: any; color: string }> = {
@@ -40,38 +36,50 @@ const typeConfig: Record<string, { icon: any; color: string }> = {
   warning: { icon: AlertTriangle, color: 'bg-red-100 text-red-600' },
 };
 
-const audienceOptions = [
-  { value: 'all',         label: 'All Users' },
-  { value: 'shareholder', label: 'Shareholders only' },
-  { value: 'user',        label: 'Users only' },
-  { value: 'admin',       label: 'Admins only' },
+// All selectable audience targets
+const AUDIENCE_OPTIONS = [
+  { value: 'all',          label: 'All Users',         group: 'Roles' },
+  { value: 'shareholder',  label: 'Shareholders',      group: 'Roles' },
+  { value: 'user',         label: 'Users',             group: 'Roles' },
+  { value: 'admin',        label: 'Admins',            group: 'Roles' },
+  { value: 'idea-owner',   label: 'Idea Owners',       group: 'Subroles' },
+  { value: 'founder',      label: 'Founders',          group: 'Subroles' },
+  { value: 'vep-builder',  label: 'VEP Builders',      group: 'Subroles' },
+  { value: 'mab-builder',  label: 'MAB Builders',      group: 'Subroles' },
 ];
 
 export default function NotificationsPage({ navigate, role }: Props) {
   const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
-  const [showCompose, setShowCompose] = useState(false);
-  const isAdmin = role === 'admin' || role === 'super-admin';
+  const [showCompose, setShowCompose]     = useState(false);
+  const isAdmin = role === 'admin' || role === 'super-admin' || role === 'developer';
 
   // Compose state
-  const [composeTitle, setComposeTitle] = useState('');
-  const [composeDesc, setComposeDesc]   = useState('');
-  const [composeType, setComposeType]   = useState('info');
-  const [composeAudience, setComposeAudience] = useState('all');
+  const [composeTitle,    setComposeTitle]    = useState('');
+  const [composeDesc,     setComposeDesc]     = useState('');
+  const [composeType,     setComposeType]     = useState('info');
+  const [selectedTargets, setSelectedTargets] = useState<string[]>(['all']);
+  const [specificEmails,  setSpecificEmails]  = useState('');
+  const [showTargetPicker, setShowTargetPicker] = useState(false);
+
+  const toggleTarget = (v: string) => {
+    if (v === 'all') { setSelectedTargets(['all']); return; }
+    setSelectedTargets(prev => {
+      const without = prev.filter(x => x !== 'all');
+      return without.includes(v) ? without.filter(x => x !== v) : [...without, v];
+    });
+  };
+
+  const audienceLabel = selectedTargets.includes('all') ? 'All Users' : selectedTargets.join(', ');
 
   const toggleActionRequired = (id: number) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, actionRequired: !n.actionRequired } : n));
   };
-
-  const deleteNotification = (id: number) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
-  };
-
+  const deleteNotification = (id: number) => setNotifications(prev => prev.filter(n => n.id !== id));
   const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   const clearAll = () => setNotifications([]);
 
   const sendNotification = () => {
     if (!composeTitle.trim() || !composeDesc.trim()) return;
-    const audienceLabel = audienceOptions.find(a => a.value === composeAudience)?.label || 'All Users';
     setNotifications(prev => [{
       id: Date.now(),
       title: composeTitle,
@@ -79,12 +87,10 @@ export default function NotificationsPage({ navigate, role }: Props) {
       type: composeType,
       time: 'Just now',
       read: false,
-      audience: audienceLabel,
+      audience: audienceLabel + (specificEmails.trim() ? ` + ${specificEmails.trim()}` : ''),
     }, ...prev]);
-    setComposeTitle('');
-    setComposeDesc('');
-    setComposeType('info');
-    setComposeAudience('all');
+    setComposeTitle(''); setComposeDesc(''); setComposeType('info');
+    setSelectedTargets(['all']); setSpecificEmails('');
     setShowCompose(false);
   };
 
@@ -122,54 +128,69 @@ export default function NotificationsPage({ navigate, role }: Props) {
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <Label className="text-[#222] text-sm">Title</Label>
-                <Input
-                  placeholder="Notification title"
-                  className="border-[#f0f0f0] mt-1"
-                  value={composeTitle}
-                  onChange={e => setComposeTitle(e.target.value)}
-                />
+                <Input placeholder="Notification title" className="border-[#f0f0f0] mt-1" value={composeTitle} onChange={e => setComposeTitle(e.target.value)} />
               </div>
               <div>
                 <Label className="text-[#222] text-sm">Type</Label>
-                <Select value={composeType} onValueChange={setComposeType}>
-                  <SelectTrigger className="border-[#f0f0f0] mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="info">ℹ️ Info</SelectItem>
-                    <SelectItem value="success">✅ Success</SelectItem>
-                    <SelectItem value="warning">⚠️ Warning</SelectItem>
-                    <SelectItem value="action">🔔 Action Required</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2 mt-1 flex-wrap">
+                  {[['info','ℹ️'],['success','✅'],['warning','⚠️'],['action','🔔']].map(([v,icon]) => (
+                    <button key={v} onClick={() => setComposeType(v)}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition ${composeType === v ? 'bg-[#e33b5f] text-white border-[#e33b5f]' : 'bg-white text-[#555353] border-[#f0f0f0] hover:border-[#e33b5f]'}`}>
+                      {icon} {v}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
             <div>
               <Label className="text-[#222] text-sm">Message</Label>
-              <textarea
-                className="w-full mt-1 px-3 py-2 border border-[#f0f0f0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#e33b5f]/30 resize-none"
-                rows={3}
-                placeholder="Write your notification message..."
-                value={composeDesc}
-                onChange={e => setComposeDesc(e.target.value)}
-              />
+              <textarea className="w-full mt-1 px-3 py-2 border border-[#f0f0f0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#e33b5f]/30 resize-none" rows={3} placeholder="Write your notification message..." value={composeDesc} onChange={e => setComposeDesc(e.target.value)} />
             </div>
-            <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex-1 min-w-40">
-                <Label className="text-[#222] text-sm">Send to</Label>
-                <Select value={composeAudience} onValueChange={setComposeAudience}>
-                  <SelectTrigger className="border-[#f0f0f0] mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {audienceOptions.map(a => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+
+            {/* Multi-select audience picker */}
+            <div>
+              <Label className="text-[#222] text-sm">Send to</Label>
+              <div className="mt-1 border border-[#f0f0f0] rounded-lg overflow-hidden">
+                <button
+                  type="button"
+                  className="w-full flex items-center justify-between px-3 py-2 text-sm text-[#444] hover:bg-[#fafafa]"
+                  onClick={() => setShowTargetPicker(v => !v)}
+                >
+                  <span className="truncate">{audienceLabel}</span>
+                  {showTargetPicker ? <ChevronUp className="w-4 h-4 text-[#9e9e9e] shrink-0" /> : <ChevronDown className="w-4 h-4 text-[#9e9e9e] shrink-0" />}
+                </button>
+                {showTargetPicker && (
+                  <div className="border-t border-[#f0f0f0] p-3 space-y-3">
+                    {['Roles', 'Subroles'].map(group => (
+                      <div key={group}>
+                        <p className="text-[10px] font-semibold text-[#9e9e9e] uppercase tracking-wider mb-2">{group}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {AUDIENCE_OPTIONS.filter(o => o.group === group).map(o => {
+                            const active = selectedTargets.includes(o.value) || selectedTargets.includes('all') && o.value === 'all';
+                            const isSelected = selectedTargets.includes(o.value);
+                            return (
+                              <button key={o.value} onClick={() => toggleTarget(o.value)}
+                                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition ${isSelected ? 'bg-[#e33b5f] text-white border-[#e33b5f]' : 'bg-white text-[#555353] border-[#f0f0f0] hover:border-[#e33b5f]'}`}>
+                                {isSelected && <Check className="w-3 h-3" />}{o.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                    <div>
+                      <p className="text-[10px] font-semibold text-[#9e9e9e] uppercase tracking-wider mb-2">Specific Users (emails)</p>
+                      <Input placeholder="email@example.com, another@example.com" className="border-[#f0f0f0] text-xs h-8" value={specificEmails} onChange={e => setSpecificEmails(e.target.value)} />
+                      <p className="text-[10px] text-[#9e9e9e] mt-1">Comma-separated. Will be combined with role selections above.</p>
+                    </div>
+                  </div>
+                )}
               </div>
-              <Button
-                className="bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] text-white mt-5"
-                onClick={sendNotification}
-                disabled={!composeTitle.trim() || !composeDesc.trim()}
-              >
-                <Send className="w-4 h-4 mr-2" /> Send Notification
-              </Button>
             </div>
+
+            <Button className="bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] text-white" onClick={sendNotification} disabled={!composeTitle.trim() || !composeDesc.trim()}>
+              <Send className="w-4 h-4 mr-2" /> Send Notification
+            </Button>
           </CardContent>
         </Card>
       )}
