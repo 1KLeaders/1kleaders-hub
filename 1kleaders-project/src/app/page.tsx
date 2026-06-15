@@ -23,6 +23,8 @@ import RecommendationsPage from '@/components/1k-leaders/recommendations-page';
 import NewsletterTracking from '@/components/1k-leaders/newsletter-tracking';
 import VEPDashboard from '@/components/1k-leaders/vep-dashboard';
 import { SuperAdminDashboard } from '@/components/1k-leaders/super-admin-dashboard';
+import StartupPage from '@/components/1k-leaders/startup-page';
+import BugReportPage from '@/components/1k-leaders/bug-report-page';
 
 function MABDashboard() {
   return (
@@ -43,6 +45,7 @@ const dashboardPages: Page[] = [
   'partners', 'settings', 'notifications', 'profile', 'calendar',
   'discussion-rooms', 'ai-assistant', 'newsletter-tracking',
   'vep-dashboard', 'mab-dashboard', 'recommendations', 'admin-dashboard',
+  'startup-page', 'bug-report',
 ];
 
 export default function Home() {
@@ -93,6 +96,8 @@ export default function Home() {
         case 'vep-dashboard':     return <VEPDashboard />;
         case 'mab-dashboard':     return <MABDashboard />;
         case 'admin-dashboard':   return <SuperAdminDashboard onNavigate={navigate} />;
+        case 'startup-page':      return <StartupPage />;
+        case 'bug-report':        return <BugReportPage />;
         case 'recommendations':   return <RecommendationsPage />;
         default:                  return <DashboardHome role={role} navigate={navigate} />;
       }
