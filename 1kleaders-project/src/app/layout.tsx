@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Rethink_Sans, Manrope } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { AuthProvider } from "@/context/auth-context";
 
 const rethinkSans = Rethink_Sans({
   variable: "--font-rethink-sans",
@@ -47,8 +48,10 @@ export default function RootLayout({
       <body
         className={`${rethinkSans.variable} ${manrope.variable} antialiased bg-[#fbfbfb] text-[#222]`}
       >
-        {children}
-        <Toaster />
+        <AuthProvider>
+          {children}
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );

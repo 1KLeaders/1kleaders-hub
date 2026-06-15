@@ -1,10 +1,12 @@
 'use client';
 import { useState } from 'react';
 import type { Page, DashboardRole } from '@/components/1k-leaders/types';
+import { useAuth } from '@/context/auth-context';
 import LandingPage from '@/components/1k-leaders/landing-page';
 import WaitlistForm from '@/components/1k-leaders/waitlist-form';
 import LoginPage from '@/components/1k-leaders/login-page';
 import OnboardingKYC from '@/components/1k-leaders/onboarding-kyc';
+import FirstLoginFlow from '@/components/1k-leaders/first-login-flow';
 import DashboardLayout from '@/components/1k-leaders/dashboard-layout';
 import DashboardHome from '@/components/1k-leaders/dashboard-home';
 import IdeaSubmission from '@/components/1k-leaders/idea-submission';
@@ -22,14 +24,11 @@ import NewsletterTracking from '@/components/1k-leaders/newsletter-tracking';
 import VEPDashboard from '@/components/1k-leaders/vep-dashboard';
 import { SuperAdminDashboard } from '@/components/1k-leaders/super-admin-dashboard';
 
-// MAB Dashboard (inline placeholder since no separate file yet)
 function MABDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#222] flex items-center gap-2">
-          🛡️ MAB Dashboard
-        </h1>
+        <h1 className="text-2xl font-bold text-[#222] flex items-center gap-2">🛡️ MAB Dashboard</h1>
         <p className="text-[#7e7e7e]">Management Advisory Board — evaluate startups using MAB criteria</p>
       </div>
       <div className="p-8 text-center bg-white rounded-xl border border-[#f0f0f0]">
@@ -39,74 +38,88 @@ function MABDashboard() {
   );
 }
 
+const dashboardPages: Page[] = [
+  'dashboard', 'idea-submission', 'idea-ranking', 'agreements', 'documents',
+  'partners', 'settings', 'notifications', 'profile', 'calendar',
+  'discussion-rooms', 'ai-assistant', 'newsletter-tracking',
+  'vep-dashboard', 'mab-dashboard', 'recommendations', 'admin-dashboard',
+];
+
 export default function Home() {
+  const { session, profile, role, devViewRole, setDevViewRole, isDeveloper, loading, signOut } = useAuth();
   const [currentPage, setCurrentPage] = useState<Page>('landing');
-  const [dashboardRole, setDashboardRole] = useState<DashboardRole>('shareholder');
 
   const navigate = (page: Page) => setCurrentPage(page);
 
-  if (currentPage === 'landing') return <LandingPage navigate={navigate} />;
-  if (currentPage === 'waitlist') return <WaitlistForm navigate={navigate} />;
-  if (currentPage === 'login') return <LoginPage navigate={navigate} onRoleSelect={setDashboardRole} />;
-  if (currentPage === 'partner-login') return <LoginPage navigate={navigate} type="partner" onRoleSelect={setDashboardRole} />;
-  if (currentPage === 'idea-owner-login') return <LoginPage navigate={navigate} type="idea-owner" onRoleSelect={setDashboardRole} />;
-  if (currentPage === 'onboarding') return <OnboardingKYC navigate={navigate} />;
-
-  const renderDashboardContent = () => {
-    switch (currentPage) {
-      case 'dashboard':
-        return <DashboardHome role={dashboardRole} navigate={navigate} />;
-      case 'idea-submission':
-        return <IdeaSubmission role={dashboardRole} navigate={navigate} />;
-      case 'idea-ranking':
-        return <IdeaRanking />;
-      case 'agreements':
-        return <AgreementsPage />;
-      case 'documents':
-        return <DocumentsPage />;
-      case 'partners':
-        return <PartnersPage role={dashboardRole} navigate={navigate} />;
-      case 'settings':
-        return <SettingsPage />;
-      case 'notifications':
-        return <NotificationsPage navigate={navigate} role={dashboardRole} />;
-      case 'profile':
-        return <ProfilePage navigate={navigate} />;
-      case 'calendar':
-        return <CalendarPage role={dashboardRole} />;
-      case 'discussion-rooms':
-        return <DiscussionRooms role={dashboardRole} />;
-      case 'ai-assistant':
-        return <RecommendationsPage />;
-      case 'newsletter-tracking':
-        return <NewsletterTracking />;
-      case 'vep-dashboard':
-        return <VEPDashboard />;
-      case 'mab-dashboard':
-        return <MABDashboard />;
-      case 'admin-dashboard':
-        return <SuperAdminDashboard onNavigate={navigate} />;
-      case 'recommendations':
-        return <RecommendationsPage />;
-      default:
-        return <DashboardHome role={dashboardRole} navigate={navigate} />;
-    }
-  };
-
-  const dashboardPages: Page[] = [
-    'dashboard', 'idea-submission', 'idea-ranking', 'agreements', 'documents',
-    'partners', 'settings', 'notifications', 'profile', 'calendar',
-    'discussion-rooms', 'ai-assistant', 'newsletter-tracking',
-    'vep-dashboard', 'mab-dashboard', 'recommendations', 'admin-dashboard',
-  ];
-
-  if (dashboardPages.includes(currentPage)) {
+  // ── Loading splash ────────────────────────────────────────────────────────
+  if (loading) {
     return (
-      <DashboardLayout navigate={navigate} role={dashboardRole} setRole={setDashboardRole} currentPage={currentPage}>
-        {renderDashboardContent()}
+      <div className="min-h-screen flex items-center justify-center bg-[#f6f6f6]">
+        <div className="flex flex-col items-center gap-3">
+          <img src="/logo-red-mid.png" alt="1KLeaders" className="h-10 object-contain animate-pulse" />
+          <p className="text-sm text-[#9e9e9e]">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Authenticated user: first-login flow ──────────────────────────────────
+  if (session && profile?.is_first_login) {
+    return <FirstLoginFlow onComplete={() => setCurrentPage('dashboard')} />;
+  }
+
+  // ── Authenticated user: hub ───────────────────────────────────────────────
+  if (session && profile) {
+    // If they landed on a public page after auth, redirect to dashboard
+    if (!dashboardPages.includes(currentPage)) {
+      setCurrentPage('dashboard');
+    }
+
+    const renderContent = () => {
+      switch (currentPage) {
+        case 'dashboard':         return <DashboardHome role={role} navigate={navigate} />;
+        case 'idea-submission':   return <IdeaSubmission role={role} navigate={navigate} />;
+        case 'idea-ranking':      return <IdeaRanking />;
+        case 'agreements':        return <AgreementsPage />;
+        case 'documents':         return <DocumentsPage />;
+        case 'partners':          return <PartnersPage role={role} navigate={navigate} />;
+        case 'settings':          return <SettingsPage />;
+        case 'notifications':     return <NotificationsPage navigate={navigate} role={role} />;
+        case 'profile':           return <ProfilePage navigate={navigate} />;
+        case 'calendar':          return <CalendarPage role={role} />;
+        case 'discussion-rooms':  return <DiscussionRooms role={role} />;
+        case 'ai-assistant':      return <RecommendationsPage />;
+        case 'newsletter-tracking': return <NewsletterTracking />;
+        case 'vep-dashboard':     return <VEPDashboard />;
+        case 'mab-dashboard':     return <MABDashboard />;
+        case 'admin-dashboard':   return <SuperAdminDashboard onNavigate={navigate} />;
+        case 'recommendations':   return <RecommendationsPage />;
+        default:                  return <DashboardHome role={role} navigate={navigate} />;
+      }
+    };
+
+    return (
+      <DashboardLayout
+        navigate={navigate}
+        role={role}
+        // Developer role switcher — only passed when isDeveloper
+        devViewRole={isDeveloper ? devViewRole : undefined}
+        setDevViewRole={isDeveloper ? setDevViewRole : undefined}
+        isDeveloper={isDeveloper}
+        currentPage={currentPage}
+        onSignOut={signOut}
+      >
+        {renderContent()}
       </DashboardLayout>
     );
   }
+
+  // ── Unauthenticated ───────────────────────────────────────────────────────
+  if (currentPage === 'waitlist')      return <WaitlistForm navigate={navigate} />;
+  if (currentPage === 'login' || currentPage === 'partner-login' || currentPage === 'idea-owner-login') {
+    return <LoginPage navigate={navigate} />;
+  }
+  if (currentPage === 'onboarding')    return <OnboardingKYC navigate={navigate} />;
 
   return <LandingPage navigate={navigate} />;
 }
