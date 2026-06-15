@@ -13,20 +13,26 @@ import {
 } from 'lucide-react';
 import type { Page, DashboardRole } from './types';
 import { roleBadgeConfig } from './types';
+import { useAuth } from '@/context/auth-context';
 
 interface Props {
-  navigate: (page: Page) => void;
-  role: DashboardRole;
-  setRole: (role: DashboardRole) => void;
-  currentPage: Page;
-  children: React.ReactNode;
+  navigate:       (page: Page) => void;
+  role:           DashboardRole;
+  // Developer-only role switcher
+  devViewRole?:   DashboardRole;
+  setDevViewRole?:(role: DashboardRole) => void;
+  isDeveloper?:   boolean;
+  currentPage:    Page;
+  onSignOut?:     () => Promise<void>;
+  children:       React.ReactNode;
 }
 
 const roleLabels: Record<DashboardRole, string> = {
   'super-admin': 'Super Admin',
-  admin: 'Admin',
-  shareholder: 'Shareholder',
-  user: 'User',
+  admin:         'Admin',
+  shareholder:   'Shareholder',
+  user:          'User',
+  developer:     '🛠 Developer',
 };
 
 interface NavItem {
@@ -57,7 +63,8 @@ function getNavItems(role: DashboardRole): NavItem[] {
   });
 }
 
-export default function DashboardLayout({ navigate, role, setRole, currentPage, children }: Props) {
+export default function DashboardLayout({ navigate, role, devViewRole, setDevViewRole, isDeveloper, currentPage, onSignOut, children }: Props) {
+  const { profile } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleNav = (page: Page) => {
@@ -85,15 +92,20 @@ export default function DashboardLayout({ navigate, role, setRole, currentPage, 
         </div>
 
         <ScrollArea className="flex-1 p-3">
-          <div className="mb-4">
-            <p className="text-xs text-[#7e7e7e] uppercase tracking-wider mb-2 px-2">Role</p>
-            <Select value={role} onValueChange={(v) => setRole(v as DashboardRole)}>
-              <SelectTrigger className="w-full text-sm bg-white/10 border-white/10 text-white"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {Object.entries(roleLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Developer-only role switcher */}
+          {isDeveloper && devViewRole && setDevViewRole && (
+            <div className="mb-4">
+              <p className="text-xs text-[#f07969] uppercase tracking-wider mb-2 px-2 flex items-center gap-1">
+                🛠 Dev: View As
+              </p>
+              <Select value={devViewRole} onValueChange={(v) => setDevViewRole(v as DashboardRole)}>
+                <SelectTrigger className="w-full text-sm bg-white/10 border-white/10 text-white"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(roleLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <Separator className="mb-3 bg-white/10" />
           <nav className="space-y-1">
             {visibleNav.map(item => (
@@ -139,8 +151,19 @@ export default function DashboardLayout({ navigate, role, setRole, currentPage, 
           )}
         </ScrollArea>
 
-        <div className="p-3 border-t border-white/10">
-          <button onClick={() => navigate('landing')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/50 hover:bg-white/5 hover:text-white transition">
+        <div className="p-3 border-t border-white/10 space-y-2">
+          {profile && (
+            <div className="px-3 py-2">
+              <p className="text-xs font-medium text-white truncate">
+                {profile.first_name} {profile.last_name}
+              </p>
+              <p className="text-[10px] text-white/40 truncate">{profile.email}</p>
+            </div>
+          )}
+          <button
+            onClick={() => onSignOut ? onSignOut() : navigate('landing')}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/50 hover:bg-white/5 hover:text-white transition"
+          >
             <LogOut className="w-4 h-4" /> Sign Out
           </button>
         </div>

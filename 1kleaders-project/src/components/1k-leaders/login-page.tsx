@@ -5,36 +5,53 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Mail, Lock, Eye, EyeOff, ChevronDown, Users, Shield, UserCircle, Building2, Star } from 'lucide-react';
-import type { Page, DashboardRole } from './types';
+import { ArrowLeft, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/context/auth-context';
+import type { Page } from './types';
 
-interface Props { navigate: (page: Page) => void; type?: 'shareholder' | 'idea-owner'; onRoleSelect?: (role: DashboardRole) => void; }
+interface Props { navigate: (page: Page) => void; type?: string; }
 
-const roles: { id: DashboardRole; label: string; icon: React.ReactNode; desc: string }[] = [
-  { id: 'shareholder',  label: 'Shareholder', icon: <Building2 className="w-5 h-5" />,  desc: 'Full partner with shareholding access' },
-  { id: 'user',         label: 'User',         icon: <UserCircle className="w-5 h-5" />, desc: 'Platform member — subroles assigned separately' },
-  { id: 'admin',        label: 'Admin',        icon: <Shield className="w-5 h-5" />,     desc: 'Admin dashboard & controls' },
-  { id: 'super-admin',  label: 'Super Admin',  icon: <Star className="w-5 h-5" />,       desc: 'Full system access & management' },
-];
+export default function LoginPage({ navigate }: Props) {
+  const { signIn } = useAuth();
+  const [email,       setEmail]       = useState('');
+  const [password,    setPassword]    = useState('');
+  const [showPw,      setShowPw]      = useState(false);
+  const [loading,     setLoading]     = useState(false);
+  const [error,       setError]       = useState<string | null>(null);
+  const [resetSent,   setResetSent]   = useState(false);
+  const [showReset,   setShowReset]   = useState(false);
+  const { supabase: _ } = { supabase: null }; // unused — reset handled below
 
-export default function LoginPage({ navigate, type, onRoleSelect }: Props) {
-  const [selectedRole, setSelectedRole] = useState<DashboardRole>(
-    type === 'idea-owner' ? 'idea-owner' : type === 'shareholder' ? 'shareholder' : 'shareholder'
-  );
-  const [showPassword, setShowPassword] = useState(false);
-  const [showRoleDropdown, setShowRoleDropdown] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  async function handleSignIn() {
+    setError(null);
+    if (!email || !password) return setError('Please enter your email and password.');
+    setLoading(true);
+    const { error } = await signIn(email, password);
+    setLoading(false);
+    if (error) {
+      // Make Supabase error messages friendlier
+      if (error.includes('Invalid login credentials')) setError('Incorrect email or password.');
+      else if (error.includes('Email not confirmed'))  setError('Please confirm your email before signing in.');
+      else setError(error);
+    }
+    // On success, auth context updates session → page.tsx renders the hub automatically
+  }
 
-  const selectedRoleData = roles.find(r => r.id === selectedRole) || roles[0];
-
-  const handleSignIn = () => {
-    setIsLoading(true);
-    if (onRoleSelect) onRoleSelect(selectedRole);
-    setTimeout(() => {
-      setIsLoading(false);
-      navigate('dashboard');
-    }, 800);
-  };
+  async function handleForgotPassword() {
+    if (!email) return setError('Enter your email address above first.');
+    setLoading(true);
+    const { createClient } = await import('@supabase/supabase-js');
+    const sb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    await sb.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/`,
+    });
+    setLoading(false);
+    setResetSent(true);
+    setShowReset(false);
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f6f6f6] p-4" style={{ fontFamily: 'var(--font-manrope), Manrope, sans-serif' }}>
@@ -51,108 +68,87 @@ export default function LoginPage({ navigate, type, onRoleSelect }: Props) {
             <p className="text-sm text-[#7e7e7e] mt-1">Sign in to your 1K Leaders account</p>
           </CardHeader>
           <CardContent className="space-y-5 pt-2">
-            {/* Role Selector */}
-            <div className="space-y-2">
-              <Label className="text-[#222] font-medium text-sm">Sign in as</Label>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setShowRoleDropdown(!showRoleDropdown)}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-lg border border-[#f0f0f0] bg-white hover:border-[#e33b5f]/50 transition-colors text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-gradient-to-r from-[#e33b5f]/10 to-[#E65F5C]/10 flex items-center justify-center text-[#e33b5f]">
-                      {selectedRoleData.icon}
-                    </div>
-                    <div>
-                      <p className="font-medium text-[#222] text-sm" style={{ fontFamily: 'var(--font-rethink-sans), Rethink Sans, sans-serif' }}>{selectedRoleData.label}</p>
-                      <p className="text-xs text-[#7e7e7e]">{selectedRoleData.desc}</p>
-                    </div>
-                  </div>
-                  <ChevronDown className={`w-5 h-5 text-[#7e7e7e] transition-transform ${showRoleDropdown ? 'rotate-180' : ''}`} />
-                </button>
 
-                {showRoleDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg border border-[#f0f0f0] shadow-lg z-50 overflow-hidden max-h-64 overflow-y-auto">
-                    {roles.map((role) => (
-                      <button
-                        key={role.id}
-                        type="button"
-                        onClick={() => { setSelectedRole(role.id); setShowRoleDropdown(false); }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#f6f6f6] transition-colors ${selectedRole === role.id ? 'bg-[#e33b5f]/5 border-l-2 border-l-[#e33b5f]' : ''}`}
-                      >
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedRole === role.id ? 'bg-gradient-to-r from-[#e33b5f]/10 to-[#E65F5C]/10 text-[#e33b5f]' : 'bg-[#f0f0f0] text-[#7e7e7e]'}`}>
-                          {role.icon}
-                        </div>
-                        <div>
-                          <p className={`font-medium text-sm ${selectedRole === role.id ? 'text-[#e33b5f]' : 'text-[#222]'}`} style={{ fontFamily: 'var(--font-rethink-sans), Rethink Sans, sans-serif' }}>{role.label}</p>
-                          <p className="text-xs text-[#7e7e7e]">{role.desc}</p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
+            {resetSent && (
+              <div className="flex items-start gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
+                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                Password reset email sent. Check your inbox.
               </div>
-            </div>
+            )}
 
-            {/* Email */}
             <div className="space-y-2">
               <Label className="text-[#222] font-medium text-sm">Email Address</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 w-4 h-4 text-[#7e7e7e]" />
-                <Input type="email" placeholder="your@email.com" className="pl-10 border-[#f0f0f0] focus:border-[#e33b5f] h-11" />
+                <Input
+                  type="email"
+                  placeholder="your@email.com"
+                  className="pl-10 border-[#f0f0f0] focus:border-[#e33b5f] h-11"
+                  value={email}
+                  onChange={e => setEmail(e.target.value.replace(/\s/g, ''))}
+                  onKeyDown={e => e.key === 'Enter' && handleSignIn()}
+                />
               </div>
             </div>
 
-            {/* Password */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-[#222] font-medium text-sm">Password</Label>
-                <a href="#" className="text-xs text-[#e33b5f] hover:underline font-medium">Forgot Password?</a>
+                <button
+                  type="button"
+                  onClick={() => setShowReset(v => !v)}
+                  className="text-xs text-[#e33b5f] hover:underline font-medium"
+                >
+                  Forgot Password?
+                </button>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 w-4 h-4 text-[#7e7e7e]" />
                 <Input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPw ? 'text' : 'password'}
                   placeholder="Enter your password"
                   className="pl-10 pr-10 border-[#f0f0f0] focus:border-[#e33b5f] h-11"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSignIn()}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-[#7e7e7e] hover:text-[#222] transition-colors"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-3 text-[#7e7e7e]">
+                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
-            {/* Remember Me */}
-            <div className="flex items-center gap-2">
-              <input type="checkbox" className="rounded border-[#f0f0f0] accent-[#e33b5f]" />
-              <label className="text-sm text-[#555353]">Remember me</label>
-            </div>
+            {showReset && (
+              <div className="p-3 bg-[#f6f6f6] rounded-lg border border-[#f0f0f0] space-y-2">
+                <p className="text-xs text-[#7e7e7e]">Enter your email above and click below to receive a password reset link.</p>
+                <Button size="sm" variant="outline" onClick={handleForgotPassword} disabled={loading} className="w-full">
+                  {loading ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : null}
+                  Send Reset Email
+                </Button>
+              </div>
+            )}
 
-            {/* Sign In Button */}
+            {error && (
+              <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                {error}
+              </div>
+            )}
+
             <Button
               className="w-full bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] hover:opacity-90 text-white font-bold h-11 text-base"
               onClick={handleSignIn}
-              disabled={isLoading}
+              disabled={loading}
               style={{ fontFamily: 'var(--font-rethink-sans), Rethink Sans, sans-serif' }}
             >
-              {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Signing in...
-                </div>
-              ) : (
-                <>Sign In as {selectedRoleData.label}</>
-              )}
+              {loading
+                ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Signing in...</>
+                : 'Sign In'
+              }
             </Button>
 
             <Separator className="bg-[#f0f0f0]" />
-
-            <div className="text-center space-y-2">
+            <div className="text-center">
               <p className="text-sm text-[#7e7e7e]">
                 Don&apos;t have an account?{' '}
                 <button onClick={() => navigate('waitlist')} className="text-[#e33b5f] font-medium hover:underline">Join the Waitlist</button>

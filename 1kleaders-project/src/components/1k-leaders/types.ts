@@ -32,7 +32,8 @@ export type DashboardRole =
   | 'shareholder'
   | 'super-admin'
   | 'admin'
-  | 'user';
+  | 'user'
+  | 'developer';
 
 // Subrole badges — layered on top of the main role
 export type SubRole =
