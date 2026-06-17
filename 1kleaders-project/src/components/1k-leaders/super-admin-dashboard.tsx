@@ -36,13 +36,8 @@ interface SuperAdminDashboardProps {
   onNavigate: (page: string) => void
 }
 
-// Placeholder metrics — will be replaced with live DB counts in a future update
-const platformMetrics = [
-  { title: 'Total Users', value: '—', change: 'Loading...', icon: Users, color: 'emerald' },
-  { title: 'Active Shareholders', value: '—', change: 'Loading...', icon: Shield, color: 'amber' },
-  { title: 'Platform Revenue', value: '—', change: 'Loading...', icon: DollarSign, color: 'emerald' },
-  { title: 'System Health', value: '99.9%', change: 'All systems operational', icon: Activity, color: 'emerald' },
-]
+
+
 
 type WaitlistRow = {
   id: string
@@ -465,16 +460,8 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
             <CardTitle className="text-lg text-stone-900">Admin Action Log</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {adminActions.map((action, idx) => (
-                <div key={idx} className="flex items-start gap-3 p-2 rounded-lg hover:bg-stone-50">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 mt-2 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm text-stone-800">{action.action}</p>
-                    <p className="text-xs text-stone-400">by {action.admin} • {action.time}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="flex items-center justify-center py-8 text-stone-400 text-sm">
+              Action log coming soon — will show real admin activity from Supabase.
             </div>
           </CardContent>
         </Card>
