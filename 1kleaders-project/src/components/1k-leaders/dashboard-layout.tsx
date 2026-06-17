@@ -83,7 +83,7 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
     <div className="min-h-screen flex bg-[#f6f6f6]" style={{ fontFamily: 'var(--font-manrope), Manrope, sans-serif' }}>
       {sidebarOpen && <div className="fixed inset-0 bg-black/30 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
-      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-[#141414] flex flex-col transform transition-transform lg:transform-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#141414] flex flex-col h-screen transform transition-transform lg:transform-none lg:translate-x-0 lg:sticky lg:top-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-4 flex items-center gap-3 border-b border-white/10">
           <button onClick={() => handleNav('dashboard')} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <img src="/logo-light-mid.png" alt="1KLeaders" className="h-8 object-contain" />
@@ -168,7 +168,7 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
           </button>
         </ScrollArea>
 
-        <div className="p-3 border-t border-white/10 space-y-2">
+        <div className="shrink-0 p-3 border-t border-white/10 space-y-2 bg-[#141414]">
           {profile && (
             <div className="px-3 py-2">
               <p className="text-xs font-medium text-white truncate">

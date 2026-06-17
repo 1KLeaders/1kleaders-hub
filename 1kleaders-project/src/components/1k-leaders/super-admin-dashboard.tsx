@@ -182,12 +182,17 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
 
   useEffect(() => {
     async function fetchMetrics() {
-      const [{ count: total }, { count: shareholders }, { count: ideas }] = await Promise.all([
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'shareholder'),
-        supabase.from('ideas').select('*', { count: 'exact', head: true }),
-      ]);
-      setMetrics({ total: total ?? 0, shareholders: shareholders ?? 0, ideas: ideas ?? 0 });
+      try {
+        const [{ count: total }, { count: shareholders }] = await Promise.all([
+          supabase.from('profiles').select('*', { count: 'exact', head: true }),
+          supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'shareholder'),
+        ]);
+        // ideas table may not exist yet — fetch separately and swallow error
+        const { count: ideas } = await supabase.from('ideas').select('*', { count: 'exact', head: true }).then(r => r).catch(() => ({ count: 0 }));
+        setMetrics({ total: total ?? 0, shareholders: shareholders ?? 0, ideas: ideas ?? 0 });
+      } catch (e) {
+        console.warn('Metrics fetch failed:', e);
+      }
     }
     fetchMetrics();
   }, []);
