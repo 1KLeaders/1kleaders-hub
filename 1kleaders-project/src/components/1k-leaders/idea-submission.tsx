@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,380 +9,371 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Upload, CheckCircle, Save, Lock, Clock, Calendar, Bot, Sparkles, Send, Lightbulb, ArrowRight } from 'lucide-react';
+import { Upload, CheckCircle, Save, Clock, Lightbulb, ArrowRight, Loader2, RefreshCw, Eye, Trash2 } from 'lucide-react';
 import type { DashboardRole } from './types';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/auth-context';
 
 interface Props { role: DashboardRole; navigate: (page: string) => void; }
 
-// Hackathon config - change dates to control access
-const HACKATHON_START = new Date('2026-06-01T00:00:00');
-const HACKATHON_END = new Date('2026-06-15T23:59:59');
-const NEXT_HACKATHON_LABEL = 'June 1-15, 2026';
+const SECTORS = ['FinTech','HealthTech','EdTech','PropTech','CleanTech','AgriTech','E-Commerce','SaaS','AI/ML','Logistics','Energy','Other'];
+const REV_MODELS = ['SaaS Subscription','Marketplace','Freemium','Licensing','Direct Sales','Advertising','Other'];
+const STAGES = ['Idea Stage','Pre-Seed','Seed','Series A','Growth'];
+const SECTIONS = ['Basic Info','Problem & Solution','Market & Business','Team','Documents'];
 
-function isHackathonOpen(): boolean {
-  const now = new Date();
-  return now >= HACKATHON_START && now <= HACKATHON_END;
-}
+const statusColors: Record<string, string> = {
+  Draft:                   'bg-stone-100 text-stone-600',
+  Submitted:               'bg-blue-100 text-blue-700',
+  'Under Quality Review':  'bg-amber-100 text-amber-700',
+  'Quality Approved':      'bg-emerald-100 text-emerald-700',
+  Approved:                'bg-[#e33b5f]/10 text-[#c02d4f]',
+  Rejected:                'bg-red-100 text-red-700',
+  Parked:                  'bg-stone-100 text-stone-500',
+};
 
-function isIdeaOwner(role: DashboardRole): boolean {
-  return role === 'idea-owner';
-}
-
-// Countdown component
-function Countdown({ target, label }: { target: Date; label: string }) {
-  const [now, setNow] = useState(new Date());
-  // Update every minute
-  useState(() => {
-    const timer = setInterval(() => setNow(new Date()), 60000);
-    return () => clearInterval(timer);
-  });
-
-  const diff = target.getTime() - now.getTime();
-  if (diff <= 0) return <Badge className="bg-[#e33b5f]/10 text-[#c02d4f] text-sm">Open Now!</Badge>;
-
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-
-  return (
-    <div className="text-center">
-      <p className="text-3xl font-bold text-[#f07969]">{days}d {hours}h</p>
-      <p className="text-xs text-[#7e7e7e] mt-1">until {label}</p>
-    </div>
-  );
-}
-
-// Suggestion via AI bot
-function SuggestionBot({ navigate }: { navigate: (page: string) => void }) {
-  const [suggestion, setSuggestion] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const [aiScore, setAiScore] = useState<{ score: number; feedback: string } | null>(null);
-  const [evaluating, setEvaluating] = useState(false);
-
-  const handleSubmitSuggestion = () => {
-    if (!suggestion.trim()) return;
-    setEvaluating(true);
-    setTimeout(() => {
-      setAiScore({
-        score: Math.floor(Math.random() * 3) + 7, // 7-9
-        feedback: 'Interesting suggestion! Your concept shows strong potential in the target market. The AI assistant recommends refining the value proposition and exploring the revenue model further. Visit the AI Assistant for a deeper evaluation.',
-      });
-      setEvaluating(false);
-      setSubmitted(true);
-    }, 2000);
-  };
-
-  if (submitted && aiScore) {
-    return (
-      <Card className="border-emerald-200 bg-[#e33b5f]/5/30">
-        <CardContent className="p-6 text-center">
-          <CheckCircle className="w-12 h-12 text-[#e33b5f] mx-auto mb-3" />
-          <h3 className="text-lg font-semibold text-[#222] mb-2">Suggestion Evaluated!</h3>
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#e33b5f]/10 mb-3">
-            <Sparkles className="w-5 h-5 text-[#e33b5f]" />
-            <span className="text-xl font-bold text-[#c02d4f]">{aiScore.score}/10</span>
-            <span className="text-sm text-[#e33b5f]">AI Score</span>
-          </div>
-          <p className="text-sm text-[#555353] mb-4 max-w-md mx-auto">{aiScore.feedback}</p>
-          <div className="flex gap-2 justify-center">
-            <Button variant="outline" onClick={() => { setSubmitted(false); setSuggestion(''); setAiScore(null); }}>Submit Another</Button>
-            <Button className="bg-[#e33b5f] hover:bg-[#c02d4f]" onClick={() => navigate('ai-assistant')}>
-              <Bot className="w-4 h-4 mr-1" /> Continue with AI Assistant
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card className="border-amber-200 bg-[#f07969]/5/30">
-      <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <Bot className="w-5 h-5 text-[#f07969]" /> Submit a Suggestion Instead
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <p className="text-sm text-[#555353]">Hackathon submission is currently closed, but you can still share your idea as a suggestion! Our AI bot will evaluate it and give you feedback.</p>
-        <Textarea placeholder="Describe your idea or suggestion..." rows={4} value={suggestion} onChange={e => setSuggestion(e.target.value)} />
-        <Button className="bg-[#f07969] hover:bg-[#E65F5C] w-full" onClick={handleSubmitSuggestion} disabled={!suggestion.trim() || evaluating}>
-          {evaluating ? (
-            <><Sparkles className="w-4 h-4 mr-2 animate-spin" /> AI is evaluating...</>
-          ) : (
-            <><Send className="w-4 h-4 mr-2" /> Submit Suggestion for AI Evaluation</>
-          )}
-        </Button>
-        {evaluating && (
-          <div className="flex items-center justify-center gap-2 text-xs text-[#7e7e7e]">
-            <Bot className="w-4 h-4 animate-bounce" /> Our AI is analyzing your suggestion...
-          </div>
-        )}
-        <Separator />
-        <p className="text-xs text-[#9e9e9e] text-center">Want a deeper evaluation? <button onClick={() => navigate('ai-assistant')} className="text-[#e33b5f] font-medium hover:underline">Open AI Assistant</button></p>
-      </CardContent>
-    </Card>
-  );
-}
+type DbIdea = {
+  id: string;
+  created_at: string;
+  title: string;
+  status: string;
+  sector: string | null;
+  stage: string | null;
+  tagline: string | null;
+};
 
 export default function IdeaSubmission({ role, navigate }: Props) {
-  const [section, setSection] = useState(1);
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [otherCategory, setOtherCategory] = useState('');
-  const [selectedRevModel, setSelectedRevModel] = useState('');
+  const { profile } = useAuth();
+  const canSubmit = profile?.subroles?.includes('idea-owner') || role === 'admin' || role === 'super-admin' || role === 'developer';
+
+  // My ideas list
+  const [myIdeas,    setMyIdeas]    = useState<DbIdea[]>([]);
+  const [loadingList, setLoadingList] = useState(true);
+  const [showForm,   setShowForm]   = useState(false);
+
+  // Form state
+  const [section,    setSection]    = useState(1);
+  const [saving,     setSaving]     = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [draftId,    setDraftId]    = useState<string | null>(null);
+  const [saveMsg,    setSaveMsg]    = useState('');
+
+  // Section 1
+  const [title,       setTitle]       = useState('');
+  const [sector,      setSector]      = useState('');
+  const [otherSector, setOtherSector] = useState('');
+  const [tagline,     setTagline]     = useState('');
+  const [description, setDescription] = useState('');
+
+  // Section 2
+  const [problem,   setProblem]   = useState('');
+  const [solution,  setSolution]  = useState('');
+  const [uniqueUVP, setUniqueUVP] = useState('');
+
+  // Section 3
+  const [targetMarket,  setTargetMarket]  = useState('');
+  const [revModel,      setRevModel]      = useState('');
   const [otherRevModel, setOtherRevModel] = useState('');
-  const sections = ['Basic Info', 'Problem & Solution', 'Market & Business', 'Team', 'Documents'];
-  const progress = (section / sections.length) * 100;
+  const [revenueDetail, setRevenueDetail] = useState('');
+  const [stage,         setStage]         = useState('');
 
-  const isOwner = isIdeaOwner(role);
-  const hackathonOpen = isHackathonOpen();
-  const canSubmit = isOwner || hackathonOpen;
+  // Section 4
+  const [founderName,   setFounderName]   = useState(profile ? `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim() : '');
+  const [founderRole,   setFounderRole]   = useState('CEO');
+  const [coFounderName, setCoFounderName] = useState('');
+  const [coFounderRole, setCoFounderRole] = useState('');
+  const [teamDesc,      setTeamDesc]      = useState('');
 
-  // Idea Owner - always open
-  if (isOwner) {
+  async function fetchMyIdeas() {
+    if (!profile) return;
+    setLoadingList(true);
+    const { data } = await supabase
+      .from('ideas')
+      .select('id, created_at, title, status, sector, stage, tagline')
+      .eq('submitted_by', profile.id)
+      .order('created_at', { ascending: false });
+    setMyIdeas((data ?? []) as DbIdea[]);
+    setLoadingList(false);
+  }
+
+  useEffect(() => { fetchMyIdeas(); }, [profile]);
+
+  const ideaPayload = () => ({
+    submitted_by:    profile!.id,
+    title:           title.trim() || 'Untitled Idea',
+    tagline:         tagline.trim() || null,
+    sector:          sector === 'Other' ? otherSector : sector || null,
+    stage:           stage || null,
+    problem:         problem.trim() || null,
+    solution:        solution.trim() || null,
+    competitive_edge: uniqueUVP.trim() || null,
+    target_market:   targetMarket.trim() || null,
+    revenue_model:   revModel === 'Other' ? otherRevModel : revModel || null,
+    updated_at:      new Date().toISOString(),
+  });
+
+  async function saveDraft() {
+    if (!profile) return;
+    setSaving(true);
+    setSaveMsg('');
+    if (draftId) {
+      await supabase.from('ideas').update({ ...ideaPayload(), status: 'Draft' }).eq('id', draftId);
+    } else {
+      const { data } = await supabase.from('ideas').insert({ ...ideaPayload(), status: 'Draft' }).select('id').single();
+      if (data) setDraftId(data.id);
+    }
+    setSaving(false);
+    setSaveMsg('Draft saved');
+    setTimeout(() => setSaveMsg(''), 3000);
+    fetchMyIdeas();
+  }
+
+  async function submitIdea() {
+    if (!profile || !title.trim()) return;
+    setSubmitting(true);
+    const payload = { ...ideaPayload(), status: 'Submitted' };
+    if (draftId) {
+      await supabase.from('ideas').update(payload).eq('id', draftId);
+    } else {
+      await supabase.from('ideas').insert(payload);
+    }
+    setSubmitting(false);
+    setShowForm(false);
+    resetForm();
+    fetchMyIdeas();
+  }
+
+  async function deleteIdea(id: string) {
+    await supabase.from('ideas').delete().eq('id', id);
+    setMyIdeas(prev => prev.filter(i => i.id !== id));
+  }
+
+  function resetForm() {
+    setSection(1); setDraftId(null); setSaveMsg('');
+    setTitle(''); setSector(''); setTagline(''); setDescription('');
+    setProblem(''); setSolution(''); setUniqueUVP('');
+    setTargetMarket(''); setRevModel(''); setRevenueDetail(''); setStage('');
+    setCoFounderName(''); setCoFounderRole(''); setTeamDesc('');
+  }
+
+  const progress = (section / SECTIONS.length) * 100;
+
+  if (!canSubmit) {
     return (
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-[#222]">Submit Your Idea</h1>
           <p className="text-[#7e7e7e]">Share your venture idea with our evaluation team.</p>
-          <Badge className="mt-2 bg-[#e33b5f]/10 text-[#c02d4f]">💡 Idea Owner - Always Open</Badge>
         </div>
-
-        <Progress value={progress} className="h-2" />
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {sections.map((s, i) => (
-            <button key={s} onClick={() => setSection(i + 1)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition ${section === i + 1 ? 'bg-[#e33b5f] text-white' : section > i + 1 ? 'bg-[#e33b5f]/10 text-[#c02d4f]' : 'bg-[#f6f6f6] text-[#7e7e7e]'}`}>
-              {section > i + 1 && <CheckCircle className="w-3 h-3 inline mr-1" />}{s}
-            </button>
-          ))}
-        </div>
-
-        <Card>
-          <CardHeader><CardTitle>{sections[section - 1]}</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            {section === 1 && (<>
-              <div><Label>Idea Title</Label><Input placeholder="Give your idea a compelling name" /></div>
-              <div><Label>Category</Label>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}><SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
-                  <SelectContent>{['FinTech', 'HealthTech', 'EdTech', 'PropTech', 'CleanTech', 'AgriTech', 'E-Commerce', 'SaaS', 'AI/ML', 'Other'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-                </Select>
-                {selectedCategory === 'Other' && <Input placeholder="Please specify your category..." className="mt-2" value={otherCategory} onChange={e => setOtherCategory(e.target.value)} />}
-              </div>
-              <div><Label>Idea Description</Label><Textarea placeholder="Describe your idea in detail..." rows={4} /></div>
-            </>)}
-            {section === 2 && (<>
-              <div><Label>Problem Statement</Label><Textarea placeholder="What problem does your idea solve?" rows={3} /></div>
-              <div><Label>Proposed Solution</Label><Textarea placeholder="How does your idea solve this problem?" rows={3} /></div>
-              <div><Label>Unique Value Proposition</Label><Input placeholder="What makes your solution unique?" /></div>
-            </>)}
-            {section === 3 && (<>
-              <div><Label>Target Market</Label><Textarea placeholder="Who are your target customers?" rows={2} /></div>
-              <div><Label>Business Model</Label>
-                <Select value={selectedRevModel} onValueChange={setSelectedRevModel}><SelectTrigger><SelectValue placeholder="Select model" /></SelectTrigger>
-                  <SelectContent>{['SaaS Subscription', 'Marketplace', 'Freemium', 'Licensing', 'Direct Sales', 'Advertising', 'Other'].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-                </Select>
-                {selectedRevModel === 'Other' && <Input placeholder="Please specify your revenue model..." className="mt-2" value={otherRevModel} onChange={e => setOtherRevModel(e.target.value)} />}
-              </div>
-              <div><Label>Revenue Model</Label><Textarea placeholder="How will you generate revenue?" rows={2} /></div>
-              <div><Label>Startup Stage</Label>
-                <Select><SelectTrigger><SelectValue placeholder="Select stage" /></SelectTrigger>
-                  <SelectContent>{['Idea Stage', 'Pre-Seed', 'Seed', 'Series A', 'Growth'].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            </>)}
-            {section === 4 && (<>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div><Label>Founder Name</Label><Input placeholder="Your name" /></div>
-                <div><Label>Role</Label><Input placeholder="e.g., CEO" /></div>
-              </div>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div><Label>Co-Founder Name</Label><Input placeholder="Co-founder name" /></div>
-                <div><Label>Co-Founder Role</Label><Input placeholder="e.g., CTO" /></div>
-              </div>
-              <div><Label>Team Description</Label><Textarea placeholder="Brief description of your team's expertise..." rows={2} /></div>
-            </>)}
-            {section === 5 && (<>
-              <div><Label>Pitch Deck</Label>
-                <div className="mt-2 border-2 border-dashed border-stone-300 rounded-lg p-8 text-center hover:border-emerald-400 transition cursor-pointer">
-                  <Upload className="w-10 h-10 text-[#9e9e9e] mx-auto mb-3" /><p className="text-sm text-[#555353] font-medium">Upload your pitch deck</p><p className="text-xs text-[#9e9e9e] mt-1">PDF, PPT or PPTX (max 20MB)</p>
-                </div>
-              </div>
-              <div><Label>Additional Documents</Label>
-                <div className="mt-2 border-2 border-dashed border-stone-300 rounded-lg p-6 text-center hover:border-emerald-400 transition cursor-pointer">
-                  <Upload className="w-6 h-6 text-[#9e9e9e] mx-auto mb-2" /><p className="text-sm text-[#7e7e7e]">Financial projections, market research, etc.</p>
-                </div>
-              </div>
-            </>)}
-            <div className="flex justify-between pt-4">
-              {section > 1 ? <Button variant="outline" onClick={() => setSection(section - 1)}>Previous</Button> : <div />}
-              <div className="flex gap-2">
-                <Button variant="outline"><Save className="w-4 h-4 mr-2" /> Save Draft</Button>
-                {section < 5 ? <Button className="bg-[#e33b5f] hover:bg-[#c02d4f]" onClick={() => setSection(section + 1)}>Next</Button> : <Button className="bg-[#e33b5f] hover:bg-[#c02d4f]">Submit Idea</Button>}
-              </div>
-            </div>
+        <Card className="border-[#f0f0f0]">
+          <CardContent className="p-8 text-center space-y-4">
+            <Lightbulb className="w-12 h-12 text-[#9e9e9e] mx-auto" />
+            <h3 className="text-lg font-semibold text-[#222]">Idea Owner Access Required</h3>
+            <p className="text-sm text-[#7e7e7e] max-w-sm mx-auto">
+              You need the <strong>Idea Owner</strong> badge to submit ideas. Contact an admin to have it added to your profile.
+            </p>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  // Non-Idea-Owner & Hackathon is OPEN
-  if (hackathonOpen) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[#222]">🎯 Hackathon Idea Submission</h1>
-          <p className="text-[#7e7e7e]">The hackathon is LIVE! Submit your idea now.</p>
-          <Badge className="mt-2 bg-[#e33b5f]/10 text-[#c02d4f] animate-pulse">🔥 Hackathon Open - Limited Time!</Badge>
-        </div>
-
-        <Card className="border-emerald-200 bg-[#e33b5f]/5/50">
-          <CardContent className="p-4 flex items-center gap-3">
-            <Clock className="w-5 h-5 text-[#e33b5f]" />
-            <div>
-              <p className="text-sm font-medium text-[#222]">Hackathon Period: {NEXT_HACKATHON_LABEL}</p>
-              <p className="text-xs text-[#7e7e7e]">Submit your ideas before the hackathon closes!</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Progress value={progress} className="h-2" />
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {sections.map((s, i) => (
-            <button key={s} onClick={() => setSection(i + 1)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition ${section === i + 1 ? 'bg-[#e33b5f] text-white' : section > i + 1 ? 'bg-[#e33b5f]/10 text-[#c02d4f]' : 'bg-[#f6f6f6] text-[#7e7e7e]'}`}>
-              {section > i + 1 && <CheckCircle className="w-3 h-3 inline mr-1" />}{s}
-            </button>
-          ))}
-        </div>
-
-        <Card>
-          <CardHeader><CardTitle>{sections[section - 1]}</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            {section === 1 && (<>
-              <div><Label>Idea Title</Label><Input placeholder="Give your idea a compelling name" /></div>
-              <div><Label>Category</Label>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}><SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
-                  <SelectContent>{['FinTech', 'HealthTech', 'EdTech', 'PropTech', 'CleanTech', 'AgriTech', 'E-Commerce', 'SaaS', 'AI/ML', 'Other'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-                </Select>
-                {selectedCategory === 'Other' && <Input placeholder="Please specify your category..." className="mt-2" value={otherCategory} onChange={e => setOtherCategory(e.target.value)} />}
-              </div>
-              <div><Label>Idea Description</Label><Textarea placeholder="Describe your idea in detail..." rows={4} /></div>
-            </>)}
-            {section === 2 && (<>
-              <div><Label>Problem Statement</Label><Textarea placeholder="What problem does your idea solve?" rows={3} /></div>
-              <div><Label>Proposed Solution</Label><Textarea placeholder="How does your idea solve this problem?" rows={3} /></div>
-              <div><Label>Unique Value Proposition</Label><Input placeholder="What makes your solution unique?" /></div>
-            </>)}
-            {section === 3 && (<>
-              <div><Label>Target Market</Label><Textarea placeholder="Who are your target customers?" rows={2} /></div>
-              <div><Label>Business Model</Label>
-                <Select value={selectedRevModel} onValueChange={setSelectedRevModel}><SelectTrigger><SelectValue placeholder="Select model" /></SelectTrigger>
-                  <SelectContent>{['SaaS Subscription', 'Marketplace', 'Freemium', 'Licensing', 'Direct Sales', 'Advertising', 'Other'].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-                </Select>
-                {selectedRevModel === 'Other' && <Input placeholder="Please specify your revenue model..." className="mt-2" value={otherRevModel} onChange={e => setOtherRevModel(e.target.value)} />}
-              </div>
-              <div><Label>Revenue Model</Label><Textarea placeholder="How will you generate revenue?" rows={2} /></div>
-              <div><Label>Startup Stage</Label>
-                <Select><SelectTrigger><SelectValue placeholder="Select stage" /></SelectTrigger>
-                  <SelectContent>{['Idea Stage', 'Pre-Seed', 'Seed', 'Series A', 'Growth'].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            </>)}
-            {section === 4 && (<>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div><Label>Founder Name</Label><Input placeholder="Your name" /></div>
-                <div><Label>Role</Label><Input placeholder="e.g., CEO" /></div>
-              </div>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div><Label>Co-Founder Name</Label><Input placeholder="Co-founder name" /></div>
-                <div><Label>Co-Founder Role</Label><Input placeholder="e.g., CTO" /></div>
-              </div>
-              <div><Label>Team Description</Label><Textarea placeholder="Brief description of your team's expertise..." rows={2} /></div>
-            </>)}
-            {section === 5 && (<>
-              <div><Label>Pitch Deck</Label>
-                <div className="mt-2 border-2 border-dashed border-stone-300 rounded-lg p-8 text-center hover:border-emerald-400 transition cursor-pointer">
-                  <Upload className="w-10 h-10 text-[#9e9e9e] mx-auto mb-3" /><p className="text-sm text-[#555353] font-medium">Upload your pitch deck</p><p className="text-xs text-[#9e9e9e] mt-1">PDF, PPT or PPTX (max 20MB)</p>
-                </div>
-              </div>
-              <div><Label>Additional Documents</Label>
-                <div className="mt-2 border-2 border-dashed border-stone-300 rounded-lg p-6 text-center hover:border-emerald-400 transition cursor-pointer">
-                  <Upload className="w-6 h-6 text-[#9e9e9e] mx-auto mb-2" /><p className="text-sm text-[#7e7e7e]">Financial projections, market research, etc.</p>
-                </div>
-              </div>
-            </>)}
-            <div className="flex justify-between pt-4">
-              {section > 1 ? <Button variant="outline" onClick={() => setSection(section - 1)}>Previous</Button> : <div />}
-              <div className="flex gap-2">
-                <Button variant="outline"><Save className="w-4 h-4 mr-2" /> Save Draft</Button>
-                {section < 5 ? <Button className="bg-[#e33b5f] hover:bg-[#c02d4f]" onClick={() => setSection(section + 1)}>Next</Button> : <Button className="bg-[#e33b5f] hover:bg-[#c02d4f]">Submit Hackathon Idea</Button>}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Non-Idea-Owner & Hackathon is CLOSED
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-[#222]">Idea Submission</h1>
-        <p className="text-[#7e7e7e]">Submit your venture ideas during hackathon periods.</p>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#222]">My Ideas</h1>
+          <p className="text-[#7e7e7e]">Submit and track your venture ideas.</p>
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={fetchMyIdeas} disabled={loadingList}>
+            <RefreshCw className={`w-4 h-4 ${loadingList ? 'animate-spin' : ''}`} />
+          </Button>
+          {!showForm && (
+            <Button className="bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] text-white" onClick={() => { resetForm(); setShowForm(true); }}>
+              <Lightbulb className="w-4 h-4 mr-2" /> New Idea
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Hackathon Closed Card */}
-      <Card className="border-amber-200">
-        <CardContent className="p-8 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-[#f07969]/10 flex items-center justify-center mx-auto mb-4">
-            <Lock className="w-8 h-8 text-[#f07969]" />
+      {/* My submitted ideas */}
+      {!showForm && (
+        <>
+          {loadingList ? (
+            <div className="flex items-center justify-center py-12 gap-2 text-[#7e7e7e]">
+              <Loader2 className="w-4 h-4 animate-spin" /> Loading your ideas...
+            </div>
+          ) : myIdeas.length === 0 ? (
+            <Card className="border-dashed border-[#f0f0f0]">
+              <CardContent className="p-8 text-center space-y-3">
+                <Lightbulb className="w-10 h-10 text-[#9e9e9e] mx-auto" />
+                <p className="text-sm text-[#7e7e7e]">You haven't submitted any ideas yet. Click "New Idea" to get started.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {myIdeas.map(idea => (
+                <Card key={idea.id} className="border-[#f0f0f0] hover:shadow-sm transition">
+                  <CardContent className="p-4 flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-[#222] truncate">{idea.title}</p>
+                        <Badge className={`text-xs ${statusColors[idea.status] ?? 'bg-stone-100 text-stone-600'}`}>{idea.status}</Badge>
+                      </div>
+                      <p className="text-xs text-[#7e7e7e] mt-0.5">
+                        {[idea.sector, idea.stage].filter(Boolean).join(' · ')} · {new Date(idea.created_at).toLocaleDateString()}
+                      </p>
+                      {idea.tagline && <p className="text-xs text-[#9e9e9e] mt-0.5 italic">"{idea.tagline}"</p>}
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      {idea.status === 'Draft' && (
+                        <Button size="sm" variant="outline" className="h-8 text-xs"
+                          onClick={() => { setDraftId(idea.id); setTitle(idea.title); setShowForm(true); }}>
+                          <Eye className="w-3.5 h-3.5 mr-1" /> Continue
+                        </Button>
+                      )}
+                      <Button size="sm" variant="outline" className="h-8 text-xs text-red-500 hover:bg-red-50"
+                        onClick={() => deleteIdea(idea.id)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Submission form */}
+      {showForm && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-[#222]">{draftId ? 'Continue Idea' : 'New Idea'}</h2>
+            <Button variant="ghost" size="sm" onClick={() => { setShowForm(false); fetchMyIdeas(); }}>← Back to My Ideas</Button>
           </div>
-          <h2 className="text-xl font-bold text-[#222] mb-2">Hackathon Submissions Are Currently Closed</h2>
-          <p className="text-[#7e7e7e] mb-6 max-w-md mx-auto">Idea submission is only available during hackathon periods. Idea Owners can submit anytime. The next hackathon is coming soon!</p>
 
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#f07969]/5 border border-amber-200 mb-4">
-            <Calendar className="w-5 h-5 text-[#f07969]" />
-            <span className="font-semibold text-[#E65F5C]">Next Hackathon: {NEXT_HACKATHON_LABEL}</span>
-          </div>
-
-          <div className="mt-4">
-            <Countdown target={HACKATHON_START} label="Hackathon Opens" />
-          </div>
-
-          <Separator className="my-6" />
-
-          <div className="flex items-center justify-center gap-2 text-sm text-[#7e7e7e] mb-4">
-            <Lightbulb className="w-4 h-4 text-[#f07969]" />
-            <span>💡 <strong>Idea Owners</strong> can submit ideas anytime — become one to get unrestricted access!</span>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Hackathon Schedule Info */}
-      <Card>
-        <CardHeader><CardTitle className="text-base flex items-center gap-2"><Calendar className="w-5 h-5 text-[#e33b5f]" /> Upcoming Hackathon Schedule</CardTitle></CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {[
-              { period: 'June 1-15, 2026', theme: 'MENA Innovation Challenge', status: 'Upcoming', statusColor: 'bg-[#f07969]/10 text-[#E65F5C]' },
-              { period: 'August 5-20, 2026', theme: 'Sustainability & CleanTech Sprint', status: 'Planned', statusColor: 'bg-[#f6f6f6] text-[#555353]' },
-              { period: 'October 10-25, 2026', theme: 'AI & Digital Transformation Hack', status: 'Planned', statusColor: 'bg-[#f6f6f6] text-[#555353]' },
-            ].map(h => (
-              <div key={h.period} className="flex items-center justify-between p-3 border rounded-lg">
-                <div>
-                  <p className="font-medium text-sm text-[#222]">{h.theme}</p>
-                  <p className="text-xs text-[#7e7e7e]">{h.period}</p>
-                </div>
-                <Badge className={`text-xs ${h.statusColor}`}>{h.status}</Badge>
-              </div>
+          <Progress value={progress} className="h-2" />
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {SECTIONS.map((s, i) => (
+              <button key={s} onClick={() => setSection(i + 1)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition ${section === i + 1 ? 'bg-[#e33b5f] text-white' : section > i + 1 ? 'bg-[#e33b5f]/10 text-[#c02d4f]' : 'bg-[#f6f6f6] text-[#7e7e7e]'}`}>
+                {section > i + 1 && <CheckCircle className="w-3 h-3 inline mr-1" />}{s}
+              </button>
             ))}
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Suggestion via AI Bot */}
-      <SuggestionBot navigate={navigate} />
+          <Card>
+            <CardHeader><CardTitle className="text-base">{SECTIONS[section - 1]}</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              {section === 1 && (
+                <>
+                  <div>
+                    <Label>Idea Title <span className="text-[#e33b5f]">*</span></Label>
+                    <Input className="mt-1 border-[#f0f0f0]" placeholder="Give your idea a compelling name" value={title} onChange={e => setTitle(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Tagline</Label>
+                    <Input className="mt-1 border-[#f0f0f0]" placeholder="One-sentence pitch" value={tagline} onChange={e => setTagline(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Sector / Category</Label>
+                    <Select value={sector} onValueChange={setSector}>
+                      <SelectTrigger className="mt-1 border-[#f0f0f0]"><SelectValue placeholder="Select sector" /></SelectTrigger>
+                      <SelectContent>{SECTORS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                    </Select>
+                    {sector === 'Other' && <Input className="mt-2 border-[#f0f0f0]" placeholder="Specify sector" value={otherSector} onChange={e => setOtherSector(e.target.value)} />}
+                  </div>
+                  <div>
+                    <Label>Overview</Label>
+                    <Textarea className="mt-1 border-[#f0f0f0]" placeholder="Describe your idea in detail..." rows={4} value={description} onChange={e => setDescription(e.target.value)} />
+                  </div>
+                </>
+              )}
+              {section === 2 && (
+                <>
+                  <div><Label>Problem Statement</Label><Textarea className="mt-1 border-[#f0f0f0]" placeholder="What problem does your idea solve?" rows={3} value={problem} onChange={e => setProblem(e.target.value)} /></div>
+                  <div><Label>Proposed Solution</Label><Textarea className="mt-1 border-[#f0f0f0]" placeholder="How does your idea solve this problem?" rows={3} value={solution} onChange={e => setSolution(e.target.value)} /></div>
+                  <div><Label>Unique Value Proposition</Label><Input className="mt-1 border-[#f0f0f0]" placeholder="What makes your solution unique?" value={uniqueUVP} onChange={e => setUniqueUVP(e.target.value)} /></div>
+                </>
+              )}
+              {section === 3 && (
+                <>
+                  <div><Label>Target Market</Label><Textarea className="mt-1 border-[#f0f0f0]" placeholder="Who are your target customers?" rows={2} value={targetMarket} onChange={e => setTargetMarket(e.target.value)} /></div>
+                  <div>
+                    <Label>Business Model</Label>
+                    <Select value={revModel} onValueChange={setRevModel}>
+                      <SelectTrigger className="mt-1 border-[#f0f0f0]"><SelectValue placeholder="Select model" /></SelectTrigger>
+                      <SelectContent>{REV_MODELS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                    </Select>
+                    {revModel === 'Other' && <Input className="mt-2 border-[#f0f0f0]" placeholder="Specify model" value={otherRevModel} onChange={e => setOtherRevModel(e.target.value)} />}
+                  </div>
+                  <div><Label>Revenue Detail</Label><Textarea className="mt-1 border-[#f0f0f0]" placeholder="How will you generate revenue?" rows={2} value={revenueDetail} onChange={e => setRevenueDetail(e.target.value)} /></div>
+                  <div>
+                    <Label>Startup Stage</Label>
+                    <Select value={stage} onValueChange={setStage}>
+                      <SelectTrigger className="mt-1 border-[#f0f0f0]"><SelectValue placeholder="Select stage" /></SelectTrigger>
+                      <SelectContent>{STAGES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+              {section === 4 && (
+                <>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div><Label>Founder Name</Label><Input className="mt-1 border-[#f0f0f0]" value={founderName} onChange={e => setFounderName(e.target.value)} /></div>
+                    <div><Label>Role</Label><Input className="mt-1 border-[#f0f0f0]" value={founderRole} onChange={e => setFounderRole(e.target.value)} /></div>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div><Label>Co-Founder Name</Label><Input className="mt-1 border-[#f0f0f0]" placeholder="Optional" value={coFounderName} onChange={e => setCoFounderName(e.target.value)} /></div>
+                    <div><Label>Co-Founder Role</Label><Input className="mt-1 border-[#f0f0f0]" placeholder="Optional" value={coFounderRole} onChange={e => setCoFounderRole(e.target.value)} /></div>
+                  </div>
+                  <div><Label>Team Description</Label><Textarea className="mt-1 border-[#f0f0f0]" placeholder="Brief description of your team's expertise..." rows={3} value={teamDesc} onChange={e => setTeamDesc(e.target.value)} /></div>
+                </>
+              )}
+              {section === 5 && (
+                <>
+                  <p className="text-sm text-[#7e7e7e]">Upload supporting documents. Files are stored securely and only accessible to evaluators.</p>
+                  {[
+                    { label: 'Pitch Deck', hint: 'PDF, PPT or PPTX (max 20MB)' },
+                    { label: 'Lean Canvas', hint: 'PDF or image (max 10MB)' },
+                    { label: 'Additional Documents', hint: 'Financial projections, market research, etc.' },
+                  ].map(doc => (
+                    <div key={doc.label}>
+                      <Label>{doc.label}</Label>
+                      <div className="mt-2 border-2 border-dashed border-[#f0f0f0] rounded-lg p-6 text-center hover:border-[#e33b5f]/30 transition cursor-pointer">
+                        <Upload className="w-8 h-8 text-[#9e9e9e] mx-auto mb-2" />
+                        <p className="text-sm text-[#555353] font-medium">Click to upload {doc.label}</p>
+                        <p className="text-xs text-[#9e9e9e] mt-1">{doc.hint}</p>
+                      </div>
+                    </div>
+                  ))}
+                  <p className="text-xs text-[#9e9e9e]">File upload to Supabase Storage coming in the next update. For now you can submit without files.</p>
+                </>
+              )}
+
+              {saveMsg && <p className="text-sm text-emerald-600 flex items-center gap-1"><CheckCircle className="w-4 h-4" />{saveMsg}</p>}
+
+              <div className="flex justify-between pt-4">
+                {section > 1 ? <Button variant="outline" onClick={() => setSection(s => s - 1)}>Previous</Button> : <div />}
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={saveDraft} disabled={saving || !title.trim()}>
+                    {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />} Save Draft
+                  </Button>
+                  {section < 5
+                    ? <Button className="bg-[#e33b5f] hover:bg-[#c02d4f] text-white" onClick={() => setSection(s => s + 1)}>
+                        Next <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    : <Button className="bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] text-white" onClick={submitIdea} disabled={submitting || !title.trim()}>
+                        {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Submitting...</> : <>Submit Idea <CheckCircle className="w-4 h-4 ml-2" /></>}
+                      </Button>
+                  }
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

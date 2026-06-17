@@ -44,10 +44,6 @@ const platformMetrics = [
   { title: 'System Health', value: '99.9%', change: 'All systems operational', icon: Activity, color: 'emerald' },
 ]
 
-const adminActions = [
-  { action: 'Schema initialised — Supabase connected', admin: 'System', time: 'Just now' },
-]
-
 type WaitlistRow = {
   id: string
   created_at: string
@@ -181,6 +177,21 @@ function NewBadgeCreator({ isSuperAdmin }: { isSuperAdmin: boolean }) {
 
 export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
 
+  // Live platform metrics
+  const [metrics, setMetrics] = useState({ total: 0, shareholders: 0, ideas: 0 });
+
+  useEffect(() => {
+    async function fetchMetrics() {
+      const [{ count: total }, { count: shareholders }, { count: ideas }] = await Promise.all([
+        supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'shareholder'),
+        supabase.from('ideas').select('*', { count: 'exact', head: true }),
+      ]);
+      setMetrics({ total: total ?? 0, shareholders: shareholders ?? 0, ideas: ideas ?? 0 });
+    }
+    fetchMetrics();
+  }, []);
+
   const [waitlist, setWaitlist] = useState<WaitlistRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -277,25 +288,25 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
         </Badge>
       </div>
 
-      {/* Platform Metrics */}
+      {/* Live Platform Metrics */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {platformMetrics.map((metric, idx) => (
-          <Card key={idx} className="border-stone-200 hover:shadow-md transition-shadow">
+        {[
+          { title: 'Total Users',     value: metrics.total,        icon: Users,     bg: 'bg-emerald-100', fg: 'text-emerald-600' },
+          { title: 'Shareholders',    value: metrics.shareholders, icon: Shield,    bg: 'bg-amber-100',   fg: 'text-amber-600' },
+          { title: 'Ideas Submitted', value: metrics.ideas,        icon: Lightbulb, bg: 'bg-blue-100',    fg: 'text-blue-600' },
+          { title: 'System Health',   value: '99.9%',              icon: Activity,  bg: 'bg-emerald-100', fg: 'text-emerald-600' },
+        ].map(m => (
+          <Card key={m.title} className="border-stone-200 hover:shadow-md transition-shadow">
             <CardContent className="p-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-stone-500 mb-1">{metric.title}</p>
-                  <p className="text-2xl font-bold text-stone-900">{metric.value}</p>
+                  <p className="text-sm text-stone-500 mb-1">{m.title}</p>
+                  <p className="text-2xl font-bold text-stone-900">{m.value}</p>
                 </div>
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                  metric.color === 'emerald' ? 'bg-emerald-100' : 'bg-amber-100'
-                }`}>
-                  <metric.icon className={`w-5 h-5 ${metric.color === 'emerald' ? 'text-emerald-600' : 'text-amber-600'}`} />
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${m.bg}`}>
+                  <m.icon className={`w-5 h-5 ${m.fg}`} />
                 </div>
               </div>
-              <p className="text-xs text-emerald-600 mt-2 flex items-center gap-1">
-                <ArrowUpRight className="w-3 h-3" /> {metric.change}
-              </p>
             </CardContent>
           </Card>
         ))}
