@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   LayoutDashboard, FileText, Users, Settings, Bell, Handshake, Lightbulb, LogOut,
@@ -84,14 +83,16 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
       {sidebarOpen && <div className="fixed inset-0 bg-black/30 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#141414] flex flex-col h-screen transform transition-transform lg:transform-none lg:translate-x-0 lg:sticky lg:top-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="p-4 flex items-center gap-3 border-b border-white/10">
+        {/* Logo header — fixed */}
+        <div className="shrink-0 p-4 flex items-center gap-3 border-b border-white/10">
           <button onClick={() => handleNav('dashboard')} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <img src="/logo-light-mid.png" alt="1KLeaders" className="h-8 object-contain" />
           </button>
           <button className="ml-auto lg:hidden text-white" onClick={() => setSidebarOpen(false)}><X className="w-5 h-5" /></button>
         </div>
 
-        <ScrollArea className="flex-1 p-3">
+        {/* Scrollable nav — takes remaining space between header and footer */}
+        <div className="flex-1 overflow-y-auto p-3 min-h-0">
           {/* Developer-only role switcher */}
           {isDeveloper && devViewRole && setDevViewRole && (
             <div className="mb-4">
@@ -166,7 +167,7 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'bug-report' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
             🐛 Report a Bug
           </button>
-        </ScrollArea>
+        </div>
 
         <div className="shrink-0 p-3 border-t border-white/10 space-y-2 bg-[#141414]">
           {profile && (
