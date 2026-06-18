@@ -52,7 +52,48 @@ type WaitlistRow = {
   meeting_date?: string | null
 }
 
-const BADGE_COLORS = [
+function SendAgreementButton({ row, onSent }: { row: WaitlistRow; onSent: () => void }) {
+  const [sending,  setSending]  = useState(false);
+  const [sent,     setSent]     = useState(false);
+  const [error,    setError]    = useState<string | null>(null);
+
+  async function send() {
+    setSending(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/docusign/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipient_name:  `${row.first_name} ${row.last_name}`,
+          recipient_email: row.email,
+          waitlist_id:     row.id,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      setSent(true);
+      onSent();
+    } catch (e: any) {
+      setError(e.message);
+    }
+    setSending(false);
+  }
+
+  if (sent) return <span className="text-xs text-emerald-600 flex items-center gap-1"><CheckCheck className="w-3.5 h-3.5" /> Agreement Sent</span>;
+
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <Button size="sm" variant="outline" className="h-8 text-xs border-blue-300 text-blue-700 hover:bg-blue-50"
+        disabled={sending} onClick={send}>
+        {sending ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Sending...</> : '📄 Send Agreement'}
+      </Button>
+      {error && <p className="text-[10px] text-red-500">{error}</p>}
+    </div>
+  );
+}
+
+
   { label: 'Red',    value: 'bg-red-100 text-red-700 border-red-200' },
   { label: 'Blue',   value: 'bg-blue-100 text-blue-700 border-blue-200' },
   { label: 'Green',  value: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
@@ -392,12 +433,20 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
                       </div>
                     )}
 
-                    {/* Post-decision: Undo */}
+                    {/* Post-decision: Send Agreement (approved only) + Undo */}
                     {(row.status === 'approved' || row.status === 'rejected' || row.status === 'parked') && (
-                      <Button size="sm" variant="outline" className="h-8 text-xs border-stone-300 text-stone-500 flex-shrink-0"
-                        disabled={updating === row.id} onClick={() => undoDecision(row.id)}>
-                        {updating === row.id ? <Loader2 className="w-3 h-3 animate-spin" /> : '↩ Undo'}
-                      </Button>
+                      <div className="flex gap-2 flex-shrink-0">
+                        {row.status === 'approved' && (
+                          <SendAgreementButton
+                            row={row}
+                            onSent={() => setWaitlist(prev => prev.map(r => r.id === row.id ? { ...r, status: 'approved' as const } : r))}
+                          />
+                        )}
+                        <Button size="sm" variant="outline" className="h-8 text-xs border-stone-300 text-stone-500 flex-shrink-0"
+                          disabled={updating === row.id} onClick={() => undoDecision(row.id)}>
+                          {updating === row.id ? <Loader2 className="w-3 h-3 animate-spin" /> : '↩ Undo'}
+                        </Button>
+                      </div>
                     )}
                   </div>
 

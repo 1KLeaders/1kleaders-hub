@@ -1,132 +1,149 @@
 'use client';
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, Search, Plus, Eye, Send, Clock, CheckCircle, XCircle, Download } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { FileText, CheckCircle, Clock, XCircle, RefreshCw, Loader2, ExternalLink } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/auth-context';
+import type { DashboardRole } from './types';
 
-type Props = Record<string, never>;
+interface Props { role?: DashboardRole; }
 
-const agreements = [
-  { id: 1, title: 'Shareholder Agreement - Ahmed Al-Rashid', type: 'Shareholder', status: 'signed', date: '2026-05-15', party: 'Ahmed Al-Rashid' },
-  { id: 2, title: 'NDA - TechVentures LLC', type: 'NDA', status: 'sent', date: '2026-05-18', party: 'TechVentures LLC' },
-  { id: 3, title: 'Shareholder Agreement - Fatima K.', type: 'Shareholder', status: 'viewed', date: '2026-05-17', party: 'Fatima Khalid' },
-  { id: 4, title: 'Idea Submission - GreenTech', type: 'Idea Submission', status: 'expired', date: '2026-04-20', party: 'Omar Hassan' },
-  { id: 5, title: 'Shareholder Agreement - Sara M.', type: 'Shareholder', status: 'signed', date: '2026-05-10', party: 'Sara Mohammed' },
-  { id: 6, title: 'NDA - InnovateCo', type: 'NDA', status: 'sent', date: '2026-05-19', party: 'InnovateCo' },
-];
-
-const statusConfig: Record<string, { color: string; icon: any }> = {
-  signed: { color: 'bg-[#e33b5f]/10 text-[#c02d4f]', icon: CheckCircle },
-  sent: { color: 'bg-[#f07969]/10 text-[#E65F5C]', icon: Send },
-  viewed: { color: 'bg-[#f6f6f6] text-[#444]', icon: Eye },
-  expired: { color: 'bg-red-100 text-red-700', icon: XCircle },
+type Envelope = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  envelope_id: string;
+  user_id: string | null;
+  recipient_name: string;
+  recipient_email: string;
+  status: string;
+  sent_at: string | null;
+  signed_at: string | null;
+  declined_at: string | null;
 };
 
-export default function AgreementsPage({}: Props) {
-  const [filter, setFilter] = useState('all');
-  const [search, setSearch] = useState('');
+const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
+  sent:       { label: 'Sent — Awaiting Signature', color: 'bg-amber-100 text-amber-700',   icon: Clock },
+  delivered:  { label: 'Delivered',                 color: 'bg-blue-100 text-blue-700',     icon: Clock },
+  completed:  { label: 'Signed',                    color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle },
+  declined:   { label: 'Declined',                  color: 'bg-red-100 text-red-700',       icon: XCircle },
+  voided:     { label: 'Voided',                    color: 'bg-stone-100 text-stone-500',   icon: XCircle },
+};
 
-  const filtered = agreements.filter(a => {
-    if (filter !== 'all' && a.type.toLowerCase() !== filter) return false;
-    if (search && !a.title.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+export default function AgreementsPage({ role }: Props) {
+  const { profile } = useAuth();
+  const isAdmin = role === 'admin' || role === 'super-admin' || role === 'developer';
+
+  const [envelopes, setEnvelopes] = useState<Envelope[]>([]);
+  const [loading,   setLoading]   = useState(true);
+
+  async function fetchEnvelopes() {
+    if (!profile) return;
+    setLoading(true);
+    const query = supabase
+      .from('docusign_envelopes')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!isAdmin) query.eq('user_id', profile.id);
+
+    const { data } = await query;
+    setEnvelopes((data ?? []) as Envelope[]);
+    setLoading(false);
+  }
+
+  useEffect(() => { fetchEnvelopes(); }, [profile]);
+
+  const signed   = envelopes.filter(e => e.status === 'completed').length;
+  const pending  = envelopes.filter(e => ['sent','delivered'].includes(e.status)).length;
+  const declined = envelopes.filter(e => e.status === 'declined').length;
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#222]">Agreements</h1>
-          <p className="text-[#7e7e7e]">Manage and track all platform agreements</p>
+          <p className="text-[#7e7e7e]">Track DocuSign partnership agreements</p>
         </div>
-        <Button className="bg-[#e33b5f] hover:bg-[#c02d4f]"><Plus className="w-4 h-4 mr-2" /> New Agreement</Button>
+        <Button size="sm" variant="outline" onClick={fetchEnvelopes} disabled={loading}>
+          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
+        </Button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 w-4 h-4 text-[#9e9e9e]" />
-          <Input placeholder="Search agreements..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-40"><SelectValue placeholder="Filter by type" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="shareholder">Shareholder</SelectItem>
-            <SelectItem value="shareholder">Shareholder</SelectItem>
-            <SelectItem value="nda">NDA</SelectItem>
-            <SelectItem value="idea submission">Idea Submission</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'Total', value: agreements.length, color: 'bg-[#fbfbfb]' },
-          { label: 'Signed', value: agreements.filter(a => a.status === 'signed').length, color: 'bg-[#e33b5f]/5' },
-          { label: 'Pending', value: agreements.filter(a => a.status === 'sent' || a.status === 'viewed').length, color: 'bg-[#f07969]/5' },
-          { label: 'Expired', value: agreements.filter(a => a.status === 'expired').length, color: 'bg-red-50' },
+          { label: 'Signed',   value: signed,   color: 'text-emerald-600' },
+          { label: 'Pending',  value: pending,  color: 'text-amber-600' },
+          { label: 'Declined', value: declined, color: 'text-red-600' },
         ].map(s => (
-          <Card key={s.label} className={s.color}>
-            <CardContent className="p-3 text-center">
-              <div className="text-2xl font-bold text-[#222]">{s.value}</div>
-              <div className="text-xs text-[#7e7e7e]">{s.label}</div>
+          <Card key={s.label}>
+            <CardContent className="p-4 text-center">
+              <p className={`text-2xl font-bold ${s.color}`}>{loading ? '—' : s.value}</p>
+              <p className="text-xs text-[#7e7e7e]">{s.label}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Agreement List */}
-      <Card>
-        <CardHeader><CardTitle className="text-base">Agreement List</CardTitle></CardHeader>
-        <CardContent>
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {filtered.map(a => {
-              const sc = statusConfig[a.status];
-              const Icon = sc.icon;
-              return (
-                <div key={a.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-[#fbfbfb] transition">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <FileText className="w-5 h-5 text-[#9e9e9e] flex-shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-[#222] truncate">{a.title}</p>
-                      <p className="text-xs text-[#9e9e9e]">{a.party} &bull; {a.date}</p>
+      {loading ? (
+        <div className="flex items-center justify-center py-16 gap-2 text-[#7e7e7e]">
+          <Loader2 className="w-5 h-5 animate-spin" /> Loading agreements...
+        </div>
+      ) : envelopes.length === 0 ? (
+        <Card className="border-dashed border-[#f0f0f0]">
+          <CardContent className="p-8 text-center space-y-2">
+            <FileText className="w-10 h-10 text-[#9e9e9e] mx-auto" />
+            <p className="text-sm text-[#7e7e7e]">No agreements sent yet. Use the Admin Dashboard to approve applicants and send agreements.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {envelopes.map(env => {
+            const cfg = statusConfig[env.status] ?? statusConfig.sent;
+            const Icon = cfg.icon;
+            return (
+              <Card key={env.id} className="border-[#f0f0f0]">
+                <CardContent className="p-4 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-[#f6f6f6] flex items-center justify-center shrink-0">
+                    <FileText className="w-5 h-5 text-[#e33b5f]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-medium text-[#222] text-sm">{env.recipient_name}</p>
+                      <Badge className={`text-xs flex items-center gap-1 ${cfg.color}`}>
+                        <Icon className="w-3 h-3" />{cfg.label}
+                      </Badge>
                     </div>
+                    <p className="text-xs text-[#7e7e7e] mt-0.5">
+                      {env.recipient_email} · Sent {env.sent_at ? new Date(env.sent_at).toLocaleDateString() : new Date(env.created_at).toLocaleDateString()}
+                      {env.signed_at && ` · Signed ${new Date(env.signed_at).toLocaleDateString()}`}
+                    </p>
+                    <p className="text-[10px] text-[#9e9e9e] font-mono mt-0.5">{env.envelope_id}</p>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <Badge variant="secondary" className="text-xs">{a.type}</Badge>
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${sc.color}`}>
-                      <Icon className="w-3 h-3" />{a.status}
-                    </span>
-                    <Button variant="ghost" size="sm"><Eye className="w-4 h-4" /></Button>
-                    <Button variant="ghost" size="sm"><Download className="w-4 h-4" /></Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+                  <a
+                    href={`https://app-d.docusign.com/documents/details/${env.envelope_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0"
+                  >
+                    <Button size="sm" variant="outline" className="h-8 text-xs">
+                      <ExternalLink className="w-3.5 h-3.5 mr-1" /> View
+                    </Button>
+                  </a>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
-      {/* DocuSign Integration */}
-      <Card className="border-amber-200 bg-[#f07969]/5/50">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-[#f07969]/10 flex items-center justify-center">
-              <Send className="w-6 h-6 text-[#f07969]" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-[#222]">DocuSign Integration</h3>
-              <p className="text-sm text-[#7e7e7e]">Send agreements for electronic signature directly from the platform.</p>
-            </div>
-            <Button variant="outline" className="ml-auto">Configure</Button>
-          </div>
-        </CardContent>
-      </Card>
+      {!isAdmin && envelopes.length === 0 && (
+        <div className="p-4 bg-[#f6f6f6] rounded-lg border border-[#f0f0f0] text-sm text-[#7e7e7e]">
+          Your partnership agreement will appear here once it has been sent by the 1K Leaders team.
+        </div>
+      )}
     </div>
   );
 }
