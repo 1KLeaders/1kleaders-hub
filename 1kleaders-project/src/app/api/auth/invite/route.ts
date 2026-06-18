@@ -25,10 +25,10 @@ export async function POST(req: NextRequest) {
 
   if (authError) return NextResponse.json({ error: authError.message }, { status: 400 });
 
-  // Create profile row
+  // Upsert profile row — handles case where trigger already created it
   const { error: profileError } = await supabaseAdmin
     .from('profiles')
-    .insert({
+    .upsert({
       id: authData.user.id,
       email,
       first_name: first_name || null,
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       role,
       onboarding_status: 'Platform Access Issued',
       is_first_login: true,
-    });
+    }, { onConflict: 'id' });
 
   if (profileError) return NextResponse.json({ error: profileError.message }, { status: 400 });
 
