@@ -84,7 +84,7 @@ export default function Home() {
         case 'idea-submission':   return <IdeaSubmission role={role} navigate={navigate} />;
         case 'idea-ranking':      return <IdeaRanking />;
         case 'agreements':        return <AgreementsPage />;
-        case 'documents':         return <DocumentsPage />;
+        case 'documents':         return <DocumentsPage role={role} />;
         case 'partners':          return <PartnersPage role={role} navigate={navigate} />;
         case 'settings':          return <SettingsPage />;
         case 'notifications':     return <NotificationsPage navigate={navigate} role={role} />;
