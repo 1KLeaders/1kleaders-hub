@@ -44,7 +44,7 @@ export default function DiscussionRooms({ role }: Props) {
   const [message, setMessage] = useState('');
   const [search, setSearch] = useState('');
 
-  const isShareholder = role === 'shareholder' || role === 'super-admin' || role === 'admin';
+  const isShareholder = role === 'shareholder' || role === 'super-admin' || role === 'admin' || role === 'developer';
 
   if (!isShareholder) {
     return (
