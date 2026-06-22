@@ -1,264 +1,298 @@
 'use client';
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ThumbsUp, TrendingUp, Lightbulb, ChevronUp, ChevronDown, BarChart3, Eye, Star, Shield } from 'lucide-react';
-import type { RoleBadge } from './types';
-import { roleBadgeConfig } from './types';
+import { Search, RefreshCw, Loader2, ChevronDown, ChevronUp, ArrowUpDown, Lightbulb, BarChart3 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/auth-context';
+import type { DashboardRole } from './types';
 
-type Props = Record<string, never>;
-
-// VEP Score criteria: Product/Service, Market Opportunity, Competitive Advantage, Business Model
-const ideas = [
-  {
-    id: 1, title: 'GreenTech: AI-Powered Energy Optimization', owner: 'Ahmed Al-Rashid', ownerRole: 'idea-owner' as RoleBadge,
-    category: 'CleanTech', status: 'under-review',
-    description: 'An AI platform that optimizes energy consumption for commercial buildings, reducing costs by up to 35%.',
-    submittedDate: '2026-05-10',
-    vep: { product: 22, market: 20, competitive: 19, businessModel: 18 },
-    mab: { productTech: 18, productMarketFit: 17, riskAssessment: 16, businessModel: 19, team: 20 },
-  },
-  {
-    id: 2, title: 'HealthConnect: Telemedicine for MENA', owner: 'Fatima Khalid', ownerRole: 'idea-owner' as RoleBadge,
-    category: 'HealthTech', status: 'approved',
-    description: 'A telemedicine platform tailored for the MENA region with multi-language support and local healthcare integration.',
-    submittedDate: '2026-05-08',
-    vep: { product: 21, market: 23, competitive: 18, businessModel: 20 },
-    mab: { productTech: 20, productMarketFit: 21, riskAssessment: 15, businessModel: 18, team: 22 },
-  },
-  {
-    id: 3, title: 'EduPay: Student Micro-Financing', owner: 'Omar Hassan', ownerRole: 'shareholder' as RoleBadge,
-    category: 'FinTech', status: 'under-review',
-    description: 'Micro-financing platform for university students with income-share agreements and mentorship programs.',
-    submittedDate: '2026-05-12',
-    vep: { product: 18, market: 19, competitive: 16, businessModel: 17 },
-    mab: { productTech: 16, productMarketFit: 18, riskAssessment: 14, businessModel: 17, team: 15 },
-  },
-  {
-    id: 4, title: 'SmartFarm: IoT Agriculture Platform', owner: 'Sara Mohammed', ownerRole: 'idea-owner' as RoleBadge,
-    category: 'AgriTech', status: 'evaluation',
-    description: 'IoT sensors and AI analytics platform for precision agriculture in arid climates.',
-    submittedDate: '2026-05-14',
-    vep: { product: 17, market: 16, competitive: 15, businessModel: 16 },
-    mab: { productTech: 17, productMarketFit: 15, riskAssessment: 13, businessModel: 16, team: 14 },
-  },
-  {
-    id: 5, title: 'PropEase: Digital Real Estate', owner: 'Khalid Nasser', ownerRole: 'shareholder' as RoleBadge,
-    category: 'PropTech', status: 'approved',
-    description: 'End-to-end digital real estate platform with virtual tours and smart contracts.',
-    submittedDate: '2026-05-05',
-    vep: { product: 19, market: 17, competitive: 20, businessModel: 18 },
-    mab: { productTech: 19, productMarketFit: 16, riskAssessment: 18, businessModel: 17, team: 16 },
-  },
-  {
-    id: 6, title: 'LogiFlow: Supply Chain AI', owner: 'Noura Ali', ownerRole: 'idea-owner' as RoleBadge,
-    category: 'SaaS', status: 'evaluation',
-    description: 'AI-driven supply chain optimization for MENA logistics companies.',
-    submittedDate: '2026-05-16',
-    vep: { product: 15, market: 14, competitive: 13, businessModel: 15 },
-    mab: { productTech: 15, productMarketFit: 13, riskAssessment: 12, businessModel: 14, team: 13 },
-  },
-];
-
-const statusConfig: Record<string, { label: string; color: string }> = {
-  'under-review': { label: 'Under Review', color: 'bg-[#f07969]/10 text-[#E65F5C]' },
-  'approved':     { label: 'Approved', color: 'bg-[#e33b5f]/10 text-[#c02d4f]' },
-  'evaluation':   { label: 'In Evaluation', color: 'bg-purple-100 text-purple-700' },
-  'rejected':     { label: 'Not Approved', color: 'bg-red-100 text-red-700' },
+type DbIdea = {
+  id: string;
+  created_at: string;
+  title: string;
+  tagline: string | null;
+  sector: string | null;
+  stage: string | null;
+  status: string;
+  vep_score: number | null;
+  problem: string | null;
+  solution: string | null;
+  competitive_edge: string | null;
+  target_market: string | null;
+  revenue_model: string | null;
+  submitted_by: string;
+  submitter_name?: string;
 };
 
-function DigitalBadge({ role }: { role: RoleBadge }) {
-  const config = roleBadgeConfig[role];
-  if (!config) return null;
-  return <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium border ${config.color}`}>{config.icon} {config.label}</span>;
-}
+const statusConfig: Record<string, { label: string; color: string }> = {
+  'Draft':                   { label: 'Draft',              color: 'bg-stone-100 text-stone-500' },
+  'Submitted':               { label: 'Submitted',          color: 'bg-blue-100 text-blue-700' },
+  'Under Quality Review':    { label: 'Quality Review',     color: 'bg-amber-100 text-amber-700' },
+  'Quality Approved':        { label: 'Quality Approved',   color: 'bg-emerald-100 text-emerald-700' },
+  'Assigned to VEP':         { label: 'VEP Assigned',       color: 'bg-purple-100 text-purple-700' },
+  'Under VEP Evaluation':    { label: 'VEP Evaluation',     color: 'bg-purple-100 text-purple-700' },
+  'VEP Complete':            { label: 'VEP Complete',       color: 'bg-purple-100 text-purple-700' },
+  'Moved to MAB':            { label: 'MAB Review',         color: 'bg-[#e33b5f]/10 text-[#c02d4f]' },
+  'Under MAB Evaluation':    { label: 'MAB Evaluation',     color: 'bg-[#e33b5f]/10 text-[#c02d4f]' },
+  'MAB Complete':            { label: 'MAB Complete',       color: 'bg-[#e33b5f]/10 text-[#c02d4f]' },
+  'Approved':                { label: 'Approved ✓',         color: 'bg-emerald-100 text-emerald-700' },
+  'Rejected':                { label: 'Rejected',           color: 'bg-red-100 text-red-700' },
+  'Parked':                  { label: 'Parked',             color: 'bg-stone-100 text-stone-500' },
+};
 
-function getVEPScore(vep: typeof ideas[0]['vep']) {
-  return vep.product + vep.market + vep.competitive + vep.businessModel;
-}
+const PIPELINE_STAGES = [
+  'All', 'Submitted', 'Under Quality Review', 'Quality Approved',
+  'Assigned to VEP', 'Under VEP Evaluation', 'VEP Complete',
+  'Moved to MAB', 'Under MAB Evaluation', 'Approved', 'Rejected', 'Parked',
+];
 
-function getMABScore(mab: typeof ideas[0]['mab']) {
-  return mab.productTech + mab.productMarketFit + mab.riskAssessment + mab.businessModel + mab.team;
-}
+const ADMIN_STATUSES = [
+  'Draft', 'Submitted', 'Under Quality Review', 'Quality Approved',
+  'Assigned to VEP', 'Under VEP Evaluation', 'VEP Complete',
+  'Moved to MAB', 'Under MAB Evaluation', 'MAB Complete',
+  'Approved', 'Rejected', 'Parked',
+];
 
-export default function IdeaRanking({}: Props) {
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [expanded, setExpanded] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<'vep' | 'mab'>('vep');
+export default function IdeaRanking() {
+  const { profile, role } = useAuth();
+  const isAdmin = role === 'admin' || role === 'super-admin' || role === 'developer';
 
-  const filteredIdeas = ideas.filter(i => filterStatus === 'all' || i.status === filterStatus);
-  const sortedByVEP = [...filteredIdeas].sort((a, b) => getVEPScore(b.vep) - getVEPScore(a.vep));
-  const sortedByMAB = [...filteredIdeas].sort((a, b) => getMABScore(b.mab) - getMABScore(a.mab));
-  const sorted = activeTab === 'vep' ? sortedByVEP : sortedByMAB;
+  const [ideas,       setIdeas]       = useState<DbIdea[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [search,      setSearch]      = useState('');
+  const [stageFilter, setStageFilter] = useState('All');
+  const [sortBy,      setSortBy]      = useState<'vep_score' | 'created_at' | 'title'>('vep_score');
+  const [expanded,    setExpanded]    = useState<string | null>(null);
+  const [updating,    setUpdating]    = useState<string | null>(null);
+
+  async function fetchIdeas() {
+    setLoading(true);
+    const query = supabase
+      .from('ideas')
+      .select(`
+        id, created_at, title, tagline, sector, stage, status,
+        vep_score, problem, solution, competitive_edge, target_market,
+        revenue_model, submitted_by
+      `)
+      .neq('status', 'Draft')
+      .order(sortBy === 'vep_score' ? 'vep_score' : sortBy, { ascending: sortBy === 'title', nullsFirst: false });
+
+    const { data, error } = await query;
+    if (error) { setLoading(false); return; }
+
+    // Fetch submitter names
+    const userIds = [...new Set((data ?? []).map(i => i.submitted_by))];
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name')
+      .in('id', userIds);
+
+    const nameMap = Object.fromEntries(
+      (profiles ?? []).map(p => [p.id, `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim() || p.id.slice(0, 8)])
+    );
+
+    setIdeas((data ?? []).map(i => ({ ...i, submitter_name: nameMap[i.submitted_by] ?? '—' })) as DbIdea[]);
+    setLoading(false);
+  }
+
+  useEffect(() => { fetchIdeas(); }, [sortBy]);
+
+  async function updateIdeaStatus(id: string, status: string) {
+    setUpdating(id);
+    await supabase.from('ideas').update({ status, updated_at: new Date().toISOString() }).eq('id', id);
+    setIdeas(prev => prev.map(i => i.id === id ? { ...i, status } : i));
+    setUpdating(null);
+  }
+
+  async function updateVepScore(id: string, score: number) {
+    await supabase.from('ideas').update({ vep_score: score }).eq('id', id);
+    setIdeas(prev => prev.map(i => i.id === id ? { ...i, vep_score: score } : i));
+  }
+
+  const filtered = ideas.filter(i => {
+    if (stageFilter !== 'All' && i.status !== stageFilter) return false;
+    if (search && !i.title.toLowerCase().includes(search.toLowerCase()) &&
+        !(i.submitter_name ?? '').toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  const maxScore = Math.max(...ideas.map(i => i.vep_score ?? 0), 1);
+
+  // Stats
+  const approved = ideas.filter(i => i.status === 'Approved').length;
+  const inPipeline = ideas.filter(i => !['Draft','Rejected','Parked','Approved'].includes(i.status)).length;
+  const withVep = ideas.filter(i => i.vep_score != null).length;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-[#222] flex items-center gap-2">
-          <BarChart3 className="w-6 h-6 text-[#e33b5f]" /> Idea Ranking
-        </h1>
-        <p className="text-[#7e7e7e]">Ideas ranked by VEP Score and MAB Assessment criteria</p>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#222]">Idea Ranking</h1>
+          <p className="text-[#7e7e7e]">Review and manage submitted ideas through the evaluation pipeline</p>
+        </div>
+        <Button size="sm" variant="outline" onClick={fetchIdeas} disabled={loading}>
+          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
+        </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={v => setActiveTab(v as 'vep' | 'mab')}>
-        <TabsList className="grid grid-cols-2 w-full max-w-sm">
-          <TabsTrigger value="vep" className="flex items-center gap-2"><Star className="w-4 h-4" /> VEP Score</TabsTrigger>
-          <TabsTrigger value="mab" className="flex items-center gap-2"><Shield className="w-4 h-4" /> MAB Ranking</TabsTrigger>
-        </TabsList>
-
-        {/* VEP Methodology */}
-        <TabsContent value="vep">
-          <Card className="border-[#e33b5f]/20 bg-[#e33b5f]/5">
-            <CardContent className="p-4">
-              <h3 className="text-sm font-semibold text-[#c02d4f] mb-2">⭐ VEP Score Criteria (100 pts total)</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                {[
-                  { label: 'Product/Service', pts: 25 },
-                  { label: 'Market Opportunity', pts: 25 },
-                  { label: 'Competitive Advantage', pts: 25 },
-                  { label: 'Business Model', pts: 25 },
-                ].map(c => (
-                  <div key={c.label} className="text-center p-2 bg-white rounded-lg border border-[#e33b5f]/10">
-                    <p className="font-bold text-[#c02d4f] text-base">{c.pts}</p>
-                    <p className="text-[#7e7e7e]">{c.label}</p>
-                  </div>
-                ))}
-              </div>
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: 'Total Ideas',   value: loading ? '—' : ideas.length },
+          { label: 'In Pipeline',   value: loading ? '—' : inPipeline },
+          { label: 'Approved',      value: loading ? '—' : approved },
+          { label: 'VEP Scored',    value: loading ? '—' : withVep },
+        ].map(s => (
+          <Card key={s.label}>
+            <CardContent className="p-3 text-center">
+              <div className="text-xl font-bold text-[#222]">{s.value}</div>
+              <div className="text-xs text-[#7e7e7e]">{s.label}</div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        {/* MAB Methodology */}
-        <TabsContent value="mab">
-          <Card className="border-purple-200 bg-purple-50">
-            <CardContent className="p-4">
-              <h3 className="text-sm font-semibold text-purple-700 mb-2">🛡️ MAB Ranking Criteria (100 pts total)</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
-                {[
-                  { label: 'Product & Tech', pts: 20 },
-                  { label: 'Product Market Fit', pts: 20 },
-                  { label: 'Risk Assessment', pts: 20 },
-                  { label: 'Business Model', pts: 20 },
-                  { label: 'Team', pts: 20 },
-                ].map(c => (
-                  <div key={c.label} className="text-center p-2 bg-white rounded-lg border border-purple-100">
-                    <p className="font-bold text-purple-700 text-base">{c.pts}</p>
-                    <p className="text-[#7e7e7e]">{c.label}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* Filter */}
-      <div className="flex flex-wrap gap-2">
-        <span className="text-xs text-[#9e9e9e] self-center mr-1">Status:</span>
-        {['all', 'under-review', 'approved', 'evaluation'].map(s => (
-          <button key={s} onClick={() => setFilterStatus(s)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${filterStatus === s ? 'bg-[#e33b5f] text-white' : 'bg-[#f6f6f6] text-[#555353] hover:bg-[#e8e8e8]'}`}>
-            {s === 'all' ? 'All' : statusConfig[s]?.label || s}
-          </button>
         ))}
       </div>
 
-      {/* Ranking List */}
-      <div className="space-y-3">
-        {sorted.map((idea, index) => {
-          const vepScore = getVEPScore(idea.vep);
-          const mabScore = getMABScore(idea.mab);
-          const displayScore = activeTab === 'vep' ? vepScore : mabScore;
-          const isExpanded = expanded === idea.id;
-          return (
-            <Card key={idea.id} className={`transition ${index < 3 ? 'border-[#e33b5f]/20' : ''}`}>
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg flex-shrink-0 ${index === 0 ? 'bg-[#f07969]/10 text-[#E65F5C]' : index === 1 ? 'bg-[#e8e8e8] text-[#555353]' : index === 2 ? 'bg-orange-100 text-orange-700' : 'bg-[#f6f6f6] text-[#7e7e7e]'}`}>
-                    {index + 1}
-                  </div>
+      {/* Filters */}
+      <div className="flex gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-48">
+          <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#9e9e9e]" />
+          <Input placeholder="Search ideas..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+        <Select value={stageFilter} onValueChange={setStageFilter}>
+          <SelectTrigger className="w-48 border-[#f0f0f0]"><SelectValue /></SelectTrigger>
+          <SelectContent className="max-h-60">
+            {PIPELINE_STAGES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={sortBy} onValueChange={v => setSortBy(v as typeof sortBy)}>
+          <SelectTrigger className="w-40 border-[#f0f0f0]">
+            <ArrowUpDown className="w-3.5 h-3.5 mr-2" /><SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="vep_score">VEP Score</SelectItem>
+            <SelectItem value="created_at">Newest</SelectItem>
+            <SelectItem value="title">A–Z</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
+      {loading ? (
+        <div className="flex items-center justify-center py-16 gap-2 text-[#7e7e7e]">
+          <Loader2 className="w-5 h-5 animate-spin" /> Loading ideas...
+        </div>
+      ) : filtered.length === 0 ? (
+        <Card className="border-dashed border-[#f0f0f0]">
+          <CardContent className="p-8 text-center space-y-2">
+            <Lightbulb className="w-10 h-10 text-[#9e9e9e] mx-auto" />
+            <p className="text-sm text-[#7e7e7e]">No ideas found. Ideas appear here once submitted.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((idea, idx) => {
+            const sc = statusConfig[idea.status] ?? { label: idea.status, color: 'bg-stone-100 text-stone-500' };
+            const scorePct = idea.vep_score != null ? (idea.vep_score / 100) * 100 : null;
+            const isExpanded = expanded === idea.id;
+            return (
+              <Card key={idea.id} className="border-[#f0f0f0] overflow-hidden">
+                <div className="flex items-center gap-3 p-4 cursor-pointer hover:bg-[#fafafa] transition" onClick={() => setExpanded(isExpanded ? null : idea.id)}>
+                  <div className="w-8 h-8 rounded-full bg-[#e33b5f]/10 flex items-center justify-center text-sm font-bold text-[#e33b5f] flex-shrink-0">
+                    {idx + 1}
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <h3 className="font-semibold text-[#222]">{idea.title}</h3>
-                        <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          <span className="text-xs text-[#7e7e7e] flex items-center gap-1">
-                            <Avatar className="w-4 h-4"><AvatarFallback className="text-[8px] bg-[#f6f6f6]">{idea.owner.split(' ').map(n => n[0]).join('')}</AvatarFallback></Avatar>
-                            {idea.owner}
-                          </span>
-                          <DigitalBadge role={idea.ownerRole} />
-                          <Badge variant="secondary" className="text-xs">{idea.category}</Badge>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${statusConfig[idea.status]?.color}`}>
-                            {statusConfig[idea.status]?.label}
-                          </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-medium text-sm text-[#222] truncate">{idea.title}</p>
+                      <Badge className={`text-xs ${sc.color}`}>{sc.label}</Badge>
+                      {idea.sector && <Badge variant="outline" className="text-xs">{idea.sector}</Badge>}
+                    </div>
+                    <div className="flex items-center gap-3 mt-1">
+                      <p className="text-xs text-[#7e7e7e]">{idea.submitter_name}</p>
+                      <p className="text-xs text-[#9e9e9e]">{new Date(idea.created_at).toLocaleDateString()}</p>
+                      {idea.vep_score != null && (
+                        <div className="flex items-center gap-1.5 flex-1 max-w-32">
+                          <Progress value={(idea.vep_score / 100) * 100} className="h-1.5 flex-1" />
+                          <span className="text-xs font-medium text-[#e33b5f]">{idea.vep_score}</span>
                         </div>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <div className="text-2xl font-bold text-[#e33b5f]">{displayScore}</div>
-                        <div className="text-[10px] text-[#9e9e9e]">{activeTab === 'vep' ? 'VEP Score' : 'MAB Score'}</div>
-                      </div>
+                      )}
+                    </div>
+                  </div>
+                  {isExpanded ? <ChevronUp className="w-4 h-4 text-[#9e9e9e] shrink-0" /> : <ChevronDown className="w-4 h-4 text-[#9e9e9e] shrink-0" />}
+                </div>
+
+                {isExpanded && (
+                  <div className="border-t border-[#f0f0f0] p-4 space-y-4 bg-[#fafafa]">
+                    {idea.tagline && <p className="text-sm text-[#555353] italic">"{idea.tagline}"</p>}
+
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      {idea.problem && (
+                        <div>
+                          <p className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider mb-1">Problem</p>
+                          <p className="text-sm text-[#444]">{idea.problem}</p>
+                        </div>
+                      )}
+                      {idea.solution && (
+                        <div>
+                          <p className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider mb-1">Solution</p>
+                          <p className="text-sm text-[#444]">{idea.solution}</p>
+                        </div>
+                      )}
+                      {idea.target_market && (
+                        <div>
+                          <p className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider mb-1">Target Market</p>
+                          <p className="text-sm text-[#444]">{idea.target_market}</p>
+                        </div>
+                      )}
+                      {idea.revenue_model && (
+                        <div>
+                          <p className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider mb-1">Business Model</p>
+                          <p className="text-sm text-[#444]">{idea.revenue_model}</p>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Score criteria bars */}
-                    {activeTab === 'vep' ? (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
-                        {[
-                          { label: 'Product/Service', val: idea.vep.product, max: 25 },
-                          { label: 'Market Opp.', val: idea.vep.market, max: 25 },
-                          { label: 'Comp. Advantage', val: idea.vep.competitive, max: 25 },
-                          { label: 'Business Model', val: idea.vep.businessModel, max: 25 },
-                        ].map(c => (
-                          <div key={c.label}>
-                            <div className="flex justify-between text-xs mb-0.5"><span className="text-[#7e7e7e] truncate">{c.label}</span><span className="font-medium">{c.val}/{c.max}</span></div>
-                            <Progress value={(c.val / c.max) * 100} className="h-1.5" />
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-3">
-                        {[
-                          { label: 'Product & Tech', val: idea.mab.productTech, max: 20 },
-                          { label: 'PMF', val: idea.mab.productMarketFit, max: 20 },
-                          { label: 'Risk', val: idea.mab.riskAssessment, max: 20 },
-                          { label: 'Biz Model', val: idea.mab.businessModel, max: 20 },
-                          { label: 'Team', val: idea.mab.team, max: 20 },
-                        ].map(c => (
-                          <div key={c.label}>
-                            <div className="flex justify-between text-xs mb-0.5"><span className="text-[#7e7e7e] truncate">{c.label}</span><span className="font-medium">{c.val}/{c.max}</span></div>
-                            <Progress value={(c.val / c.max) * 100} className="h-1.5" />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <button onClick={() => setExpanded(isExpanded ? null : idea.id)} className="text-xs text-[#e33b5f] font-medium mt-2 flex items-center gap-1">
-                      {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                      {isExpanded ? 'Less details' : 'View details'}
-                    </button>
-
-                    {isExpanded && (
-                      <div className="mt-3 p-3 bg-[#fbfbfb] rounded-lg space-y-2">
-                        <p className="text-sm text-[#444]">{idea.description}</p>
-                        <p className="text-xs text-[#9e9e9e]">Submitted: {idea.submittedDate}</p>
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm"><ThumbsUp className="w-3 h-3 mr-1" /> Upvote</Button>
-                          <Button variant="outline" size="sm"><Eye className="w-3 h-3 mr-1" /> View Full Idea</Button>
-                          <Button variant="outline" size="sm"><Star className="w-3 h-3 mr-1" /> Express Interest</Button>
+                    {isAdmin && (
+                      <div className="space-y-3 pt-2 border-t border-[#f0f0f0]">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider">Pipeline Status</p>
+                          <Select value={idea.status} onValueChange={s => updateIdeaStatus(idea.id, s)}>
+                            <SelectTrigger className="h-7 text-xs border-[#f0f0f0] w-52">
+                              {updating === idea.id ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-60">
+                              {ADMIN_STATUSES.map(s => <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider">VEP Score</p>
+                          <input
+                            type="number" min={0} max={100}
+                            className="w-20 h-7 px-2 border border-[#f0f0f0] rounded text-xs"
+                            value={idea.vep_score ?? ''}
+                            placeholder="0–100"
+                            onChange={e => {
+                              const v = parseInt(e.target.value);
+                              if (!isNaN(v) && v >= 0 && v <= 100) updateVepScore(idea.id, v);
+                            }}
+                          />
+                          <span className="text-xs text-[#9e9e9e]">out of 100</span>
                         </div>
                       </div>
                     )}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

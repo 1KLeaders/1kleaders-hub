@@ -1,13 +1,15 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { TrendingUp, DollarSign, Users, Briefcase, ArrowUpRight, ArrowDownRight, Calendar, CheckCircle, Lightbulb, Rocket, Star, Bot, BarChart3, MessageSquare, Linkedin, FileText, ExternalLink, Building2 } from 'lucide-react';
+import { TrendingUp, DollarSign, Users, Briefcase, ArrowUpRight, ArrowDownRight, Calendar, CheckCircle, Lightbulb, Rocket, Star, Bot, BarChart3, MessageSquare, Linkedin, FileText, ExternalLink, Building2, Loader2 } from 'lucide-react';
 import type { DashboardRole, DashboardPriority, RoleBadge } from './types';
 import { roleBadgeConfig } from './types';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/auth-context';
 
 interface Props { role: DashboardRole; navigate: (page: string) => void; }
 
@@ -17,58 +19,13 @@ function DigitalBadge({ role }: { role: RoleBadge }) {
   return <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium border ${config.color}`}>{config.icon} {config.label}</span>;
 }
 
-const dashboards: Record<string, { metrics: { label: string; value: string; change: string; up: boolean; icon: any }[]; title: string; subtitle: string }> = {
-  shareholder: {
-    title: 'Shareholder Dashboard',
-    subtitle: 'Your shareholding, investments & portfolio overview',
-    metrics: [
-      { label: 'Total Shares', value: '15,000', change: '+500 allocated', up: true, icon: Briefcase },
-      { label: 'Portfolio Value', value: '$3.2M', change: '+8.4%', up: true, icon: DollarSign },
-      { label: '# Startups', value: '8', change: '+2 this round', up: true, icon: Rocket, page: 'startups' },
-      { label: '# Startups (Active)', value: '5', change: '3 evaluating', up: true, icon: TrendingUp, page: 'startups' },
-    ],
-  },
-  'super-admin': {
-    title: 'Super Admin Panel',
-    subtitle: 'Full platform control and monitoring',
-    metrics: [
-      { label: 'Total Users', value: '1,247', change: '+89 this month', up: true, icon: Users },
-      { label: 'Active Shareholders', value: '342', change: '+15', up: true, icon: Briefcase },
-      { label: 'Platform Revenue', value: '$890K', change: '+18.2%', up: true, icon: DollarSign },
-      { label: 'System Health', value: '99.9%', change: 'Operational', up: true, icon: CheckCircle },
-    ],
-  },
-  admin: {
-    title: 'Admin Operations',
-    subtitle: 'Manage daily operations and approvals',
-    metrics: [
-      { label: 'Pending Approvals', value: '23', change: '5 urgent', up: false, icon: Users },
-      { label: 'Active Users', value: '845', change: '+34 today', up: true, icon: Briefcase },
-      { label: 'Docs to Review', value: '17', change: '3 overdue', up: false, icon: CheckCircle },
-      { label: 'Upcoming Meetings', value: '5', change: 'Today: 2', up: true, icon: Calendar },
-    ],
-  },
-
-  user: {
-    title: 'Welcome to 1K Leaders',
-    subtitle: 'Explore the platform and get started',
-    metrics: [
-      { label: 'Profile Completion', value: '60%', change: '3 steps left', up: false, icon: Users },
-      { label: 'Available Opportunities', value: '24', change: '+5 this week', up: true, icon: Briefcase },
-      { label: 'Connections', value: '12', change: '+3 new', up: true, icon: Users },
-      { label: 'Announcements', value: '3', change: 'New', up: true, icon: Calendar },
-    ],
-  },
-  developer: {
-    title: '🛠 Developer View',
-    subtitle: 'Full platform access — use the role switcher to preview any view',
-    metrics: [
-      { label: 'Auth Status', value: 'Live', change: 'Supabase connected', up: true, icon: CheckCircle },
-      { label: 'RLS Policies', value: 'Active', change: 'JWT claims OK', up: true, icon: Users },
-      { label: 'DB Tables', value: '5', change: 'All seeded', up: true, icon: Briefcase },
-      { label: 'Deploy', value: 'Vercel', change: 'Auto-deploy on', up: true, icon: TrendingUp },
-    ],
-  },
+// Static metric configs — values filled in dynamically
+const dashboardConfigs: Record<string, { title: string; subtitle: string }> = {
+  shareholder:   { title: 'Shareholder Dashboard',   subtitle: 'Your shareholding, investments & portfolio overview' },
+  'super-admin': { title: 'Super Admin Panel',        subtitle: 'Full platform control and monitoring' },
+  admin:         { title: 'Admin Operations',         subtitle: 'Manage daily operations and approvals' },
+  user:          { title: 'Welcome to 1K Leaders',    subtitle: 'Explore the platform and get started' },
+  developer:     { title: '🛠 Developer View',        subtitle: 'Full platform access — use the role switcher to preview any view' },
 };
 
 const activities: Record<DashboardRole, { text: string; time: string; type: string }[]> = {
@@ -130,20 +87,84 @@ const ideaHighlights = [
 ];
 
 export default function DashboardHome({ role, navigate }: Props) {
+  const { profile } = useAuth();
   const [priority, setPriority] = useState<DashboardPriority>('balanced');
   const [selectedStartup, setSelectedStartup] = useState<typeof startupHighlights[0] | null>(null);
-  const d = dashboards[role];
+  const [liveMetrics, setLiveMetrics] = useState<{ label: string; value: string; change: string; up: boolean; icon: any }[]>([]);
+  const [metricsLoading, setMetricsLoading] = useState(true);
+
+  const cfg = dashboardConfigs[role] ?? dashboardConfigs['user'];
   const acts = activities[role] || [];
+
+  useEffect(() => {
+    async function fetchMetrics() {
+      setMetricsLoading(true);
+      try {
+        if (role === 'super-admin' || role === 'developer') {
+          const [{ count: total }, { count: shareholders }, { count: pending }] = await Promise.all([
+            supabase.from('profiles').select('*', { count: 'exact', head: true }),
+            supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'shareholder'),
+            supabase.from('waitlist_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+          ]);
+          const { count: ideas } = await supabase.from('ideas').select('*', { count: 'exact', head: true }).catch(() => ({ count: 0 }));
+          setLiveMetrics([
+            { label: 'Total Users',       value: String(total ?? 0),        change: 'Registered',         up: true,  icon: Users },
+            { label: 'Shareholders',       value: String(shareholders ?? 0), change: 'Active partners',     up: true,  icon: Briefcase },
+            { label: 'Pending Waitlist',   value: String(pending ?? 0),      change: 'Awaiting review',     up: false, icon: Calendar },
+            { label: 'Ideas Submitted',    value: String(ideas ?? 0),        change: 'All time',            up: true,  icon: Lightbulb },
+          ]);
+        } else if (role === 'admin') {
+          const [{ count: pendingWaitlist }, { count: pendingDocs }, { count: users }] = await Promise.all([
+            supabase.from('waitlist_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+            supabase.from('kyc_documents').select('*', { count: 'exact', head: true }).eq('status', 'submitted'),
+            supabase.from('profiles').select('*', { count: 'exact', head: true }),
+          ]);
+          setLiveMetrics([
+            { label: 'Pending Approvals', value: String(pendingWaitlist ?? 0), change: 'Waitlist queue',    up: false, icon: Users },
+            { label: 'Total Members',     value: String(users ?? 0),           change: 'Platform users',   up: true,  icon: Briefcase },
+            { label: 'KYC Docs to Review',value: String(pendingDocs ?? 0),     change: 'Awaiting review',  up: false, icon: CheckCircle },
+            { label: 'System Health',     value: '99.9%',                       change: 'Operational',      up: true,  icon: TrendingUp },
+          ]);
+        } else if (role === 'shareholder') {
+          const { count: ideas } = await supabase.from('ideas').select('*', { count: 'exact', head: true }).catch(() => ({ count: 0 }));
+          const { count: members } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'shareholder');
+          setLiveMetrics([
+            { label: 'Shareholder Since', value: profile?.created_at ? new Date(profile.created_at).getFullYear().toString() : '—', change: 'Partner',         up: true,  icon: Star },
+            { label: 'Onboarding Status', value: profile?.onboarding_status ?? '—',                                                  change: 'Current step',   up: true,  icon: CheckCircle },
+            { label: 'Total Members',     value: String(members ?? 0),                                                                change: 'Shareholders',   up: true,  icon: Users },
+            { label: 'Ideas in Pipeline', value: String(ideas ?? 0),                                                                  change: 'Submitted',      up: true,  icon: Lightbulb },
+          ]);
+        } else {
+          // user / default
+          const pct = [
+            profile?.first_name, profile?.last_name, profile?.bio,
+            profile?.org_name, profile?.linkedin_url, profile?.expertise_domains?.length,
+          ].filter(Boolean).length;
+          const completion = Math.round((pct / 6) * 100);
+          setLiveMetrics([
+            { label: 'Profile Completion',  value: `${completion}%`,                        change: `${6 - pct} fields left`,   up: completion === 100, icon: Users },
+            { label: 'Onboarding Status',   value: profile?.onboarding_status ?? '—',       change: 'Current step',             up: true,               icon: CheckCircle },
+            { label: 'Member Since',        value: profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '—', change: 'Platform member', up: true, icon: Calendar },
+            { label: 'Role',                value: profile?.role ?? '—',                    change: profile?.subroles?.join(', ') || 'No subroles', up: true, icon: Briefcase },
+          ]);
+        }
+      } catch (e) {
+        console.warn('Dashboard metrics fetch failed', e);
+      }
+      setMetricsLoading(false);
+    }
+    fetchMetrics();
+  }, [role, profile]);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#222] flex items-center gap-2">
-            {d.title}
+            {cfg.title}
             <DigitalBadge role={role as RoleBadge} />
           </h1>
-          <p className="text-[#7e7e7e]">{d.subtitle}</p>
+          <p className="text-[#7e7e7e]">{cfg.subtitle}</p>
         </div>
         {/* Priority Selector */}
         <div className="flex items-center gap-2">
@@ -163,23 +184,37 @@ export default function DashboardHome({ role, navigate }: Props) {
 
       {/* Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {d.metrics.map((m) => (
-          <Card key={m.label}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-[#7e7e7e] font-medium">{m.label}</span>
-                <div className="w-8 h-8 rounded-lg bg-[#e33b5f]/10 flex items-center justify-center">
-                  <m.icon className="w-4 h-4 text-[#e33b5f]" />
+        {metricsLoading
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="h-3 w-20 bg-[#f0f0f0] rounded animate-pulse" />
+                    <div className="w-8 h-8 rounded-lg bg-[#f0f0f0] animate-pulse" />
+                  </div>
+                  <div className="h-7 w-16 bg-[#f0f0f0] rounded animate-pulse mt-1" />
+                  <div className="h-3 w-24 bg-[#f0f0f0] rounded animate-pulse mt-2" />
+                </CardContent>
+              </Card>
+            ))
+          : liveMetrics.map((m) => (
+            <Card key={m.label}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-[#7e7e7e] font-medium">{m.label}</span>
+                  <div className="w-8 h-8 rounded-lg bg-[#e33b5f]/10 flex items-center justify-center">
+                    <m.icon className="w-4 h-4 text-[#e33b5f]" />
+                  </div>
                 </div>
-              </div>
-              <div className="text-2xl font-bold text-[#222]">{m.value}</div>
-              <div className={`flex items-center gap-1 text-xs mt-1 ${m.up ? 'text-[#e33b5f]' : 'text-[#f07969]'}`}>
-                {m.up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                {m.change}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                <div className="text-2xl font-bold text-[#222] truncate">{m.value}</div>
+                <div className={`flex items-center gap-1 text-xs mt-1 ${m.up ? 'text-[#e33b5f]' : 'text-[#f07969]'}`}>
+                  {m.up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                  {m.change}
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        }
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
