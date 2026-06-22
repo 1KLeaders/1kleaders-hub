@@ -122,7 +122,7 @@ export async function getJWTAccessToken(): Promise<string> {
 
   // Sign with RSA private key
   const { createSign } = await import('crypto');
-  const privateKey = process.env.DOCUSIGN_PRIVATE_KEY!.replace(/\\n/g, '\n');
+  const privateKey = process.env.DOCUSIGN_PRIVATE_KEY!;
   const sign = createSign('RSA-SHA256');
   sign.update(`${header}.${payload}`);
   const signature = sign.sign(privateKey, 'base64url');
