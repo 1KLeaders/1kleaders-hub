@@ -23,6 +23,7 @@ export type Page =
   | 'admin-dashboard'
   | 'startup-page'
   | 'bug-report'
+  | 'onboarding-tracker'
   | 'recommendations';
 
 // Main access roles — controls what pages/nav items a user sees

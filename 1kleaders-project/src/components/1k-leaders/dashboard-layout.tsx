@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   LayoutDashboard, FileText, Users, Settings, Bell, Handshake, Lightbulb, LogOut,
   Menu, X, ChevronRight, FolderOpen, Calendar, MessageSquare, Bot, BarChart3,
-  Mail, Star, Shield, MessageCircle,
+  Mail, Star, Shield, MessageCircle, FileCheck,
 } from 'lucide-react';
 import type { Page, DashboardRole } from './types';
 import { roleBadgeConfig } from './types';
@@ -49,8 +49,9 @@ const navItems: NavItem[] = [
   { icon: Bot,             label: 'AI Assistant',     page: 'ai-assistant' },
   { icon: FolderOpen,      label: 'Documents',        page: 'documents' },
   { icon: Handshake,       label: 'Shareholders',     page: 'partners',          roles: ['shareholder', 'admin', 'super-admin', 'developer'] },
+  { icon: FileCheck,       label: 'KYC & Onboarding', page: 'onboarding',        roles: ['user', 'shareholder'] },
   { icon: BarChart3,       label: 'Idea Ranking',     page: 'idea-ranking',      roles: ['admin', 'super-admin', 'developer'] },
-  { icon: FileText,        label: 'Agreements',       page: 'agreements',        roles: ['admin', 'super-admin', 'developer'] },
+  { icon: FileText,        label: 'Agreements',       page: 'agreements' },
   { icon: Bell,            label: 'Notifications',    page: 'notifications' },
   { icon: Settings,        label: 'Settings',         page: 'settings' },
 ];
@@ -143,6 +144,10 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
               <button onClick={() => handleNav('admin-dashboard')}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'admin-dashboard' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
                 <Shield className="w-4 h-4" />Admin Dashboard
+              </button>
+              <button onClick={() => handleNav('onboarding-tracker')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'onboarding-tracker' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
+                <FileCheck className="w-4 h-4" />Onboarding Tracker
               </button>
               <button onClick={() => handleNav('newsletter-tracking')}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'newsletter-tracking' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
