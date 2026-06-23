@@ -95,7 +95,11 @@ export default function AgreementsPage({ role }: Props) {
         <Card className="border-dashed border-[#f0f0f0]">
           <CardContent className="p-8 text-center space-y-2">
             <FileText className="w-10 h-10 text-[#9e9e9e] mx-auto" />
-            <p className="text-sm text-[#7e7e7e]">No agreements sent yet. Use the Admin Dashboard to approve applicants and send agreements.</p>
+            <p className="text-sm text-[#7e7e7e]">
+              {isAdmin
+                ? 'No agreements sent yet. Use the Admin Dashboard to approve applicants and send agreements.'
+                : 'Your partnership agreement will appear here once it has been sent by the 1K Leaders team.'}
+            </p>
           </CardContent>
         </Card>
       ) : (

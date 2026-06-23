@@ -97,8 +97,9 @@ export default function DashboardHome({ role, navigate }: Props) {
   const acts = activities[role] || [];
 
   useEffect(() => {
+    setLiveMetrics([]);
+    setMetricsLoading(true);
     async function fetchMetrics() {
-      setMetricsLoading(true);
       try {
         if (role === 'super-admin' || role === 'developer') {
           const [{ count: total }, { count: shareholders }, { count: pending }] = await Promise.all([
@@ -108,10 +109,10 @@ export default function DashboardHome({ role, navigate }: Props) {
           ]);
           const { count: ideas } = await supabase.from('ideas').select('*', { count: 'exact', head: true }).catch(() => ({ count: 0 }));
           setLiveMetrics([
-            { label: 'Total Users',       value: String(total ?? 0),        change: 'Registered',         up: true,  icon: Users },
-            { label: 'Shareholders',       value: String(shareholders ?? 0), change: 'Active partners',     up: true,  icon: Briefcase },
-            { label: 'Pending Waitlist',   value: String(pending ?? 0),      change: 'Awaiting review',     up: false, icon: Calendar },
-            { label: 'Ideas Submitted',    value: String(ideas ?? 0),        change: 'All time',            up: true,  icon: Lightbulb },
+            { label: 'Total Users',      value: String(total ?? 0),        change: 'Registered',       up: true,  icon: Users },
+            { label: 'Shareholders',     value: String(shareholders ?? 0), change: 'Active partners',  up: true,  icon: Briefcase },
+            { label: 'Pending Waitlist', value: String(pending ?? 0),      change: 'Awaiting review',  up: false, icon: Calendar },
+            { label: 'Ideas Submitted',  value: String(ideas ?? 0),        change: 'All time',         up: true,  icon: Lightbulb },
           ]);
         } else if (role === 'admin') {
           const [{ count: pendingWaitlist }, { count: pendingDocs }, { count: users }] = await Promise.all([
@@ -120,32 +121,33 @@ export default function DashboardHome({ role, navigate }: Props) {
             supabase.from('profiles').select('*', { count: 'exact', head: true }),
           ]);
           setLiveMetrics([
-            { label: 'Pending Approvals', value: String(pendingWaitlist ?? 0), change: 'Waitlist queue',    up: false, icon: Users },
-            { label: 'Total Members',     value: String(users ?? 0),           change: 'Platform users',   up: true,  icon: Briefcase },
-            { label: 'KYC Docs to Review',value: String(pendingDocs ?? 0),     change: 'Awaiting review',  up: false, icon: CheckCircle },
-            { label: 'System Health',     value: '99.9%',                       change: 'Operational',      up: true,  icon: TrendingUp },
+            { label: 'Pending Approvals',  value: String(pendingWaitlist ?? 0), change: 'Waitlist queue',   up: false, icon: Users },
+            { label: 'Total Members',      value: String(users ?? 0),           change: 'Platform users',  up: true,  icon: Briefcase },
+            { label: 'KYC Docs to Review', value: String(pendingDocs ?? 0),     change: 'Awaiting review', up: false, icon: CheckCircle },
+            { label: 'System Health',      value: '99.9%',                      change: 'Operational',     up: true,  icon: TrendingUp },
           ]);
         } else if (role === 'shareholder') {
-          const { count: ideas } = await supabase.from('ideas').select('*', { count: 'exact', head: true }).catch(() => ({ count: 0 }));
-          const { count: members } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'shareholder');
+          const [{ count: ideas }, { count: members }] = await Promise.all([
+            supabase.from('ideas').select('*', { count: 'exact', head: true }).catch(() => ({ count: 0 })),
+            supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'shareholder'),
+          ]);
           setLiveMetrics([
-            { label: 'Shareholder Since', value: profile?.created_at ? new Date(profile.created_at).getFullYear().toString() : '—', change: 'Partner',         up: true,  icon: Star },
-            { label: 'Onboarding Status', value: profile?.onboarding_status ?? '—',                                                  change: 'Current step',   up: true,  icon: CheckCircle },
-            { label: 'Total Members',     value: String(members ?? 0),                                                                change: 'Shareholders',   up: true,  icon: Users },
-            { label: 'Ideas in Pipeline', value: String(ideas ?? 0),                                                                  change: 'Submitted',      up: true,  icon: Lightbulb },
+            { label: 'Shareholder Since', value: profile?.created_at ? new Date(profile.created_at).getFullYear().toString() : '—', change: 'Partner',        up: true, icon: Star },
+            { label: 'Onboarding Status', value: profile?.onboarding_status ?? '—',                                                  change: 'Current step',  up: true, icon: CheckCircle },
+            { label: 'Total Members',     value: String(members ?? 0),                                                               change: 'Shareholders',  up: true, icon: Users },
+            { label: 'Ideas in Pipeline', value: String(ideas ?? 0),                                                                 change: 'Submitted',     up: true, icon: Lightbulb },
           ]);
         } else {
-          // user / default
           const pct = [
             profile?.first_name, profile?.last_name, profile?.bio,
             profile?.org_name, profile?.linkedin_url, profile?.expertise_domains?.length,
           ].filter(Boolean).length;
           const completion = Math.round((pct / 6) * 100);
           setLiveMetrics([
-            { label: 'Profile Completion',  value: `${completion}%`,                        change: `${6 - pct} fields left`,   up: completion === 100, icon: Users },
-            { label: 'Onboarding Status',   value: profile?.onboarding_status ?? '—',       change: 'Current step',             up: true,               icon: CheckCircle },
-            { label: 'Member Since',        value: profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '—', change: 'Platform member', up: true, icon: Calendar },
-            { label: 'Role',                value: profile?.role ?? '—',                    change: profile?.subroles?.join(', ') || 'No subroles', up: true, icon: Briefcase },
+            { label: 'Profile Completion', value: `${completion}%`,                         change: `${6 - pct} fields left`,                                                                          up: completion === 100, icon: Users },
+            { label: 'Onboarding Status',  value: profile?.onboarding_status ?? '—',        change: 'Current step',                                                                                    up: true,               icon: CheckCircle },
+            { label: 'Member Since',       value: profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '—', change: 'Platform member', up: true, icon: Calendar },
+            { label: 'Role',               value: profile?.role ?? '—',                     change: profile?.subroles?.join(', ') || 'No subroles',                                                    up: true,               icon: Briefcase },
           ]);
         }
       } catch (e) {
@@ -154,7 +156,7 @@ export default function DashboardHome({ role, navigate }: Props) {
       setMetricsLoading(false);
     }
     fetchMetrics();
-  }, [role, profile]);
+  }, [role]);
 
   return (
     <div className="space-y-6">

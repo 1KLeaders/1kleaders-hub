@@ -17,26 +17,13 @@ interface Props { navigate?: (page: Page) => void; }
 
 // The 22 onboarding statuses in order
 const ONBOARDING_STEPS = [
-  'Waitlist Submitted',
-  'Under Admin Review',
-  'Meeting to be Scheduled',
-  'Meeting Scheduled',
   'Meeting Completed',
-  'Not Proceeding',
-  'Agreement Sent',
   'Agreement Signed',
   'Platform Access Issued',
-  'KYC Pending',
   'KYC Submitted',
-  'KYC Under Review',
   'KYC Approved',
-  'Payment Pending',
   'Payment Receipt Submitted',
   'Payment Confirmed',
-  'Welcome Pack Shared',
-  'Pending Operations Review',
-  'File Completed',
-  'Awaiting 50-Person Round',
   'Awaiting ADGM Registration',
   'Officially Registered Partner',
 ];
@@ -203,11 +190,11 @@ export default function OnboardingKYC({ navigate }: Props) {
   });
 
   // Determine which sections are visible based on current status
-  const showKYC = currentStepIndex >= ONBOARDING_STEPS.indexOf('KYC Pending') && currentStepIndex < ONBOARDING_STEPS.indexOf('Payment Pending');
-  const showKYCReview = currentStatus === 'KYC Under Review' || currentStatus === 'KYC Approved';
-  const showPayment = currentStepIndex >= ONBOARDING_STEPS.indexOf('Payment Pending') && currentStepIndex < ONBOARDING_STEPS.indexOf('Welcome Pack Shared');
-  const showWelcomePack = currentStepIndex >= ONBOARDING_STEPS.indexOf('Welcome Pack Shared');
-  const showAwaiting = currentStatus === 'Awaiting 50-Person Round' || currentStatus === 'Awaiting ADGM Registration';
+  const showKYC = currentStepIndex >= ONBOARDING_STEPS.indexOf('KYC Submitted') && currentStepIndex <= ONBOARDING_STEPS.indexOf('KYC Approved');
+  const showKYCReview = currentStatus === 'KYC Approved';
+  const showPayment = currentStepIndex >= ONBOARDING_STEPS.indexOf('Payment Receipt Submitted') && currentStepIndex <= ONBOARDING_STEPS.indexOf('Payment Confirmed');
+  const showWelcomePack = false; // removed from simplified flow
+  const showAwaiting = currentStatus === 'Awaiting ADGM Registration';
   const isRegistered = currentStatus === 'Officially Registered Partner';
 
   return (
@@ -267,7 +254,7 @@ export default function OnboardingKYC({ navigate }: Props) {
       )}
 
       {/* Early stage — not yet at KYC */}
-      {currentStepIndex < ONBOARDING_STEPS.indexOf('KYC Pending') && !isRegistered && (
+      {currentStepIndex < ONBOARDING_STEPS.indexOf('KYC Submitted') && !isRegistered && (
         <Card className="border-[#f0f0f0]">
           <CardContent className="p-6 text-center space-y-3">
             <Clock className="w-10 h-10 text-[#9e9e9e] mx-auto" />
@@ -507,9 +494,9 @@ export default function OnboardingKYC({ navigate }: Props) {
             <Clock className="w-10 h-10 text-[#9e9e9e] mx-auto" />
             <h3 className="font-semibold text-[#222]">{currentStatus}</h3>
             <p className="text-sm text-[#7e7e7e] max-w-sm mx-auto">
-              {currentStatus === 'Awaiting 50-Person Round'
-                ? 'Your file is complete and you will be officially registered once the current 50-person round is full.'
-                : 'Your file has been submitted to ADGM for registration. This typically takes 2–4 weeks.'}
+              {currentStatus === 'Awaiting ADGM Registration'
+              ? 'Your file has been submitted to ADGM for registration. This typically takes 2–4 weeks.'
+              : 'The 1K Leaders team will be in touch with next steps.'}
             </p>
           </CardContent>
         </Card>

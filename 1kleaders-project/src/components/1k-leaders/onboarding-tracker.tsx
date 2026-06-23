@@ -13,37 +13,23 @@ import {
 import { supabase } from '@/lib/supabase';
 
 const ONBOARDING_STEPS = [
-  'Waitlist Submitted',
-  'Under Admin Review',
-  'Meeting to be Scheduled',
-  'Meeting Scheduled',
   'Meeting Completed',
-  'Not Proceeding',
-  'Agreement Sent',
   'Agreement Signed',
   'Platform Access Issued',
-  'KYC Pending',
   'KYC Submitted',
-  'KYC Under Review',
   'KYC Approved',
-  'Payment Pending',
   'Payment Receipt Submitted',
   'Payment Confirmed',
-  'Welcome Pack Shared',
-  'Pending Operations Review',
-  'File Completed',
-  'Awaiting 50-Person Round',
   'Awaiting ADGM Registration',
   'Officially Registered Partner',
 ];
 
 // Group steps into phases for the UI
 const PHASES = [
-  { label: 'Admin Review',   steps: ONBOARDING_STEPS.slice(0, 6),   color: 'bg-amber-100 text-amber-700',   icon: Users },
-  { label: 'Agreement',      steps: ONBOARDING_STEPS.slice(6, 9),   color: 'bg-blue-100 text-blue-700',     icon: FileText },
-  { label: 'KYC',           steps: ONBOARDING_STEPS.slice(9, 13),  color: 'bg-purple-100 text-purple-700', icon: Shield },
-  { label: 'Payment',        steps: ONBOARDING_STEPS.slice(13, 17), color: 'bg-emerald-100 text-emerald-700', icon: CreditCard },
-  { label: 'Registration',   steps: ONBOARDING_STEPS.slice(17),     color: 'bg-[#e33b5f]/10 text-[#c02d4f]', icon: CheckCircle2 },
+  { label: 'Agreement',    steps: ['Meeting Completed', 'Agreement Signed', 'Platform Access Issued'], color: 'bg-blue-100 text-blue-700',     icon: FileText },
+  { label: 'KYC',         steps: ['KYC Submitted', 'KYC Approved'],                                   color: 'bg-purple-100 text-purple-700', icon: Shield },
+  { label: 'Payment',     steps: ['Payment Receipt Submitted', 'Payment Confirmed'],                    color: 'bg-emerald-100 text-emerald-700', icon: CreditCard },
+  { label: 'Registration',steps: ['Awaiting ADGM Registration', 'Officially Registered Partner'],      color: 'bg-[#e33b5f]/10 text-[#c02d4f]', icon: CheckCircle2 },
 ];
 
 type Partner = {
@@ -191,8 +177,8 @@ export default function OnboardingTracker() {
             const pct = Math.max(0, (si / (ONBOARDING_STEPS.length - 1)) * 100);
             const isExpanded = expanded === p.id;
             const docs = kycDocs[p.id] ?? [];
-            const needsKyc = si >= 9 && si <= 12;
-            const needsPayment = si >= 13 && si <= 15;
+            const needsKyc = si >= ONBOARDING_STEPS.indexOf("KYC Submitted") && si <= ONBOARDING_STEPS.indexOf("KYC Approved");
+            const needsPayment = si >= ONBOARDING_STEPS.indexOf("Payment Receipt Submitted") && si <= ONBOARDING_STEPS.indexOf("Payment Confirmed");
 
             // Next available statuses (forward + one back)
             const nextStatuses = ONBOARDING_STEPS.filter((_, i) =>
