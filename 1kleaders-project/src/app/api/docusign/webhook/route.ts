@@ -35,25 +35,28 @@ export async function POST(req: NextRequest) {
       .update({ status, updated_at: new Date().toISOString() })
       .eq('envelope_id', envelopeId);
 
-    // If signed, update the user's onboarding status and notify them
+    // If signed, grant platform access and update onboarding status
     if (status.toLowerCase() === 'completed' && email) {
       const { data: profile } = await supabaseAdmin
         .from('profiles')
-        .select('id, first_name')
+        .select('id, first_name, role')
         .eq('email', email)
         .single();
 
       if (profile) {
+        // Grant platform access — set role if still default, advance onboarding status
         await supabaseAdmin.from('profiles').update({
           onboarding_status: 'Agreement Signed',
+          // If they were a basic user awaiting agreement, keep role as-is
+          // Admin manually upgrades to 'shareholder' via onboarding tracker
           updated_at: new Date().toISOString(),
         }).eq('id', profile.id);
 
         // Send in-platform notification
         await supabaseAdmin.from('notifications').insert({
           user_id:           profile.id,
-          title:             'Agreement Signed Successfully',
-          message:           'Your partnership agreement has been signed. The team will review it and proceed with the next onboarding steps.',
+          title:             'Agreement Signed — Welcome to 1K Leaders!',
+          message:           'Your partnership agreement has been signed. You now have full platform access. The team will follow up with your KYC requirements shortly.',
           notification_type: 'success',
           audience_roles:    ['user'],
           is_read:           false,
