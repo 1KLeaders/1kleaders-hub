@@ -1,60 +1,186 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageSquare, Send, Plus, Users, Lock, Search, Hash, ArrowRight, Shield } from 'lucide-react';
-import type { DashboardRole } from './types';
+import { MessageSquare, Send, Plus, Users, Lock, Search, Hash, Loader2, Shield } from 'lucide-react';
+import type { Page, DashboardRole, RoleBadge } from './types';
 import { roleBadgeConfig } from './types';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/auth-context';
 
-interface Props { role: DashboardRole; }
+interface Props { role?: DashboardRole; navigate?: (page: Page) => void; }
 
-const rooms = [
-  { id: 1, name: 'General Shareholders', members: 42, lastMessage: 'Q4 dividend discussion ongoing...', time: '5 min ago', type: 'general', unread: 3 },
-  { id: 2, name: 'Investment Committee', members: 12, lastMessage: 'New proposal: AI Health Series A', time: '1 hour ago', type: 'committee', unread: 1 },
-  { id: 3, name: 'Board Advisory', members: 8, lastMessage: 'Next meeting agenda confirmed', time: '3 hours ago', type: 'board', unread: 0 },
-  { id: 4, name: 'Annual General Meeting', members: 65, lastMessage: 'AGM date finalized for June 15', time: '1 day ago', type: 'general', unread: 0 },
-  { id: 5, name: 'Venture Evaluation Panel', members: 15, lastMessage: 'GreenTech scoring complete', time: '2 days ago', type: 'committee', unread: 0 },
+type Room = {
+  id: string;
+  name: string;
+  description: string;
+  type: 'general' | 'committee' | 'board';
+  allowed_roles: string[];
+  created_at: string;
+};
+
+type Message = {
+  id: string;
+  room_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  sender_name: string;
+  sender_role: string;
+  sender_subroles: string[];
+  sender_initials: string;
+};
+
+const roomTypeColors: Record<string, string> = {
+  general:   'bg-[#e33b5f]/10 text-[#e33b5f]',
+  committee: 'bg-amber-100 text-amber-700',
+  board:     'bg-purple-100 text-purple-700',
+};
+
+const DEFAULT_ROOMS: Omit<Room, 'created_at'>[] = [
+  { id: 'general',    name: 'General Shareholders', description: 'Open discussion for all shareholders',        type: 'general',   allowed_roles: ['shareholder','admin','super-admin','developer'] },
+  { id: 'investment', name: 'Investment Committee', description: 'Investment proposals and portfolio review',   type: 'committee', allowed_roles: ['shareholder','admin','super-admin','developer'] },
+  { id: 'board',      name: 'Board Advisory',       description: 'Board-level discussion and governance',      type: 'board',     allowed_roles: ['admin','super-admin','developer'] },
+  { id: 'agm',        name: 'Annual General Meeting', description: 'AGM preparation and resolutions',          type: 'general',   allowed_roles: ['shareholder','admin','super-admin','developer'] },
+  { id: 'vep',        name: 'Venture Evaluation Panel', description: 'VEP scoring and evaluation discussion',  type: 'committee', allowed_roles: ['admin','super-admin','developer'] },
 ];
 
-const messages = [
-  { id: 1, sender: 'Ahmed Al-Rashid', role: 'shareholder' as const, text: 'I think the Q4 dividend distribution looks promising. The 12% increase is better than expected.', time: '10:15 AM', initials: 'AR' },
-  { id: 2, sender: 'Fatima Khalid', role: 'shareholder' as const, text: 'Agreed. The CleanEnergy venture is showing strong returns. Should we discuss reinvestment options?', time: '10:22 AM', initials: 'FK' },
-  { id: 3, sender: 'Omar Hassan', role: 'shareholder' as const, text: 'I\'d like to see the detailed financial projections before we make any decisions on reinvestment.', time: '10:30 AM', initials: 'OH' },
-  { id: 4, sender: 'Sara Mohammed', role: 'shareholder' as const, text: 'The projections are available in the Documents section. I\'ll share the link.', time: '10:35 AM', initials: 'SM' },
-  { id: 5, sender: 'Khalid Nasser', role: 'shareholder' as const, text: 'Thanks Sara. Also, the voting proposal for board expansion - when is the deadline?', time: '10:42 AM', initials: 'KN' },
-  { id: 6, sender: 'Fatima Khalid', role: 'shareholder' as const, text: 'The deadline is May 30th. Please make sure to cast your vote before then.', time: '10:48 AM', initials: 'FK' },
-];
-
-function DigitalBadge({ role }: { role: 'shareholder' | 'idea-owner' | 'admin' | 'super-admin' | 'user' | 'founder' }) {
-  const config = roleBadgeConfig[role];
-  if (!config) return null;
-  return (
-    <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium border ${config.color}`}>
-      {config.icon} {config.label}
-    </span>
-  );
+function DigitalBadge({ role }: { role: string }) {
+  const cfg = roleBadgeConfig[role as RoleBadge];
+  if (!cfg) return null;
+  return <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium border ${cfg.color}`}>{cfg.icon} {cfg.label}</span>;
 }
 
 export default function DiscussionRooms({ role }: Props) {
-  const [selectedRoom, setSelectedRoom] = useState<number | null>(1);
-  const [message, setMessage] = useState('');
-  const [search, setSearch] = useState('');
+  const { profile } = useAuth();
+  const isAdmin = role === 'admin' || role === 'super-admin' || role === 'developer';
+  const isShareholder = role === 'shareholder' || isAdmin;
 
-  const isShareholder = role === 'shareholder' || role === 'super-admin' || role === 'admin' || role === 'developer';
+  const [rooms,        setRooms]        = useState<Room[]>([]);
+  const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
+  const [messages,     setMessages]     = useState<Message[]>([]);
+  const [message,      setMessage]      = useState('');
+  const [sending,      setSending]      = useState(false);
+  const [loadingMsgs,  setLoadingMsgs]  = useState(false);
+  const [search,       setSearch]       = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const channelRef     = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  // Load rooms — use defaults until DB table is created
+  useEffect(() => {
+    async function loadRooms() {
+      const { data, error } = await supabase.from('discussion_rooms').select('*').order('created_at');
+      if (data && data.length > 0) {
+        setRooms(data as Room[]);
+      } else {
+        // Use defaults with a fake created_at
+        setRooms(DEFAULT_ROOMS.map(r => ({ ...r, created_at: new Date().toISOString() })));
+      }
+    }
+    loadRooms();
+  }, []);
+
+  // Load messages and subscribe to realtime when room changes
+  useEffect(() => {
+    if (!selectedRoom) return;
+
+    // Unsubscribe from previous channel
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+
+    setLoadingMsgs(true);
+    setMessages([]);
+
+    // Load existing messages
+    supabase
+      .from('discussion_messages')
+      .select('*')
+      .eq('room_id', selectedRoom)
+      .order('created_at')
+      .then(({ data }) => {
+        setMessages((data ?? []) as Message[]);
+        setLoadingMsgs(false);
+        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+      });
+
+    // Subscribe to new messages via Realtime
+    const channel = supabase
+      .channel(`room:${selectedRoom}`)
+      .on('postgres_changes', {
+        event:  'INSERT',
+        schema: 'public',
+        table:  'discussion_messages',
+        filter: `room_id=eq.${selectedRoom}`,
+      }, payload => {
+        setMessages(prev => [...prev, payload.new as Message]);
+        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+      })
+      .subscribe();
+
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [selectedRoom]);
+
+  async function sendMessage() {
+    if (!message.trim() || !selectedRoom || !profile || sending) return;
+    setSending(true);
+
+    const name    = `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim() || profile.email;
+    const initials = `${profile.first_name?.[0] ?? ''}${profile.last_name?.[0] ?? ''}`.toUpperCase() || '?';
+
+    const newMsg: Omit<Message, 'id'> = {
+      room_id:         selectedRoom,
+      user_id:         profile.id,
+      content:         message.trim(),
+      created_at:      new Date().toISOString(),
+      sender_name:     name,
+      sender_role:     profile.role,
+      sender_subroles: profile.subroles ?? [],
+      sender_initials: initials,
+    };
+
+    // Optimistic update
+    const tempId = `temp-${Date.now()}`;
+    setMessages(prev => [...prev, { ...newMsg, id: tempId }]);
+    setMessage('');
+    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+
+    const { error } = await supabase.from('discussion_messages').insert(newMsg);
+    if (error) {
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      setMessage(newMsg.content);
+    }
+    setSending(false);
+  }
+
+  const filteredRooms = rooms.filter(r => {
+    if (!r.allowed_roles.includes(role ?? '')) return false;
+    if (search && !r.name.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  const selectedRoomData = rooms.find(r => r.id === selectedRoom);
 
   if (!isShareholder) {
     return (
-      <div className="min-h-[50vh] flex items-center justify-center">
-        <Card className="max-w-md w-full text-center">
-          <CardContent className="p-8">
-            <Lock className="w-12 h-12 text-[#d0d0d0] mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-[#222] mb-2">Access Restricted</h2>
-            <p className="text-[#7e7e7e] mb-4">Discussion Rooms are exclusively available for Shareholders. Upgrade your account to gain access.</p>
-            <Badge className="bg-[#f07969]/10 text-[#E65F5C]">Shareholder Only</Badge>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="max-w-sm w-full">
+          <CardContent className="p-8 text-center space-y-3">
+            <Lock className="w-10 h-10 text-[#9e9e9e] mx-auto" />
+            <h3 className="font-semibold text-[#222]">Shareholders Only</h3>
+            <p className="text-sm text-[#7e7e7e]">Discussion Rooms are available to shareholders and above.</p>
           </CardContent>
         </Card>
       </div>
@@ -62,114 +188,116 @@ export default function DiscussionRooms({ role }: Props) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[#222] flex items-center gap-2">
-            <MessageSquare className="w-6 h-6 text-[#e33b5f]" /> Discussion Rooms
-          </h1>
-          <p className="text-[#7e7e7e]">Connect and discuss with fellow shareholders</p>
-        </div>
-        <Button className="bg-[#e33b5f] hover:bg-[#c02d4f]" size="sm"><Plus className="w-4 h-4 mr-1" /> New Room</Button>
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-2xl font-bold text-[#222] flex items-center gap-2">
+          <MessageSquare className="w-6 h-6 text-[#e33b5f]" /> Discussion Rooms
+        </h1>
+        <p className="text-[#7e7e7e]">Shareholder-only discussion channels</p>
       </div>
 
-      {/* Privacy notice */}
-      <Card className="border-amber-200 bg-[#f07969]/5/50">
-        <CardContent className="p-4 flex items-center gap-3">
-          <Shield className="w-5 h-5 text-[#f07969]" />
-          <div>
-            <p className="text-sm font-medium text-[#222]">Shareholder-Only Space</p>
-            <p className="text-xs text-[#7e7e7e]">Only verified shareholders can see and interact in these discussion rooms. Your conversations are private.</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid lg:grid-cols-3 gap-4 h-[600px]">
-        {/* Room List */}
-        <Card className="lg:col-span-1">
-          <CardHeader className="pb-2">
+      <div className="grid lg:grid-cols-3 gap-4 h-[calc(100vh-220px)] min-h-[500px]">
+        {/* Room list */}
+        <Card className="flex flex-col overflow-hidden">
+          <CardHeader className="pb-3 shrink-0">
             <div className="relative">
               <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#9e9e9e]" />
-              <Input placeholder="Search rooms..." className="pl-9 text-sm" value={search} onChange={e => setSearch(e.target.value)} />
+              <Input placeholder="Search rooms..." className="pl-9 h-9" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
           </CardHeader>
-          <CardContent className="p-2">
-            <ScrollArea className="h-[500px]">
-              <div className="space-y-1">
-                {rooms.filter(r => r.name.toLowerCase().includes(search.toLowerCase())).map(room => (
-                  <button key={room.id} onClick={() => setSelectedRoom(room.id)}
-                    className={`w-full text-left p-3 rounded-lg transition ${selectedRoom === room.id ? 'bg-[#e33b5f]/5 border border-emerald-200' : 'hover:bg-[#fbfbfb]'}`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Hash className="w-4 h-4 text-[#e33b5f]" />
-                        <span className="font-medium text-sm text-[#222]">{room.name}</span>
-                      </div>
-                      {room.unread > 0 && (
-                        <span className="w-5 h-5 rounded-full bg-[#e33b5f] text-white text-[10px] flex items-center justify-center">{room.unread}</span>
-                      )}
-                    </div>
-                    <p className="text-xs text-[#7e7e7e] mt-1 truncate">{room.lastMessage}</p>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-[#9e9e9e]">
-                      <span className="flex items-center gap-1"><Users className="w-3 h-3" />{room.members}</span>
-                      <span>{room.time}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </ScrollArea>
+          <CardContent className="flex-1 overflow-y-auto p-2 space-y-1">
+            {filteredRooms.map(room => (
+              <button key={room.id} onClick={() => setSelectedRoom(room.id)}
+                className={`w-full text-left p-3 rounded-xl transition ${selectedRoom === room.id ? 'bg-[#e33b5f]/10' : 'hover:bg-[#f6f6f6]'}`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <Hash className="w-3.5 h-3.5 text-[#e33b5f] flex-shrink-0" />
+                  <p className={`text-sm font-medium truncate ${selectedRoom === room.id ? 'text-[#e33b5f]' : 'text-[#222]'}`}>{room.name}</p>
+                </div>
+                <p className="text-xs text-[#7e7e7e] truncate pl-5">{room.description}</p>
+                <div className="flex items-center gap-1.5 mt-1 pl-5">
+                  <Badge className={`text-[10px] px-1.5 ${roomTypeColors[room.type]}`}>{room.type}</Badge>
+                  {room.type === 'board' && <Shield className="w-3 h-3 text-purple-500" />}
+                </div>
+              </button>
+            ))}
           </CardContent>
         </Card>
 
-        {/* Chat Area */}
-        <Card className="lg:col-span-2 flex flex-col">
-          {selectedRoom ? (
+        {/* Chat area */}
+        <Card className="lg:col-span-2 flex flex-col overflow-hidden">
+          {selectedRoom && selectedRoomData ? (
             <>
-              <CardHeader className="pb-2 border-b">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Hash className="w-5 h-5 text-[#e33b5f]" />
-                    <CardTitle className="text-base">{rooms.find(r => r.id === selectedRoom)?.name}</CardTitle>
-                    <Badge variant="secondary" className="text-xs">
-                      <Users className="w-3 h-3 mr-1" />{rooms.find(r => r.id === selectedRoom)?.members} members
-                    </Badge>
-                  </div>
+              {/* Room header */}
+              <CardHeader className="pb-3 shrink-0 border-b border-[#f0f0f0]">
+                <div className="flex items-center gap-2">
+                  <Hash className="w-5 h-5 text-[#e33b5f]" />
+                  <CardTitle className="text-base">{selectedRoomData.name}</CardTitle>
+                  <Badge className={`text-xs ml-auto ${roomTypeColors[selectedRoomData.type]}`}>{selectedRoomData.type}</Badge>
                 </div>
+                <p className="text-xs text-[#7e7e7e] mt-1">{selectedRoomData.description}</p>
               </CardHeader>
 
-              <ScrollArea className="flex-1 p-4">
-                <div className="space-y-4">
-                  {messages.map(msg => (
-                    <div key={msg.id} className="flex items-start gap-3">
-                      <Avatar className="w-8 h-8">
-                        <AvatarFallback className="bg-[#e33b5f]/10 text-[#c02d4f] text-xs font-semibold">{msg.initials}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-medium text-[#222]">{msg.sender}</span>
-                          <DigitalBadge role={msg.role} />
-                          <span className="text-xs text-[#9e9e9e]">{msg.time}</span>
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {loadingMsgs ? (
+                  <div className="flex items-center justify-center py-8 gap-2 text-[#9e9e9e]">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Loading messages...
+                  </div>
+                ) : messages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full gap-2 text-[#9e9e9e]">
+                    <MessageSquare className="w-8 h-8" />
+                    <p className="text-sm">No messages yet. Start the conversation!</p>
+                  </div>
+                ) : (
+                  messages.map(msg => {
+                    const isMe = msg.user_id === profile?.id;
+                    return (
+                      <div key={msg.id} className={`flex gap-3 ${isMe ? 'flex-row-reverse' : ''}`}>
+                        <Avatar className="w-8 h-8 shrink-0">
+                          <AvatarFallback className="bg-[#e33b5f]/10 text-[#c02d4f] text-xs font-semibold">
+                            {msg.sender_initials}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className={`max-w-[70%] ${isMe ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
+                          <div className={`flex items-center gap-2 flex-wrap ${isMe ? 'flex-row-reverse' : ''}`}>
+                            <span className="text-xs font-medium text-[#444]">{isMe ? 'You' : msg.sender_name}</span>
+                            {msg.sender_subroles?.slice(0, 2).map(sr => <DigitalBadge key={sr} role={sr} />)}
+                          </div>
+                          <div className={`px-3 py-2 rounded-2xl text-sm ${isMe ? 'bg-[#e33b5f] text-white rounded-tr-sm' : 'bg-[#f6f6f6] text-[#222] rounded-tl-sm'}`}>
+                            {msg.content}
+                          </div>
+                          <span className="text-[10px] text-[#9e9e9e]">
+                            {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
                         </div>
-                        <p className="text-sm text-[#444] mt-0.5">{msg.text}</p>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
+                    );
+                  })
+                )}
+                <div ref={messagesEndRef} />
+              </div>
 
-              <div className="p-3 border-t">
+              {/* Input */}
+              <div className="p-3 border-t border-[#f0f0f0] shrink-0">
                 <div className="flex gap-2">
-                  <Input placeholder="Type a message..." value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => e.key === 'Enter' && setMessage('')} />
-                  <Button className="bg-[#e33b5f] hover:bg-[#c02d4f]" size="icon"><Send className="w-4 h-4" /></Button>
+                  <Input
+                    placeholder={`Message #${selectedRoomData.name}...`}
+                    value={message}
+                    onChange={e => setMessage(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+                    className="flex-1 border-[#f0f0f0]"
+                  />
+                  <Button className="bg-[#e33b5f] text-white shrink-0" onClick={sendMessage} disabled={!message.trim() || sending}>
+                    {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  </Button>
                 </div>
               </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-[#9e9e9e]">
-              <div className="text-center">
-                <MessageSquare className="w-10 h-10 mx-auto mb-2" />
-                <p>Select a room to start chatting</p>
-              </div>
-            </div>
+            <CardContent className="flex-1 flex flex-col items-center justify-center gap-3 text-[#9e9e9e]">
+              <MessageSquare className="w-12 h-12" />
+              <p className="text-sm">Select a room to start chatting</p>
+            </CardContent>
           )}
         </Card>
       </div>
