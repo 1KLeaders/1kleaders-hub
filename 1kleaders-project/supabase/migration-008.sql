@@ -86,3 +86,8 @@ GRANT SELECT, INSERT ON public.discussion_messages TO authenticated;
 
 -- Enable Realtime for discussion_messages
 ALTER PUBLICATION supabase_realtime ADD TABLE discussion_messages;
+
+CREATE POLICY "Admins manage rooms" ON discussion_rooms FOR ALL
+  USING (auth.jwt() ->> 'app_role' IN ('admin','super-admin','developer'));
+
+GRANT INSERT, UPDATE, DELETE ON public.discussion_rooms TO authenticated;
