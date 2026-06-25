@@ -172,7 +172,17 @@ export default function DiscussionRooms({ role }: Props) {
         table:  'discussion_messages',
         filter: `room_id=eq.${selectedRoom}`,
       }, payload => {
-        setMessages(prev => [...prev, payload.new as Message]);
+        const incoming = payload.new as Message;
+        setMessages(prev => {
+          // If this is our own message, replace the temp entry rather than adding a duplicate
+          const tempIndex = prev.findIndex(m => m.id.startsWith('temp-') && m.user_id === incoming.user_id && m.content === incoming.content);
+          if (tempIndex !== -1) {
+            const next = [...prev];
+            next[tempIndex] = incoming;
+            return next;
+          }
+          return [...prev, incoming];
+        });
         setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
       })
       .subscribe();
