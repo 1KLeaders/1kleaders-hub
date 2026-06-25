@@ -1,4 +1,3 @@
-// DocuSign configuration and helper functions
 import { createSign } from 'crypto';
 
 export const DS_CONFIG = {
@@ -43,15 +42,29 @@ export async function getAccessToken(code: string): Promise<string> {
 }
 
 export async function getJWTAccessToken(): Promise<string> {
-  const privateKey = process.env.DOCUSIGN_PRIVATE_KEY!;
+  let privateKey = process.env.DOCUSIGN_PRIVATE_KEY!;
+
+  // Normalize key — handle both real newlines and \n literals,
+  // and keys pasted as one long string without any newlines
+  privateKey = privateKey.replace(/\\n/g, '\n');
+  if (!privateKey.includes('\n')) {
+    // Key was pasted without newlines — reformat it
+    privateKey = privateKey
+      .replace('-----BEGIN RSA PRIVATE KEY-----', '-----BEGIN RSA PRIVATE KEY-----\n')
+      .replace('-----END RSA PRIVATE KEY-----', '\n-----END RSA PRIVATE KEY-----')
+      .replace(/(.{64})/g, '$1\n');
+  }
+
+  // Hardcode the auth URL to avoid any env var issues
+  const authHost = 'account-d.docusign.com';
+  const tokenUrl = `https://${authHost}/oauth/token`;
 
   const header  = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
   const now     = Math.floor(Date.now() / 1000);
-  const aud     = DS_CONFIG.authUrl.replace('https://', '');
   const claims  = {
     iss:   DS_CONFIG.integrationKey,
     sub:   DS_CONFIG.userId,
-    aud,
+    aud:   authHost,
     iat:   now,
     exp:   now + 3600,
     scope: 'signature impersonation',
@@ -63,17 +76,27 @@ export async function getJWTAccessToken(): Promise<string> {
   const signature = sign.sign(privateKey, 'base64url');
   const assertion = `${header}.${payload}.${signature}`;
 
-  const res = await fetch(`https://${aud}/oauth/token`, {
-    method: 'POST',
+  const res = await fetch(tokenUrl, {
+    method:  'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
+    body:    new URLSearchParams({
       grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
       assertion,
     }),
   });
 
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error_description ?? data.error ?? 'JWT grant failed');
+  // Read as text first so we can log what DocuSign actually returned
+  const raw = await res.text();
+  console.log('DocuSign JWT response status:', res.status);
+  console.log('DocuSign JWT response body:', raw.slice(0, 500));
+
+  if (!res.ok) {
+    let msg = raw;
+    try { msg = JSON.parse(raw).error_description ?? JSON.parse(raw).error ?? raw; } catch {}
+    throw new Error(msg);
+  }
+
+  const data = JSON.parse(raw);
   return data.access_token;
 }
 
