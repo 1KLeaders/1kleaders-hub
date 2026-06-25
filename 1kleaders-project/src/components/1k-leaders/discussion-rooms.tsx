@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { MessageSquare, Send, Plus, Users, Lock, Search, Hash, Loader2, Shield } from 'lucide-react';
+import { MessageSquare, Send, Plus, Users, Lock, Search, Hash, Loader2, Shield, Pencil, Trash2, X, ChevronDown } from 'lucide-react';
 import type { Page, DashboardRole, RoleBadge } from './types';
 import { roleBadgeConfig } from './types';
 import { supabase } from '@/lib/supabase';
@@ -68,6 +68,61 @@ export default function DiscussionRooms({ role }: Props) {
   const [search,       setSearch]       = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const channelRef     = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  // Room management state
+  const [showRoomForm,  setShowRoomForm]  = useState(false);
+  const [editingRoom,   setEditingRoom]   = useState<Room | null>(null);
+  const [roomName,      setRoomName]      = useState('');
+  const [roomDesc,      setRoomDesc]      = useState('');
+  const [roomType,      setRoomType]      = useState<'general' | 'committee' | 'board'>('general');
+  const [roomRoles,     setRoomRoles]     = useState<string[]>(['shareholder','admin','super-admin','developer']);
+  const [savingRoom,    setSavingRoom]    = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  const ROLE_OPTIONS = ['shareholder','user','admin','super-admin','developer'];
+
+  function openNewRoom() {
+    setEditingRoom(null);
+    setRoomName(''); setRoomDesc(''); setRoomType('general');
+    setRoomRoles(['shareholder','admin','super-admin','developer']);
+    setShowRoomForm(true);
+  }
+
+  function openEditRoom(room: Room, e: React.MouseEvent) {
+    e.stopPropagation();
+    setEditingRoom(room);
+    setRoomName(room.name);
+    setRoomDesc(room.description ?? '');
+    setRoomType(room.type as 'general' | 'committee' | 'board');
+    setRoomRoles(room.allowed_roles ?? ['shareholder','admin','super-admin','developer']);
+    setShowRoomForm(true);
+  }
+
+  async function saveRoom() {
+    if (!roomName.trim()) return;
+    setSavingRoom(true);
+    if (editingRoom) {
+      const { data } = await supabase.from('discussion_rooms')
+        .update({ name: roomName.trim(), description: roomDesc.trim(), type: roomType, allowed_roles: roomRoles })
+        .eq('id', editingRoom.id).select().single();
+      if (data) setRooms(prev => prev.map(r => r.id === editingRoom.id ? data as Room : r));
+    } else {
+      const { data } = await supabase.from('discussion_rooms')
+        .insert({ name: roomName.trim(), description: roomDesc.trim(), type: roomType, allowed_roles: roomRoles })
+        .select().single();
+      if (data) setRooms(prev => [...prev, data as Room]);
+    }
+    setSavingRoom(false);
+    setShowRoomForm(false);
+    setEditingRoom(null);
+  }
+
+  async function deleteRoom(roomId: string) {
+    await supabase.from('discussion_rooms').delete().eq('id', roomId);
+    setRooms(prev => prev.filter(r => r.id !== roomId));
+    if (selectedRoom === roomId) setSelectedRoom(null);
+    setConfirmDelete(null);
+  }
 
   // Load rooms — use defaults until DB table is created
   useEffect(() => {
@@ -199,26 +254,97 @@ export default function DiscussionRooms({ role }: Props) {
       <div className="grid lg:grid-cols-3 gap-4 h-[calc(100vh-220px)] min-h-[500px]">
         {/* Room list */}
         <Card className="flex flex-col overflow-hidden">
-          <CardHeader className="pb-3 shrink-0">
-            <div className="relative">
+          <CardHeader className="pb-2 shrink-0">
+            <div className="relative mb-2">
               <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#9e9e9e]" />
               <Input placeholder="Search rooms..." className="pl-9 h-9" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
+            {isAdmin && !showRoomForm && (
+              <Button size="sm" className="w-full bg-[#e33b5f] text-white h-8" onClick={openNewRoom}>
+                <Plus className="w-3.5 h-3.5 mr-1" /> New Room
+              </Button>
+            )}
           </CardHeader>
+
+          {/* Room form */}
+          {isAdmin && showRoomForm && (
+            <div className="mx-2 mb-2 p-3 bg-[#e33b5f]/5 border border-[#e33b5f]/20 rounded-xl space-y-2 shrink-0">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-[#e33b5f]">{editingRoom ? 'Edit Room' : 'New Room'}</p>
+                <button onClick={() => setShowRoomForm(false)}><X className="w-4 h-4 text-[#9e9e9e]" /></button>
+              </div>
+              <Input placeholder="Room name" className="h-8 text-sm border-[#f0f0f0]" value={roomName} onChange={e => setRoomName(e.target.value)} />
+              <Input placeholder="Description (optional)" className="h-8 text-sm border-[#f0f0f0]" value={roomDesc} onChange={e => setRoomDesc(e.target.value)} />
+              <div>
+                <p className="text-[10px] text-[#9e9e9e] mb-1">Type</p>
+                <div className="flex gap-1.5">
+                  {(['general','committee','board'] as const).map(t => (
+                    <button key={t} onClick={() => setRoomType(t)}
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-medium border transition ${roomType === t ? `${roomTypeColors[t]}` : 'bg-white text-[#9e9e9e] border-[#f0f0f0]'}`}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] text-[#9e9e9e] mb-1">Access</p>
+                <div className="flex flex-wrap gap-1">
+                  {ROLE_OPTIONS.map(r => (
+                    <button key={r} onClick={() => setRoomRoles(prev => prev.includes(r) ? prev.filter(x => x !== r) : [...prev, r])}
+                      className={`px-2 py-0.5 rounded-full text-[10px] border transition ${roomRoles.includes(r) ? 'bg-[#e33b5f] text-white border-[#e33b5f]' : 'bg-white text-[#9e9e9e] border-[#f0f0f0]'}`}>
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Button size="sm" className="w-full h-7 bg-[#e33b5f] text-white text-xs" onClick={saveRoom} disabled={savingRoom || !roomName.trim()}>
+                {savingRoom ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null}
+                {editingRoom ? 'Save Changes' : 'Create Room'}
+              </Button>
+            </div>
+          )}
+
           <CardContent className="flex-1 overflow-y-auto p-2 space-y-1">
             {filteredRooms.map(room => (
-              <button key={room.id} onClick={() => setSelectedRoom(room.id)}
-                className={`w-full text-left p-3 rounded-xl transition ${selectedRoom === room.id ? 'bg-[#e33b5f]/10' : 'hover:bg-[#f6f6f6]'}`}>
-                <div className="flex items-center gap-2 mb-1">
-                  <Hash className="w-3.5 h-3.5 text-[#e33b5f] flex-shrink-0" />
-                  <p className={`text-sm font-medium truncate ${selectedRoom === room.id ? 'text-[#e33b5f]' : 'text-[#222]'}`}>{room.name}</p>
-                </div>
-                <p className="text-xs text-[#7e7e7e] truncate pl-5">{room.description}</p>
-                <div className="flex items-center gap-1.5 mt-1 pl-5">
-                  <Badge className={`text-[10px] px-1.5 ${roomTypeColors[room.type]}`}>{room.type}</Badge>
-                  {room.type === 'board' && <Shield className="w-3 h-3 text-purple-500" />}
-                </div>
-              </button>
+              <div key={room.id} className="group relative">
+                <button onClick={() => setSelectedRoom(room.id)}
+                  className={`w-full text-left p-3 rounded-xl transition ${selectedRoom === room.id ? 'bg-[#e33b5f]/10' : 'hover:bg-[#f6f6f6]'}`}>
+                  <div className="flex items-center gap-2 mb-1 pr-12">
+                    <Hash className="w-3.5 h-3.5 text-[#e33b5f] flex-shrink-0" />
+                    <p className={`text-sm font-medium truncate ${selectedRoom === room.id ? 'text-[#e33b5f]' : 'text-[#222]'}`}>{room.name}</p>
+                  </div>
+                  <p className="text-xs text-[#7e7e7e] truncate pl-5">{room.description}</p>
+                  <div className="flex items-center gap-1.5 mt-1 pl-5">
+                    <Badge className={`text-[10px] px-1.5 ${roomTypeColors[room.type]}`}>{room.type}</Badge>
+                    {room.type === 'board' && <Shield className="w-3 h-3 text-purple-500" />}
+                  </div>
+                </button>
+                {isAdmin && (
+                  <div className="absolute top-2 right-2 hidden group-hover:flex gap-1">
+                    <button onClick={e => openEditRoom(room, e)}
+                      className="w-6 h-6 rounded bg-white border border-[#f0f0f0] flex items-center justify-center hover:border-[#e33b5f]/30 transition">
+                      <Pencil className="w-3 h-3 text-[#7e7e7e]" />
+                    </button>
+                    {confirmDelete === room.id ? (
+                      <div className="flex gap-1">
+                        <button onClick={e => { e.stopPropagation(); deleteRoom(room.id); }}
+                          className="w-6 h-6 rounded bg-red-500 flex items-center justify-center">
+                          <Trash2 className="w-3 h-3 text-white" />
+                        </button>
+                        <button onClick={e => { e.stopPropagation(); setConfirmDelete(null); }}
+                          className="w-6 h-6 rounded bg-white border border-[#f0f0f0] flex items-center justify-center">
+                          <X className="w-3 h-3 text-[#7e7e7e]" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button onClick={e => { e.stopPropagation(); setConfirmDelete(room.id); }}
+                        className="w-6 h-6 rounded bg-white border border-[#f0f0f0] flex items-center justify-center hover:border-red-300 transition">
+                        <Trash2 className="w-3 h-3 text-[#9e9e9e]" />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             ))}
           </CardContent>
         </Card>
