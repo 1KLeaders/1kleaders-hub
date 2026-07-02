@@ -110,11 +110,6 @@ export default function IdeaRanking() {
     setUpdating(null);
   }
 
-  async function updateVepScore(id: string, score: number) {
-    await supabase.from('ideas').update({ vep_score: score }).eq('id', id);
-    setIdeas(prev => prev.map(i => i.id === id ? { ...i, vep_score: score } : i));
-  }
-
   const filtered = ideas.filter(i => {
     if (stageFilter !== 'All' && i.status !== stageFilter) return false;
     if (search && !i.title.toLowerCase().includes(search.toLowerCase()) &&
@@ -272,19 +267,18 @@ export default function IdeaRanking() {
                         </div>
                         <div className="flex items-center gap-2">
                           <p className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider">VEP Score</p>
-                          <input
-                            type="number" min={0} max={100}
-                            className="w-20 h-7 px-2 border border-[#f0f0f0] rounded text-xs"
-                            value={idea.vep_score ?? ''}
-                            placeholder="0–100"
-                            onChange={e => {
-                              const v = parseInt(e.target.value);
-                              if (!isNaN(v) && v >= 0 && v <= 100) updateVepScore(idea.id, v);
-                            }}
-                          />
-                          <span className="text-xs text-[#9e9e9e]">out of 100</span>
-                        </div>
-                      </div>
+                        {idea.vep_score != null && (
+                          <div className="flex items-center gap-2 mt-1">
+                            <div className="w-24 h-1.5 bg-[#f0f0f0] rounded-full overflow-hidden">
+                              <div className="h-full bg-[#e33b5f] rounded-full" style={{ width: `${idea.vep_score}%` }} />
+                            </div>
+                            <span className="text-xs font-semibold text-[#e33b5f]">{idea.vep_score}/100</span>
+                            <span className="text-xs text-[#9e9e9e]">— set via VEP Dashboard</span>
+                          </div>
+                        )}
+                        {idea.vep_score == null && (
+                          <p className="text-xs text-[#9e9e9e] mt-1">VEP score not yet submitted</p>
+                        )}
                     )}
                   </div>
                 )}
