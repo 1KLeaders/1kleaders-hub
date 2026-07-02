@@ -4,11 +4,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getJWTAccessToken } from '@/lib/docusign';
 
 export async function GET(req: NextRequest) {
-  const accountId  = process.env.DOCUSIGN_ACCOUNT_ID!;
-  const baseUrl    = process.env.DOCUSIGN_BASE_URL!;
-  const templateId = process.env.DOCUSIGN_TEMPLATE_ID!;
-
-  // Get token
   let accessToken: string;
   try {
     accessToken = await getJWTAccessToken();
@@ -16,39 +11,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ step: 'token', error: e.message });
   }
 
-  // Try sending a minimal test envelope
-  const envelope = {
-    templateId,
-    templateRoles: [{
-      name:     'Test Recipient',
-      email:    'test@example.com',
-      roleName: 'Signer',
-    }],
-    status: 'sent',
-    emailSubject: 'Test envelope',
-  };
-
-  const res = await fetch(
-    `${baseUrl}/v2.1/accounts/${accountId}/envelopes`,
-    {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type':  'application/json',
-      },
-      body: JSON.stringify(envelope),
-    }
-  );
-
-  const raw = await res.text();
+  // Decode the JWT payload (middle section) without verifying
+  const parts = accessToken.split('.');
+  let decoded: any = {};
+  try {
+    decoded = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+  } catch (e) {
+    decoded = { error: 'could not decode' };
+  }
 
   return NextResponse.json({
-    step:         'envelope',
-    status:       res.status,
-    account_id:   accountId,
-    base_url:     baseUrl,
-    template_id:  templateId,
-    token_prefix: accessToken.slice(0, 20) + '...',
-    response:     raw,
+    token_claims: decoded,
+    env_user_id:  process.env.DOCUSIGN_USER_ID,
+    env_int_key:  process.env.DOCUSIGN_INTEGRATION_KEY,
+    env_auth_url: process.env.DOCUSIGN_AUTH_URL,
+    env_account:  process.env.DOCUSIGN_ACCOUNT_ID,
   });
 }
