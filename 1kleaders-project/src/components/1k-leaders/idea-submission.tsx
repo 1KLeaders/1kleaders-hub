@@ -289,6 +289,8 @@ export default function IdeaSubmission({ role, navigate }: Props) {
           <p className="text-sm text-amber-800">No active cohort — public submissions are currently closed. Open a cohort from the Admin Dashboard to enable submissions.</p>
         </div>
       )}
+
+      {!showForm && (
         <>
           {loadingList ? (
             <div className="flex items-center justify-center py-12 gap-2 text-[#7e7e7e]">
