@@ -83,7 +83,7 @@ export default function OnboardingTracker() {
     setKycDocs(prev => ({ ...prev, [userId]: (data ?? []) as KycDoc[] }));
   }
 
-  async function updateStatus(userId: string, status: string) {
+  async function updateStatus(userId: string, status: string, extra?: Record<string, any>) {
     setUpdating(userId);
     await supabase.from('profiles').update({
       onboarding_status: status,
@@ -91,6 +91,13 @@ export default function OnboardingTracker() {
     }).eq('id', userId);
     setPartners(prev => prev.map(p => p.id === userId ? { ...p, onboarding_status: status } : p));
     setUpdating(null);
+
+    // Fire-and-forget email notification
+    fetch('/api/onboarding/notify', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ user_id: userId, new_status: status, ...extra }),
+    }).catch(() => {});
   }
 
   async function updateDocStatus(userId: string, docType: string, status: string) {

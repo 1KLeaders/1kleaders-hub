@@ -267,6 +267,7 @@ export default function IdeaRanking() {
                         </div>
                         <div className="flex items-center gap-2">
                           <p className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider">VEP Score</p>
+                        </div>
                         {idea.vep_score != null && (
                           <div className="flex items-center gap-2 mt-1">
                             <div className="w-24 h-1.5 bg-[#f0f0f0] rounded-full overflow-hidden">
@@ -279,6 +280,7 @@ export default function IdeaRanking() {
                         {idea.vep_score == null && (
                           <p className="text-xs text-[#9e9e9e] mt-1">VEP score not yet submitted</p>
                         )}
+                      </div>
                     )}
                   </div>
                 )}
