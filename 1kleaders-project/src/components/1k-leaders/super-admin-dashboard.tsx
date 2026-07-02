@@ -71,6 +71,7 @@ function SendAgreementButton({ row, onSent }: { row: WaitlistRow; onSent: () => 
       });
   }, [row.id]);
 
+  async function send() {
     setSending(true);
     setError(null);
     try {
