@@ -149,6 +149,10 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'onboarding-tracker' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
                 <FileCheck className="w-4 h-4" />Onboarding Tracker
               </button>
+              <button onClick={() => handleNav('cohort-management')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'cohort-management' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
+                <Lightbulb className="w-4 h-4" />Cohort Management
+              </button>
               <button onClick={() => handleNav('newsletter-tracking')}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'newsletter-tracking' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
                 <Mail className="w-4 h-4" />Newsletter Tracking

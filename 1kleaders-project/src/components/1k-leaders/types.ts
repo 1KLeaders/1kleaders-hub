@@ -24,6 +24,7 @@ export type Page =
   | 'startup-page'
   | 'bug-report'
   | 'onboarding-tracker'
+  | 'cohort-management'
   | 'recommendations';
 
 // Main access roles — controls what pages/nav items a user sees

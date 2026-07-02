@@ -45,6 +45,11 @@ export default function IdeaSubmission({ role, navigate }: Props) {
   const { profile } = useAuth();
   const canSubmit = profile?.subroles?.includes('idea-owner') || role === 'admin' || role === 'super-admin' || role === 'developer';
 
+  // Active cohort
+  const [activeCohort,    setActiveCohort]    = useState<{ id: string; name: string; closes_at: string | null; max_ideas: number; idea_count: number } | null>(null);
+  const [cohortLoading,   setCohortLoading]   = useState(true);
+  const [cohortFull,      setCohortFull]      = useState(false);
+
   // My ideas list
   const [myIdeas,    setMyIdeas]    = useState<DbIdea[]>([]);
   const [loadingList, setLoadingList] = useState(true);
@@ -95,7 +100,28 @@ export default function IdeaSubmission({ role, navigate }: Props) {
     setLoadingList(false);
   }
 
-  useEffect(() => { fetchMyIdeas(); }, [profile]);
+  useEffect(() => {
+    fetchMyIdeas();
+    // Fetch active cohort
+    async function fetchActiveCohort() {
+      setCohortLoading(true);
+      const { data } = await supabase
+        .from('cohorts')
+        .select('id, name, closes_at, max_ideas, idea_count')
+        .eq('status', 'open')
+        .order('opens_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data) {
+        setActiveCohort(data);
+        setCohortFull((data.idea_count ?? 0) >= data.max_ideas);
+      } else {
+        setActiveCohort(null);
+      }
+      setCohortLoading(false);
+    }
+    fetchActiveCohort();
+  }, [profile]);
 
   const ideaPayload = () => ({
     submitted_by:    profile!.id,
@@ -108,6 +134,7 @@ export default function IdeaSubmission({ role, navigate }: Props) {
     competitive_edge: uniqueUVP.trim() || null,
     target_market:   targetMarket.trim() || null,
     revenue_model:   revModel === 'Other' ? otherRevModel : revModel || null,
+    cohort_id:       activeCohort?.id ?? null,
     updated_at:      new Date().toISOString(),
   });
 
@@ -177,6 +204,47 @@ export default function IdeaSubmission({ role, navigate }: Props) {
     );
   }
 
+  // Cohort gate — check after canSubmit so admins bypass
+  const isAdmin = role === 'admin' || role === 'super-admin' || role === 'developer';
+  if (!isAdmin && !cohortLoading && !activeCohort) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-[#222]">Idea Submission</h1>
+          <p className="text-[#7e7e7e]">Share your venture idea with our evaluation team.</p>
+        </div>
+        <Card className="border-[#f0f0f0]">
+          <CardContent className="p-8 text-center space-y-4">
+            <Clock className="w-12 h-12 text-[#9e9e9e] mx-auto" />
+            <h3 className="text-lg font-semibold text-[#222]">No Active Cohort</h3>
+            <p className="text-sm text-[#7e7e7e] max-w-sm mx-auto">
+              Idea submissions are only open during an active cohort. The 1K Leaders team will announce the next cohort opening date.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!isAdmin && !cohortLoading && cohortFull) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-[#222]">Idea Submission</h1>
+        </div>
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="p-8 text-center space-y-4">
+            <Lightbulb className="w-12 h-12 text-amber-500 mx-auto" />
+            <h3 className="text-lg font-semibold text-[#222]">{activeCohort?.name} is Full</h3>
+            <p className="text-sm text-[#7e7e7e] max-w-sm mx-auto">
+              This cohort has reached its maximum number of submissions ({activeCohort?.max_ideas}). Look out for the next cohort announcement.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -196,8 +264,31 @@ export default function IdeaSubmission({ role, navigate }: Props) {
         </div>
       </div>
 
-      {/* My submitted ideas */}
-      {!showForm && (
+      {/* Active cohort banner */}
+      {!showForm && activeCohort && (
+        <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+          <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-emerald-800">{activeCohort.name} — Open for Submissions</p>
+            <p className="text-xs text-emerald-700">
+              {activeCohort.idea_count ?? 0} of {activeCohort.max_ideas} slots used
+              {activeCohort.closes_at && ` · Closes ${new Date(activeCohort.closes_at).toLocaleDateString()}`}
+            </p>
+          </div>
+          <div className="shrink-0">
+            <div className="w-24 h-1.5 bg-emerald-200 rounded-full overflow-hidden">
+              <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, ((activeCohort.idea_count ?? 0) / activeCohort.max_ideas) * 100)}%` }} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!showForm && !activeCohort && isAdmin && (
+        <div className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+          <Clock className="w-5 h-5 text-amber-600 flex-shrink-0" />
+          <p className="text-sm text-amber-800">No active cohort — public submissions are currently closed. Open a cohort from the Admin Dashboard to enable submissions.</p>
+        </div>
+      )}
         <>
           {loadingList ? (
             <div className="flex items-center justify-center py-12 gap-2 text-[#7e7e7e]">
