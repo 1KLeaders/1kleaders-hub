@@ -4,6 +4,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getJWTAccessToken } from '@/lib/docusign';
 
 export async function GET(req: NextRequest) {
+  const accountId  = process.env.DOCUSIGN_ACCOUNT_ID!;
+  const baseUrl    = process.env.DOCUSIGN_BASE_URL!;
+  const templateId = process.env.DOCUSIGN_TEMPLATE_ID!;
+
   let accessToken: string;
   try {
     accessToken = await getJWTAccessToken();
@@ -11,20 +15,36 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ step: 'token', error: e.message });
   }
 
-  // Decode the JWT payload (middle section) without verifying
-  const parts = accessToken.split('.');
-  let decoded: any = {};
-  try {
-    decoded = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
-  } catch (e) {
-    decoded = { error: 'could not decode' };
-  }
+  // First get userinfo to confirm who we're authenticated as
+  const userInfoRes = await fetch('https://account.docusign.com/oauth/userinfo', {
+    headers: { 'Authorization': `Bearer ${accessToken}` }
+  });
+  const userInfo = await userInfoRes.json();
+
+  // Then try the envelope
+  const envelopeRes = await fetch(
+    `${baseUrl}/v2.1/accounts/${accountId}/envelopes`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type':  'application/json',
+      },
+      body: JSON.stringify({
+        templateId,
+        templateRoles: [{ name: 'Test', email: 'test@example.com', roleName: 'Signer' }],
+        status: 'sent',
+        emailSubject: 'Test',
+      }),
+    }
+  );
+  const envelopeResponse = await envelopeRes.text();
 
   return NextResponse.json({
-    token_claims: decoded,
-    env_user_id:  process.env.DOCUSIGN_USER_ID,
-    env_int_key:  process.env.DOCUSIGN_INTEGRATION_KEY,
-    env_auth_url: process.env.DOCUSIGN_AUTH_URL,
-    env_account:  process.env.DOCUSIGN_ACCOUNT_ID,
+    base_url:          baseUrl,
+    account_id:        accountId,
+    user_info:         userInfo,
+    envelope_status:   envelopeRes.status,
+    envelope_response: envelopeResponse,
   });
 }
