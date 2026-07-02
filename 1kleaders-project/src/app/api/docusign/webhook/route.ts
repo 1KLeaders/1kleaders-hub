@@ -1,25 +1,20 @@
 // POST /api/docusign/webhook
-// DocuSign Connect webhook — called by DocuSign when envelope status changes.
-// Updates onboarding_tracker and profiles when someone signs.
-
+// DocuSign Connect webhook — updates status and sends emails on signing events
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
+import { sendAgreementSignedEmail } from '@/lib/sendgrid-emails';
 
-// Map DocuSign statuses to our onboarding statuses
 const STATUS_MAP: Record<string, string> = {
-  sent:       'Agreement Sent',
-  delivered:  'Agreement Sent',
-  completed:  'Agreement Signed',
-  declined:   'Agreement Declined',
-  voided:     'Agreement Voided',
+  sent:      'Agreement Sent',
+  delivered: 'Agreement Sent',
+  completed: 'Agreement Signed',
+  declined:  'Agreement Declined',
+  voided:    'Agreement Voided',
 };
 
 export async function POST(req: NextRequest) {
   try {
-    // DocuSign sends XML or JSON depending on Connect config
-    // We configure JSON in the Connect setup
-    const body = await req.json();
-
+    const body    = await req.json();
     const envelopeId = body?.data?.envelopeId ?? body?.envelopeId;
     const status     = body?.data?.envelopeSummary?.status ?? body?.status;
     const email      = body?.data?.envelopeSummary?.recipients?.signers?.[0]?.email;
@@ -28,31 +23,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing envelopeId or status' }, { status: 400 });
     }
 
-    const onboardingStatus = STATUS_MAP[status.toLowerCase()];
-
-    // Update our envelope record
+    // Update envelope record
     await supabaseAdmin.from('docusign_envelopes')
       .update({ status, updated_at: new Date().toISOString() })
       .eq('envelope_id', envelopeId);
 
-    // If signed, grant platform access and update onboarding status
     if (status.toLowerCase() === 'completed' && email) {
       const { data: profile } = await supabaseAdmin
         .from('profiles')
-        .select('id, first_name, role')
+        .select('id, first_name, email')
         .eq('email', email)
         .single();
 
       if (profile) {
-        // Grant platform access — set role if still default, advance onboarding status
+        // Update onboarding status
         await supabaseAdmin.from('profiles').update({
           onboarding_status: 'Agreement Signed',
-          // If they were a basic user awaiting agreement, keep role as-is
-          // Admin manually upgrades to 'shareholder' via onboarding tracker
-          updated_at: new Date().toISOString(),
+          updated_at:        new Date().toISOString(),
         }).eq('id', profile.id);
 
-        // Send in-platform notification
+        // In-platform notification
         await supabaseAdmin.from('notifications').insert({
           user_id:           profile.id,
           title:             'Agreement Signed — Welcome to 1K Leaders!',
@@ -61,6 +51,13 @@ export async function POST(req: NextRequest) {
           audience_roles:    ['user'],
           is_read:           false,
         });
+
+        // SendGrid email
+        try {
+          await sendAgreementSignedEmail(profile.email, profile.first_name ?? 'Partner');
+        } catch (e) {
+          console.warn('Agreement signed email failed (non-fatal):', e);
+        }
       }
     }
 
