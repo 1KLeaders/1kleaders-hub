@@ -1,52 +1,54 @@
 // TEMPORARY — DELETE AFTER USE
-// GET /api/docusign/debug2
+// GET /api/docusign/debug
 import { NextRequest, NextResponse } from 'next/server';
-import { createSign } from 'crypto';
+import { getJWTAccessToken } from '@/lib/docusign';
 
 export async function GET(req: NextRequest) {
-  const privateKey = process.env.DOCUSIGN_PRIVATE_KEY!.replace(/\\n/g, '\n');
-  const integrationKey = process.env.DOCUSIGN_INTEGRATION_KEY!;
-  const userId = process.env.DOCUSIGN_USER_ID!;
-  const authUrl = process.env.DOCUSIGN_AUTH_URL!;
+  const accountId  = process.env.DOCUSIGN_ACCOUNT_ID!;
+  const baseUrl    = process.env.DOCUSIGN_BASE_URL!;
+  const templateId = process.env.DOCUSIGN_TEMPLATE_ID!;
 
-  // Build the exact JWT we send to DocuSign
-  const authHost = authUrl.replace('https://', '');
-  const header  = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
-  const now     = Math.floor(Date.now() / 1000);
-  const claims  = {
-    iss:   integrationKey,
-    sub:   userId,
-    aud:   authHost,
-    iat:   now,
-    exp:   now + 3600,
-    scope: 'signature impersonation',
+  // Get token
+  let accessToken: string;
+  try {
+    accessToken = await getJWTAccessToken();
+  } catch (e: any) {
+    return NextResponse.json({ step: 'token', error: e.message });
+  }
+
+  // Try sending a minimal test envelope
+  const envelope = {
+    templateId,
+    templateRoles: [{
+      name:     'Test Recipient',
+      email:    'test@example.com',
+      roleName: 'Signer',
+    }],
+    status: 'sent',
+    emailSubject: 'Test envelope',
   };
-  const payload = Buffer.from(JSON.stringify(claims)).toString('base64url');
 
-  const sign = createSign('RSA-SHA256');
-  sign.update(`${header}.${payload}`);
-  const signature = sign.sign(privateKey, 'base64url');
-  const assertion = `${header}.${payload}.${signature}`;
-
-  // Make the actual token request and return raw response
-  const res = await fetch(`https://${authHost}/oauth/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-      assertion,
-    }),
-  });
+  const res = await fetch(
+    `${baseUrl}/v2.1/accounts/${accountId}/envelopes`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type':  'application/json',
+      },
+      body: JSON.stringify(envelope),
+    }
+  );
 
   const raw = await res.text();
 
   return NextResponse.json({
+    step:         'envelope',
     status:       res.status,
-    auth_host:    authHost,
-    iss:          integrationKey,
-    sub:          userId,
-    aud:          authHost,
-    raw_response: raw,
-    claims:       claims,
+    account_id:   accountId,
+    base_url:     baseUrl,
+    template_id:  templateId,
+    token_prefix: accessToken.slice(0, 20) + '...',
+    response:     raw,
   });
 }
