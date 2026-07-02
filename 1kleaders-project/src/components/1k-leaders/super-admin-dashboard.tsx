@@ -55,9 +55,22 @@ type WaitlistRow = {
 function SendAgreementButton({ row, onSent }: { row: WaitlistRow; onSent: () => void }) {
   const [sending,  setSending]  = useState(false);
   const [sent,     setSent]     = useState(false);
+  const [checking, setChecking] = useState(true);
   const [error,    setError]    = useState<string | null>(null);
 
-  async function send() {
+  // Check if an envelope already exists for this waitlist row on mount
+  useEffect(() => {
+    supabase
+      .from('docusign_envelopes')
+      .select('id')
+      .eq('waitlist_id', row.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setSent(true);
+        setChecking(false);
+      });
+  }, [row.id]);
+
     setSending(true);
     setError(null);
     try {
@@ -80,6 +93,7 @@ function SendAgreementButton({ row, onSent }: { row: WaitlistRow; onSent: () => 
     setSending(false);
   }
 
+  if (checking) return <span className="text-xs text-[#9e9e9e]">Checking...</span>;
   if (sent) return <span className="text-xs text-emerald-600 flex items-center gap-1"><CheckCheck className="w-3.5 h-3.5" /> Agreement Sent</span>;
 
   return (
