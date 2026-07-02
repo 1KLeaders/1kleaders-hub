@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { TrendingUp, DollarSign, Users, Briefcase, ArrowUpRight, ArrowDownRight, Calendar, CheckCircle, Lightbulb, Rocket, Star, Bot, BarChart3, MessageSquare, Linkedin, FileText, ExternalLink, Building2, Loader2 } from 'lucide-react';
+import { TrendingUp, DollarSign, Users, Briefcase, ArrowUpRight, ArrowDownRight, Calendar, CheckCircle, Lightbulb, Rocket, Star, Bot, BarChart3, MessageSquare, Loader2 } from 'lucide-react';
 import type { DashboardRole, DashboardPriority, RoleBadge } from './types';
 import { roleBadgeConfig } from './types';
 import { supabase } from '@/lib/supabase';
@@ -60,38 +60,30 @@ const activities: Record<DashboardRole, { text: string; time: string; type: stri
   ],
 };
 
-const startupHighlights = [
-  {
-    name: 'GreenTech Solutions', sector: 'CleanTech', stage: 'Series A', roi: '+23%', status: 'Active',
-    logo: null, companyLinkedIn: '', pitchDeck: '', description: '', founded: '', team: '', website: '', moreInfo: '',
-  },
-  {
-    name: 'HealthConnect', sector: 'HealthTech', stage: 'Seed', roi: '+15%', status: 'Active',
-    logo: null, companyLinkedIn: '', pitchDeck: '', description: '', founded: '', team: '', website: '', moreInfo: '',
-  },
-  {
-    name: 'EduPay', sector: 'FinTech', stage: 'Pre-Seed', roi: '+8%', status: 'Evaluating',
-    logo: null, companyLinkedIn: '', pitchDeck: '', description: '', founded: '', team: '', website: '', moreInfo: '',
-  },
-  {
-    name: 'PropEase', sector: 'PropTech', stage: 'Series A', roi: '+31%', status: 'Active',
-    logo: null, companyLinkedIn: '', pitchDeck: '', description: '', founded: '', team: '', website: '', moreInfo: '',
-  },
-];
-
-const ideaHighlights = [
-  { name: 'AI Energy Optimizer', votes: 87, interest: 92, feasibility: 78, category: 'CleanTech' },
-  { name: 'Telemedicine MENA', votes: 72, interest: 85, feasibility: 82, category: 'HealthTech' },
-  { name: 'Student Micro-Finance', votes: 65, interest: 78, feasibility: 70, category: 'FinTech' },
-  { name: 'IoT SmartFarm', votes: 58, interest: 71, feasibility: 68, category: 'AgriTech' },
-];
+type LiveIdea = {
+  id: string;
+  title: string;
+  sector: string | null;
+  stage: string | null;
+  status: string;
+  vep_score: number | null;
+  tagline: string | null;
+  submitter_name?: string;
+};
 
 export default function DashboardHome({ role, navigate }: Props) {
   const { profile } = useAuth();
   const [priority, setPriority] = useState<DashboardPriority>('balanced');
-  const [selectedStartup, setSelectedStartup] = useState<typeof startupHighlights[0] | null>(null);
   const [liveMetrics, setLiveMetrics] = useState<{ label: string; value: string; change: string; up: boolean; icon: any }[]>([]);
   const [metricsLoading, setMetricsLoading] = useState(true);
+
+  // Live content
+  const [approvedIdeas,  setApprovedIdeas]  = useState<LiveIdea[]>([]);
+  const [topIdeas,       setTopIdeas]       = useState<LiveIdea[]>([]);
+  const [recentActivity, setRecentActivity] = useState<{ text: string; time: string; type: string }[]>([]);
+  const [expiringDocs,   setExpiringDocs]   = useState(0);
+  const [selectedIdea,   setSelectedIdea]   = useState<LiveIdea | null>(null);
+  const [contentLoading, setContentLoading] = useState(true);
 
   const cfg = dashboardConfigs[role] ?? dashboardConfigs['user'];
   const acts = activities[role] || [];
@@ -157,6 +149,62 @@ export default function DashboardHome({ role, navigate }: Props) {
     }
     fetchMetrics();
   }, [role]);
+
+  // Fetch live content (ideas, notifications, expiring docs)
+  useEffect(() => {
+    async function fetchContent() {
+      setContentLoading(true);
+      try {
+        // Approved ideas (for startup highlights)
+        const { data: approved } = await supabase
+          .from('ideas')
+          .select('id, title, sector, stage, status, vep_score, tagline, submitted_by')
+          .eq('status', 'Approved')
+          .order('vep_score', { ascending: false, nullsFirst: false })
+          .limit(4);
+        setApprovedIdeas((approved ?? []) as LiveIdea[]);
+
+        // Top ranked ideas by VEP score
+        const { data: top } = await supabase
+          .from('ideas')
+          .select('id, title, sector, stage, status, vep_score, tagline')
+          .not('vep_score', 'is', null)
+          .not('status', 'in', '("Draft","Rejected","Parked")')
+          .order('vep_score', { ascending: false })
+          .limit(5);
+        setTopIdeas((top ?? []) as LiveIdea[]);
+
+        // Recent notifications for current user
+        if (profile) {
+          const { data: notifs } = await supabase
+            .from('notifications')
+            .select('title, message, notification_type, created_at')
+            .eq('user_id', profile.id)
+            .order('created_at', { ascending: false })
+            .limit(4);
+          setRecentActivity(
+            (notifs ?? []).map(n => ({
+              text: n.title,
+              time: new Date(n.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }),
+              type: n.notification_type ?? 'info',
+            }))
+          );
+
+          // Expiring KYC docs (uploaded but status not approved)
+          const { count } = await supabase
+            .from('kyc_documents')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', profile.id)
+            .eq('status', 'submitted');
+          setExpiringDocs(count ?? 0);
+        }
+      } catch (e) {
+        console.warn('Dashboard content fetch failed', e);
+      }
+      setContentLoading(false);
+    }
+    fetchContent();
+  }, [profile?.id]);
 
   return (
     <div className="space-y-6">
@@ -224,17 +272,46 @@ export default function DashboardHome({ role, navigate }: Props) {
         <Card className="lg:col-span-2">
           <CardHeader><CardTitle className="text-base">Recent Activity</CardTitle></CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {acts.map((a, i) => (
-                <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-[#fbfbfb]">
-                  <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${a.type === 'success' ? 'bg-[#e33b5f]' : a.type === 'warning' ? 'bg-[#f07969]' : 'bg-[#555353]'}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-[#444]">{a.text}</p>
-                    <p className="text-xs text-[#9e9e9e] mt-1">{a.time}</p>
+            {contentLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-[#fbfbfb] animate-pulse">
+                    <div className="w-2 h-2 rounded-full mt-2 bg-[#f0f0f0] flex-shrink-0" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-3 bg-[#f0f0f0] rounded w-3/4" />
+                      <div className="h-3 bg-[#f0f0f0] rounded w-1/4" />
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : recentActivity.length > 0 ? (
+              <div className="space-y-3">
+                {recentActivity.map((a, i) => (
+                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-[#fbfbfb]">
+                    <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${a.type === 'success' ? 'bg-emerald-500' : a.type === 'warning' ? 'bg-[#f07969]' : a.type === 'action' ? 'bg-[#e33b5f]' : 'bg-[#555353]'}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-[#444]">{a.text}</p>
+                      <p className="text-xs text-[#9e9e9e] mt-1">{a.time}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              // Fall back to role-based static activity if no DB notifications yet
+              <div className="space-y-3">
+                {acts.length > 0 ? acts.map((a, i) => (
+                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-[#fbfbfb]">
+                    <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${a.type === 'success' ? 'bg-[#e33b5f]' : a.type === 'warning' ? 'bg-[#f07969]' : 'bg-[#555353]'}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-[#444]">{a.text}</p>
+                      <p className="text-xs text-[#9e9e9e] mt-1">{a.time}</p>
+                    </div>
+                  </div>
+                )) : (
+                  <p className="text-sm text-[#9e9e9e] text-center py-4">No recent activity yet.</p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -269,30 +346,53 @@ export default function DashboardHome({ role, navigate }: Props) {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2"><Rocket className="w-5 h-5 text-[#e33b5f]" /> Active Startups</CardTitle>
-              <Button variant="ghost" size="sm" className="text-[#e33b5f]">View All</Button>
+              <CardTitle className="text-base flex items-center gap-2"><Rocket className="w-5 h-5 text-[#e33b5f]" /> Approved Startups</CardTitle>
+              <Button variant="ghost" size="sm" className="text-[#e33b5f]" onClick={() => navigate('idea-ranking')}>View All</Button>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {startupHighlights.map(s => (
-                <div key={s.name} className="p-3 border rounded-lg hover:shadow-md transition cursor-pointer hover:border-[#e33b5f]/30" onClick={() => setSelectedStartup(s)}>
-                  <div className="w-8 h-8 rounded-lg bg-[#f6f6f6] flex items-center justify-center mb-2 border border-[#e8e8e8]">
-                    {/* [COMPANY LOGO PLACEHOLDER] */}
-                    <Building2 className="w-4 h-4 text-[#9e9e9e]" />
+            {contentLoading ? (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="p-3 border rounded-lg space-y-2 animate-pulse">
+                    <div className="w-8 h-8 rounded-lg bg-[#f0f0f0]" />
+                    <div className="h-3 bg-[#f0f0f0] rounded w-3/4" />
+                    <div className="h-3 bg-[#f0f0f0] rounded w-1/2" />
                   </div>
-                  <h4 className="font-semibold text-sm text-[#222]">{s.name}</h4>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="secondary" className="text-xs">{s.sector}</Badge>
-                    <Badge variant="outline" className="text-xs">{s.stage}</Badge>
+                ))}
+              </div>
+            ) : approvedIdeas.length === 0 ? (
+              <div className="text-center py-8 text-[#9e9e9e] text-sm">
+                <Rocket className="w-8 h-8 mx-auto mb-2 text-[#d0d0d0]" />
+                No approved startups yet. They will appear here once ideas complete the evaluation pipeline.
+              </div>
+            ) : (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {approvedIdeas.map(idea => (
+                  <div key={idea.id} className="p-3 border rounded-lg hover:shadow-md transition cursor-pointer hover:border-[#e33b5f]/30"
+                    onClick={() => setSelectedIdea(idea)}>
+                    <div className="w-8 h-8 rounded-lg bg-[#e33b5f]/10 flex items-center justify-center mb-2">
+                      <Lightbulb className="w-4 h-4 text-[#e33b5f]" />
+                    </div>
+                    <h4 className="font-semibold text-sm text-[#222] truncate">{idea.title}</h4>
+                    {idea.tagline && <p className="text-xs text-[#7e7e7e] truncate mt-0.5 italic">"{idea.tagline}"</p>}
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      {idea.sector && <Badge variant="secondary" className="text-xs">{idea.sector}</Badge>}
+                      {idea.stage  && <Badge variant="outline"   className="text-xs">{idea.stage}</Badge>}
+                    </div>
+                    {idea.vep_score != null && (
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <div className="flex-1 h-1.5 bg-[#f0f0f0] rounded-full overflow-hidden">
+                          <div className="h-full bg-[#e33b5f] rounded-full" style={{ width: `${idea.vep_score}%` }} />
+                        </div>
+                        <span className="text-xs text-[#e33b5f] font-medium">{idea.vep_score}</span>
+                      </div>
+                    )}
+                    <Badge className="mt-2 text-xs bg-emerald-100 text-emerald-700">✓ Approved</Badge>
                   </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className={`text-sm font-bold ${s.roi.startsWith('+') ? 'text-[#e33b5f]' : 'text-red-600'}`}>{s.roi}</span>
-                    <Badge className={`text-xs ${s.status === 'Active' ? 'bg-[#e33b5f]/10 text-[#e33b5f]' : 'bg-[#f07969]/10 text-[#f07969]'}`}>{s.status}</Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -306,31 +406,59 @@ export default function DashboardHome({ role, navigate }: Props) {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {ideaHighlights.map((idea, i) => (
-                <div key={idea.name} className="flex items-center justify-between p-3 border rounded-lg hover:bg-[#f6f6f6] transition">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${i === 0 ? 'bg-[#f07969]/10 text-[#f07969]' : 'bg-[#f0f0f0] text-[#555353]'}`}>{i + 1}</div>
-                    <div>
-                      <p className="font-medium text-sm text-[#222]">{idea.name}</p>
-                      <Badge variant="secondary" className="text-xs">{idea.category}</Badge>
+            {contentLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-3 p-3 border rounded-lg animate-pulse">
+                    <div className="w-8 h-8 rounded-lg bg-[#f0f0f0]" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-3 bg-[#f0f0f0] rounded w-1/2" />
+                      <div className="h-3 bg-[#f0f0f0] rounded w-1/4" />
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 text-xs text-[#7e7e7e]">
-                    <span>👍 {idea.votes}</span>
-                    <span>❤️ {idea.interest}%</span>
-                    <span>📊 {idea.feasibility}%</span>
+                ))}
+              </div>
+            ) : topIdeas.length === 0 ? (
+              <div className="text-center py-8 text-[#9e9e9e] text-sm">
+                <BarChart3 className="w-8 h-8 mx-auto mb-2 text-[#d0d0d0]" />
+                No scored ideas yet. Ideas will appear here once VEP evaluations are submitted.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {topIdeas.map((idea, i) => (
+                  <div key={idea.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-[#f6f6f6] transition cursor-pointer"
+                    onClick={() => navigate('idea-ranking')}>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm flex-shrink-0 ${i === 0 ? 'bg-[#f07969]/10 text-[#f07969]' : 'bg-[#f0f0f0] text-[#555353]'}`}>
+                        {i + 1}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm text-[#222] truncate">{idea.title}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {idea.sector && <Badge variant="secondary" className="text-xs">{idea.sector}</Badge>}
+                          <Badge className={`text-xs ${idea.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-purple-100 text-purple-700'}`}>{idea.status}</Badge>
+                        </div>
+                      </div>
+                    </div>
+                    {idea.vep_score != null && (
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className="w-16 h-1.5 bg-[#f0f0f0] rounded-full overflow-hidden hidden sm:block">
+                          <div className="h-full bg-[#e33b5f] rounded-full" style={{ width: `${idea.vep_score}%` }} />
+                        </div>
+                        <span className="text-sm font-bold text-[#e33b5f]">{idea.vep_score}</span>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
 
-      {/* Automated Admission Letter Banner */}
-      {(role === 'admin' || role === 'super-admin') && (
-        <Card className="border-[#e33b5f]/20 bg-[#e33b5f]/5/50">
+      {/* Automated Admission Letter Banner — admin only, real count */}
+      {(role === 'admin' || role === 'super-admin' || role === 'developer') && (
+        <Card className="border-[#e33b5f]/20 bg-[#e33b5f]/5">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-[#e33b5f]/10 flex items-center justify-center">
@@ -338,7 +466,7 @@ export default function DashboardHome({ role, navigate }: Props) {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-[#222]">Automated Admission Letters</p>
-                <p className="text-xs text-[#7e7e7e]">Welcome emails are automatically sent when new members are approved. 3 members approved this week.</p>
+                <p className="text-xs text-[#7e7e7e]">Invite emails are sent automatically when you approve applicants from the Admin Dashboard.</p>
               </div>
               <Badge className="bg-[#e33b5f]/10 text-[#e33b5f] text-xs">Active</Badge>
             </div>
@@ -346,98 +474,63 @@ export default function DashboardHome({ role, navigate }: Props) {
         </Card>
       )}
 
-      {/* Document Expiry Alert */}
-      <Card className="border-red-200">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-red-600" />
+      {/* KYC document alert — real count */}
+      {expiringDocs > 0 && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-[#222]">KYC Documents Pending Review</p>
+                <p className="text-xs text-[#7e7e7e]">{expiringDocs} document{expiringDocs !== 1 ? 's' : ''} submitted and awaiting admin review.</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => navigate('onboarding')}>View Status</Button>
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-[#222]">Document Expiry Alerts</p>
-              <p className="text-xs text-[#7e7e7e]">2 documents expiring within 30 days. Auto-added to calendar with email & WhatsApp reminders.</p>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => navigate('calendar')}>View Calendar</Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
-
-      {/* Startup Detail Modal */}
-      <Dialog open={!!selectedStartup} onOpenChange={() => setSelectedStartup(null)}>
+      {/* Idea detail modal */}
+      <Dialog open={!!selectedIdea} onOpenChange={() => setSelectedIdea(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Startup Profile</DialogTitle>
+            <DialogTitle>Idea Profile</DialogTitle>
           </DialogHeader>
-          {selectedStartup && (
+          {selectedIdea && (
             <div className="space-y-4">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-xl bg-[#f6f6f6] border border-[#e8e8e8] flex items-center justify-center flex-shrink-0">
-                  {/* [COMPANY LOGO PLACEHOLDER] */}
-                  <Building2 className="w-8 h-8 text-[#d0d0d0]" />
+                <div className="w-14 h-14 rounded-xl bg-[#e33b5f]/10 flex items-center justify-center flex-shrink-0">
+                  <Lightbulb className="w-7 h-7 text-[#e33b5f]" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-[#222]">{selectedStartup.name}</h2>
-                  {/* [COMPANY NAME] */}
+                  <h2 className="text-lg font-bold text-[#222]">{selectedIdea.title}</h2>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <Badge variant="secondary">{selectedStartup.sector}</Badge>
-                    <Badge variant="outline">{selectedStartup.stage}</Badge>
-                    <Badge className={`text-xs ${selectedStartup.status === 'Active' ? 'bg-[#e33b5f]/10 text-[#e33b5f]' : 'bg-[#f07969]/10 text-[#f07969]'}`}>{selectedStartup.status}</Badge>
+                    {selectedIdea.sector && <Badge variant="secondary">{selectedIdea.sector}</Badge>}
+                    {selectedIdea.stage  && <Badge variant="outline">{selectedIdea.stage}</Badge>}
+                    <Badge className="text-xs bg-emerald-100 text-emerald-700">✓ Approved</Badge>
                   </div>
                 </div>
               </div>
-
-              {/* Description placeholder */}
-              <div className="p-3 bg-[#f6f6f6] rounded-lg border border-dashed border-[#d0d0d0]">
-                <p className="text-xs text-[#9e9e9e] italic">
-                  {selectedStartup.description || '[Company description will appear here]'}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="p-2 bg-[#fbfbfb] rounded-lg">
-                  <p className="text-xs text-[#9e9e9e]">Founded</p>
-                  <p className="font-medium text-[#222]">{selectedStartup.founded || '[Year]'}</p>
-                </div>
-                <div className="p-2 bg-[#fbfbfb] rounded-lg">
-                  <p className="text-xs text-[#9e9e9e]">Team Size</p>
-                  <p className="font-medium text-[#222]">{selectedStartup.team || '[Team size]'}</p>
-                </div>
-                <div className="p-2 bg-[#fbfbfb] rounded-lg">
-                  <p className="text-xs text-[#9e9e9e]">ROI</p>
-                  <p className={`font-bold ${selectedStartup.roi.startsWith('+') ? 'text-[#e33b5f]' : 'text-red-600'}`}>{selectedStartup.roi}</p>
-                </div>
-                <div className="p-2 bg-[#fbfbfb] rounded-lg">
-                  <p className="text-xs text-[#9e9e9e]">Website</p>
-                  <p className="font-medium text-[#222] truncate">{selectedStartup.website || '[Website]'}</p>
-                </div>
-              </div>
-
-              {/* Links */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-[#555353]">
-                  <Linkedin className="w-4 h-4 text-[#9e9e9e]" />
-                  <span className="text-[#9e9e9e] italic">{selectedStartup.companyLinkedIn || '[Company LinkedIn URL]'}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-[#555353]">
-                  <FileText className="w-4 h-4 text-[#9e9e9e]" />
-                  <span className="text-[#9e9e9e] italic">{selectedStartup.pitchDeck || '[Pitch Deck URL]'}</span>
-                </div>
-              </div>
-
-              {/* More info placeholder */}
-              {selectedStartup.moreInfo && (
-                <div className="p-3 bg-[#f6f6f6] rounded-lg">
-                  <p className="text-xs text-[#7e7e7e]">{selectedStartup.moreInfo}</p>
+              {selectedIdea.tagline && (
+                <p className="text-sm text-[#555353] italic">"{selectedIdea.tagline}"</p>
+              )}
+              {selectedIdea.vep_score != null && (
+                <div>
+                  <p className="text-xs text-[#9e9e9e] mb-1">VEP Score</p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 bg-[#f0f0f0] rounded-full overflow-hidden">
+                      <div className="h-full bg-[#e33b5f] rounded-full" style={{ width: `${selectedIdea.vep_score}%` }} />
+                    </div>
+                    <span className="text-sm font-bold text-[#e33b5f]">{selectedIdea.vep_score}/100</span>
+                  </div>
                 </div>
               )}
-              {!selectedStartup.moreInfo && (
-                <div className="p-3 bg-[#f6f6f6] rounded-lg border border-dashed border-[#d0d0d0]">
-                  <p className="text-xs text-[#9e9e9e] italic">[Additional information, metrics, milestones etc. will appear here]</p>
-                </div>
-              )}
-
-              <Button variant="outline" className="w-full" onClick={() => setSelectedStartup(null)}>Close</Button>
+              <Button className="w-full bg-[#e33b5f] text-white" onClick={() => { setSelectedIdea(null); navigate('idea-ranking'); }}>
+                View in Idea Ranking
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => setSelectedIdea(null)}>Close</Button>
             </div>
           )}
         </DialogContent>
