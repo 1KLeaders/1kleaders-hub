@@ -55,8 +55,8 @@ export async function getJWTAccessToken(): Promise<string> {
       .replace(/(.{64})/g, '$1\n');
   }
 
-  // Hardcode the auth URL to avoid any env var issues
-  const authHost = 'account-d.docusign.com';
+  // Use env var — never hardcode the auth host
+  const authHost = DS_CONFIG.authUrl.replace('https://', '').replace(/\/$/, '');
   const tokenUrl = `https://${authHost}/oauth/token`;
 
   const header  = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
