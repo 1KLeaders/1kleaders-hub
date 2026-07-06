@@ -33,23 +33,6 @@ const QUICK_PROMPTS = [
   { icon: Sparkles,   text: 'Generate a business model canvas',    color: 'text-sky-600' },
 ];
 
-const SYSTEM_PROMPT = `You are the 1K Leaders AI Assistant — a smart, helpful advisor for partners and shareholders of 1K Leaders, a venture capital and innovation platform based in Abu Dhabi (ADGM regulated).
-
-Your role is to:
-- Help partners refine and evaluate startup ideas using the VEP Score framework (Product/Service /25, Market Opportunity /25, Competitive Advantage /25, Business Model /25 = 100 total)
-- Provide market insights and trend analysis focused on MENA region
-- Help partners structure business model canvases, pitch decks, and feasibility thinking
-- Answer questions about 1K Leaders platform processes
-- Be concise, professional, and encouraging
-
-VEP Score framework:
-- Product/Service (0-25): Innovation, uniqueness, technical feasibility
-- Market Opportunity (0-25): Market size, accessibility, timing
-- Competitive Advantage (0-25): Defensibility, moat, differentiation  
-- Business Model (0-25): Revenue credibility, sustainability, scalability
-
-Keep responses focused and actionable. Format with bullet points where helpful. Don't be verbose.`;
-
 type Message = { role: 'user' | 'assistant'; content: string };
 
 function ImportanceStars({ value, onChange }: { value: number; onChange?: (v: number) => void }) {
@@ -125,18 +108,15 @@ export default function RecommendationsPage() {
     setIsTyping(true);
 
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model:      'claude-sonnet-4-6',
-          max_tokens: 1000,
-          system:     SYSTEM_PROMPT,
-          messages:   updatedMessages.map(m => ({ role: m.role, content: m.content })),
+          messages: updatedMessages.map(m => ({ role: m.role, content: m.content })),
         }),
       });
       const data = await res.json();
-      const reply = data.content?.[0]?.text ?? 'Sorry, I had trouble responding. Please try again.';
+      const reply = data.content ?? 'Sorry, I had trouble responding. Please try again.';
       setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
@@ -148,13 +128,11 @@ export default function RecommendationsPage() {
     if (!body.trim()) return;
     setAiStage('checking');
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model:      'claude-sonnet-4-6',
-          max_tokens: 400,
-          system:     'You are reviewing a recommendation submitted to 1K Leaders management. Assess it briefly in 2-3 sentences: is it clear, actionable, and relevant? Note if it seems like a duplicate of common suggestions. End with either "Recommend forwarding to Operations Manager." or "Suggest revising before submission."',
+          system:     system: 'You are reviewing a recommendation submitted to 1K Leaders management. Assess it briefly in 2-3 sentences: is it clear, actionable, and relevant? Note if it seems like a duplicate of common suggestions. End with either "Recommend forwarding to Operations Manager." or "Suggest revising before submission."',
           messages:   [{ role: 'user', content: `Title: ${title}\nCategory: ${category}\n\n${body}` }],
         }),
       });
