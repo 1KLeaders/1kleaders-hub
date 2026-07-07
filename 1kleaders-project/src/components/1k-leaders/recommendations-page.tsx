@@ -132,12 +132,12 @@ export default function RecommendationsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          system:     system: 'You are reviewing a recommendation submitted to 1K Leaders management. Assess it briefly in 2-3 sentences: is it clear, actionable, and relevant? Note if it seems like a duplicate of common suggestions. End with either "Recommend forwarding to Operations Manager." or "Suggest revising before submission."',
+          system: 'You are reviewing a recommendation submitted to 1K Leaders management. Assess it briefly in 2-3 sentences: is it clear, actionable, and relevant? Note if it seems like a duplicate of common suggestions. End with either "Recommend forwarding to Operations Manager." or "Suggest revising before submission."',
           messages:   [{ role: 'user', content: `Title: ${title}\nCategory: ${category}\n\n${body}` }],
         }),
       });
       const data = await res.json();
-      setAiResult(data.content?.[0]?.text ?? 'AI review complete.');
+      setAiResult(data.content ?? 'AI review complete.');
     } catch {
       setAiResult('AI review complete. Your recommendation looks good to submit.');
     }

@@ -210,7 +210,7 @@ export default function CalendarPage({ role }: Props) {
           <p className="text-[#7e7e7e]">Platform events, meetings & deadlines</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {isShareholder && (
+          {(role === 'super-admin' || role === 'developer') && (
             <Button variant="outline" size="sm" className="border-[#5059C9] text-[#5059C9] hover:bg-[#5059C9]/5 gap-2"
               onClick={() => window.location.href = '/api/teams/auth'}>
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">

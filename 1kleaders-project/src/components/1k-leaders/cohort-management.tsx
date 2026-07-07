@@ -27,6 +27,10 @@ type Cohort = {
   opens_at: string | null;
   closes_at: string | null;
   review_starts_at: string | null;
+  vep_scoring_date: string | null;
+  mab_eval_date: string | null;
+  demo_day_date: string | null;
+  announcement_date: string | null;
   results_at: string | null;
   max_ideas: number;
   eligible_roles: string[];
@@ -68,11 +72,13 @@ function EmptyForm(): Cohort {
   return {
     id: '', created_at: '', updated_at: '',
     name: '', description: '', status: 'draft',
-    opens_at: '', closes_at: '', review_starts_at: '', results_at: '',
+    opens_at: '', closes_at: '', review_starts_at: '',
+    vep_scoring_date: '', mab_eval_date: '', demo_day_date: '',
+    announcement_date: '', results_at: '',
     max_ideas: 50,
     eligible_roles: ['user','shareholder'],
     eligible_subroles: ['idea-owner'],
-    require_subrole: true,
+    require_subrole: false,
     idea_count: 0, approved_count: 0,
   };
 }
@@ -146,7 +152,18 @@ export default function CohortManagement() {
   function openEditForm(c: Cohort, e: React.MouseEvent) {
     e.stopPropagation();
     setEditingId(c.id);
-    setForm({ ...c });
+    const toLocal = (iso: string | null) => iso ? new Date(iso).toISOString().slice(0, 16) : '';
+    setForm({
+      ...c,
+      opens_at:          toLocal(c.opens_at),
+      closes_at:         toLocal(c.closes_at),
+      review_starts_at:  toLocal(c.review_starts_at),
+      vep_scoring_date:  toLocal(c.vep_scoring_date),
+      mab_eval_date:     toLocal(c.mab_eval_date),
+      demo_day_date:     toLocal(c.demo_day_date),
+      announcement_date: toLocal(c.announcement_date),
+      results_at:        toLocal(c.results_at),
+    });
     setError(null);
     setShowForm(true);
   }
@@ -156,14 +173,23 @@ export default function CohortManagement() {
     setSaving(true);
     setError(null);
 
+    const toISO = (val: string | null) => {
+      if (!val) return null;
+      return val.includes('T') ? new Date(val).toISOString() : null;
+    };
+
     const payload = {
       name:              form.name.trim(),
       description:       form.description?.trim() || null,
       status:            form.status,
-      opens_at:          form.opens_at || null,
-      closes_at:         form.closes_at || null,
-      review_starts_at:  form.review_starts_at || null,
-      results_at:        form.results_at || null,
+      opens_at:          toISO(form.opens_at),
+      closes_at:         toISO(form.closes_at),
+      review_starts_at:  toISO(form.review_starts_at),
+      vep_scoring_date:  toISO(form.vep_scoring_date),
+      mab_eval_date:     toISO(form.mab_eval_date),
+      demo_day_date:     toISO(form.demo_day_date),
+      announcement_date: toISO(form.announcement_date),
+      results_at:        toISO(form.results_at),
       max_ideas:         form.max_ideas,
       eligible_roles:    form.eligible_roles,
       eligible_subroles: form.eligible_subroles,
@@ -289,22 +315,14 @@ export default function CohortManagement() {
             <Separator />
             <p className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider">Timeline</p>
             <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm">Submissions Open</Label>
-                <Input type="datetime-local" className="mt-1 border-[#f0f0f0]" value={f.opens_at?.slice(0,16) ?? ''} onChange={e => setF({ opens_at: e.target.value })} />
-              </div>
-              <div>
-                <Label className="text-sm">Submissions Close</Label>
-                <Input type="datetime-local" className="mt-1 border-[#f0f0f0]" value={f.closes_at?.slice(0,16) ?? ''} onChange={e => setF({ closes_at: e.target.value })} />
-              </div>
-              <div>
-                <Label className="text-sm">Review Starts</Label>
-                <Input type="datetime-local" className="mt-1 border-[#f0f0f0]" value={f.review_starts_at?.slice(0,16) ?? ''} onChange={e => setF({ review_starts_at: e.target.value })} />
-              </div>
-              <div>
-                <Label className="text-sm">Results Announced</Label>
-                <Input type="datetime-local" className="mt-1 border-[#f0f0f0]" value={f.results_at?.slice(0,16) ?? ''} onChange={e => setF({ results_at: e.target.value })} />
-              </div>
+              <div><Label className="text-sm">Submissions Open</Label><Input type="datetime-local" className="mt-1 border-[#f0f0f0]" value={f.opens_at?.slice(0,16) ?? ''} onChange={e => setF({ opens_at: e.target.value })} /></div>
+              <div><Label className="text-sm">Submissions Close</Label><Input type="datetime-local" className="mt-1 border-[#f0f0f0]" value={f.closes_at?.slice(0,16) ?? ''} onChange={e => setF({ closes_at: e.target.value })} /></div>
+              <div><Label className="text-sm">Quality Review Starts</Label><Input type="datetime-local" className="mt-1 border-[#f0f0f0]" value={f.review_starts_at?.slice(0,16) ?? ''} onChange={e => setF({ review_starts_at: e.target.value })} /></div>
+              <div><Label className="text-sm">VEP Scoring Session</Label><Input type="datetime-local" className="mt-1 border-[#f0f0f0]" value={(f.vep_scoring_date ?? '').slice(0,16)} onChange={e => setF({ vep_scoring_date: e.target.value })} /></div>
+              <div><Label className="text-sm">MAB Evaluation Date</Label><Input type="datetime-local" className="mt-1 border-[#f0f0f0]" value={(f.mab_eval_date ?? '').slice(0,16)} onChange={e => setF({ mab_eval_date: e.target.value })} /></div>
+              <div><Label className="text-sm">Demo Day</Label><Input type="datetime-local" className="mt-1 border-[#f0f0f0]" value={(f.demo_day_date ?? '').slice(0,16)} onChange={e => setF({ demo_day_date: e.target.value })} /></div>
+              <div><Label className="text-sm">Announcement Date</Label><Input type="datetime-local" className="mt-1 border-[#f0f0f0]" value={(f.announcement_date ?? '').slice(0,16)} onChange={e => setF({ announcement_date: e.target.value })} /></div>
+              <div><Label className="text-sm">Results Announced</Label><Input type="datetime-local" className="mt-1 border-[#f0f0f0]" value={f.results_at?.slice(0,16) ?? ''} onChange={e => setF({ results_at: e.target.value })} /></div>
             </div>
 
             <Separator />
@@ -324,9 +342,14 @@ export default function CohortManagement() {
                   </button>
                   <button onClick={() => setF({ require_subrole: false })}
                     className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${!f.require_subrole ? 'bg-[#e33b5f] text-white border-[#e33b5f]' : 'bg-white text-[#555353] border-[#f0f0f0]'}`}>
-                    No — Open to All
+                    No — Open to All Eligible Roles
                   </button>
                 </div>
+                <p className="text-xs text-[#9e9e9e] mt-1">
+                  {f.require_subrole
+                    ? 'Only users with the Idea Owner badge can submit. Assign badges via the Partners page.'
+                    : 'Any user in the eligible roles above can submit ideas.'}
+                </p>
               </div>
             </div>
 
@@ -449,14 +472,18 @@ export default function CohortManagement() {
                       <div className="space-y-2">
                         <p className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider">Timeline</p>
                         {[
-                          { label: 'Opens',        value: c.opens_at },
-                          { label: 'Closes',       value: c.closes_at },
-                          { label: 'Review Starts',value: c.review_starts_at },
-                          { label: 'Results',      value: c.results_at },
-                        ].map(({ label, value }) => (
+                          { label: 'Opens',            value: c.opens_at },
+                          { label: 'Closes',           value: c.closes_at },
+                          { label: 'Quality Review',   value: c.review_starts_at },
+                          { label: 'VEP Scoring',      value: c.vep_scoring_date },
+                          { label: 'MAB Evaluation',   value: c.mab_eval_date },
+                          { label: 'Demo Day',         value: c.demo_day_date },
+                          { label: 'Announcement',     value: c.announcement_date },
+                          { label: 'Results',          value: c.results_at },
+                        ].filter(x => x.value).map(({ label, value }) => (
                           <div key={label} className="flex justify-between text-xs">
                             <span className="text-[#7e7e7e]">{label}</span>
-                            <span className="font-medium text-[#222]">{value ? new Date(value).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '—'}</span>
+                            <span className="font-medium text-[#222]">{new Date(value!).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</span>
                           </div>
                         ))}
                       </div>

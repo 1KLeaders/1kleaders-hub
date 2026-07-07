@@ -42,12 +42,18 @@ export default function AgreementsPage({ role }: Props) {
   async function fetchEnvelopes() {
     if (!profile) return;
     setLoading(true);
-    const query = supabase
+
+    let query = supabase
       .from('docusign_envelopes')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!isAdmin) query.eq('user_id', profile.id);
+    if (isAdmin) {
+      // Admins see all
+    } else {
+      // Users see envelopes linked to their user_id OR their email
+      query = query.or(`user_id.eq.${profile.id},recipient_email.eq.${profile.email}`);
+    }
 
     const { data } = await query;
     setEnvelopes((data ?? []) as Envelope[]);
