@@ -92,6 +92,29 @@ export default function OnboardingTracker() {
     setPartners(prev => prev.map(p => p.id === userId ? { ...p, onboarding_status: status } : p));
     setUpdating(null);
 
+    // In-platform notification
+    const notifMessages: Record<string, { title: string; message: string; type: string }> = {
+      'Agreement Signed':            { title: 'Agreement Signed ✓',             message: 'Your partnership agreement has been signed. Please complete your KYC documents next.',                     type: 'success' },
+      'Platform Access Issued':      { title: 'Platform Access Issued',          message: 'You now have full access to the 1K Leaders Partner Hub.',                                                  type: 'success' },
+      'KYC Submitted':               { title: 'KYC Documents Received',          message: 'Your KYC documents have been received and are under review.',                                              type: 'info'    },
+      'KYC Approved':                { title: 'KYC Approved ✓',                  message: 'Your KYC has been approved. Please submit your payment receipt to continue.',                              type: 'success' },
+      'Payment Receipt Submitted':   { title: 'Payment Receipt Received',        message: 'Your payment receipt has been received and is being verified.',                                            type: 'info'    },
+      'Payment Confirmed':           { title: 'Payment Confirmed ✓',             message: 'Your payment has been confirmed. Your file is being prepared for ADGM registration.',                      type: 'success' },
+      'Awaiting ADGM Registration':  { title: 'Submitted to ADGM',               message: 'Your file has been submitted to ADGM for registration. This typically takes 2–4 weeks.',                  type: 'info'    },
+      'Officially Registered Partner': { title: '🎉 Officially Registered!',    message: 'Congratulations! You are now an officially registered 1K Leaders partner.',                                type: 'success' },
+    };
+
+    const notif = notifMessages[status];
+    if (notif) {
+      supabase.from('notifications').insert({
+        user_id:           userId,
+        title:             notif.title,
+        message:           notif.message,
+        notification_type: notif.type,
+        is_read:           false,
+      }).then(() => {});
+    }
+
     // Fire-and-forget email notification
     fetch('/api/onboarding/notify', {
       method:  'POST',

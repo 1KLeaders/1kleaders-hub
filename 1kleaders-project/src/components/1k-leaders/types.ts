@@ -25,6 +25,8 @@ export type Page =
   | 'bug-report'
   | 'onboarding-tracker'
   | 'cohort-management'
+  | 'quality-review'
+  | 'mab-evaluation'
   | 'recommendations';
 
 // Main access roles — controls what pages/nav items a user sees
