@@ -26,6 +26,8 @@ import { SuperAdminDashboard } from '@/components/1k-leaders/super-admin-dashboa
 import StartupPage from '@/components/1k-leaders/startup-page';
 import BugReportPage from '@/components/1k-leaders/bug-report-page';
 import CohortManagement from '@/components/1k-leaders/cohort-management';
+import QualityReview from '@/components/1k-leaders/quality-review';
+import MABEvaluation from '@/components/1k-leaders/mab-evaluation';
 import OnboardingTracker from '@/components/1k-leaders/onboarding-tracker';
 
 function MABDashboard() {
@@ -100,6 +102,8 @@ export default function Home() {
         case 'admin-dashboard':   return <SuperAdminDashboard onNavigate={navigate} />;
         case 'onboarding-tracker': return <OnboardingTracker />;
         case 'cohort-management':   return <CohortManagement />;
+        case 'quality-review':     return <QualityReview />;
+        case 'mab-evaluation':     return <MABEvaluation />;
         case 'startup-page':      return <StartupPage />;
         case 'bug-report':        return <BugReportPage />;
         case 'onboarding':        return <OnboardingKYC navigate={navigate} />;
