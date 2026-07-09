@@ -49,7 +49,7 @@ const dashboardPages: Page[] = [
   'partners', 'settings', 'notifications', 'profile', 'calendar',
   'discussion-rooms', 'ai-assistant', 'newsletter-tracking',
   'vep-dashboard', 'mab-dashboard', 'recommendations', 'admin-dashboard',
-  'startup-page', 'bug-report', 'onboarding-tracker', 'cohort-management', 'onboarding',
+  'startup-page', 'bug-report', 'onboarding-tracker', 'cohort-management', 'onboarding', 'quality-review',
 ];
 
 export default function Home() {
@@ -98,12 +98,11 @@ export default function Home() {
         case 'ai-assistant':      return <RecommendationsPage />;
         case 'newsletter-tracking': return <NewsletterTracking />;
         case 'vep-dashboard':     return <VEPDashboard />;
-        case 'mab-dashboard':     return <MABDashboard />;
+        case 'mab-dashboard':     return <MABEvaluation />;
         case 'admin-dashboard':   return <SuperAdminDashboard onNavigate={navigate} />;
         case 'onboarding-tracker': return <OnboardingTracker />;
         case 'cohort-management':   return <CohortManagement />;
         case 'quality-review':     return <QualityReview />;
-        case 'mab-evaluation':     return <MABEvaluation />;
         case 'startup-page':      return <StartupPage />;
         case 'bug-report':        return <BugReportPage />;
         case 'onboarding':        return <OnboardingKYC navigate={navigate} />;
