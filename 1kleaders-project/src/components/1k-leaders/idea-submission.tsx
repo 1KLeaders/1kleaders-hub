@@ -784,8 +784,10 @@ export default function IdeaSubmission({ role, navigate }: Props) {
             </CardContent>
           </Card>
         </div>
-      <>
-        {/* Floating AI assistant — only show during form */}
+      )}
+
+      {/* Floating AI assistant — only show during form */}
+      {showForm && (
         <IdeaAIAssistant context={{
           title,
           sector,
@@ -796,7 +798,6 @@ export default function IdeaSubmission({ role, navigate }: Props) {
           revModel,
           currentSection: section,
         }} />
-      </>
       )}
     </div>
   );
