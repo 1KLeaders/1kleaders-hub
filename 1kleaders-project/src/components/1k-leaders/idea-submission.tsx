@@ -14,6 +14,7 @@ import {
   RefreshCw, Eye, Trash2, FileText, Video, AlertTriangle, X
 } from 'lucide-react';
 import type { DashboardRole } from './types';
+import IdeaAIAssistant from './idea-ai-assistant';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth-context';
 
@@ -461,6 +462,7 @@ export default function IdeaSubmission({ role, navigate }: Props) {
 
       {/* Submission form */}
       {showForm && (
+        <>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-[#222]">{draftId ? 'Continue Idea' : 'New Idea Submission'}</h2>
@@ -782,6 +784,19 @@ export default function IdeaSubmission({ role, navigate }: Props) {
             </CardContent>
           </Card>
         </div>
+      <>
+        {/* Floating AI assistant — only show during form */}
+        <IdeaAIAssistant context={{
+          title,
+          sector,
+          problem,
+          solution,
+          targetMarket,
+          targetCustomer,
+          revModel,
+          currentSection: section,
+        }} />
+      </>
       )}
     </div>
   );
