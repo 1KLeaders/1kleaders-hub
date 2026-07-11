@@ -457,12 +457,10 @@ export default function IdeaSubmission({ role, navigate }: Props) {
               ))}
             </div>
           )}
-        </>
       )}
 
       {/* Submission form */}
       {showForm && (
-        <>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-[#222]">{draftId ? 'Continue Idea' : 'New Idea Submission'}</h2>
