@@ -457,6 +457,7 @@ export default function IdeaSubmission({ role, navigate }: Props) {
               ))}
             </div>
           )}
+        </>
       )}
 
       {/* Submission form */}
