@@ -133,7 +133,7 @@ export default function AgreementsPage({ role }: Props) {
                     <p className="text-[10px] text-[#9e9e9e] font-mono mt-0.5">{env.envelope_id}</p>
                   </div>
                   <a
-                    href={`https://app-d.docusign.com/documents/details/${env.envelope_id}`}
+                    href={`${process.env.NEXT_PUBLIC_DOCUSIGN_APP_URL ?? 'https://app.docusign.com'}/documents/details/${e.envelope_id}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="shrink-0"
