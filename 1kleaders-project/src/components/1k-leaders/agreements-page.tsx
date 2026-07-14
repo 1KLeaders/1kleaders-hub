@@ -43,20 +43,22 @@ export default function AgreementsPage({ role }: Props) {
     if (!profile) return;
     setLoading(true);
 
-    let query = supabase
-      .from('docusign_envelopes')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      let query = supabase
+        .from('docusign_envelopes')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (isAdmin) {
-      // Admins see all
-    } else {
-      // Users see envelopes linked to their user_id OR their email
-      query = query.or(`user_id.eq.${profile.id},recipient_email.eq.${profile.email}`);
+      if (!isAdmin) {
+        query = query.or(`user_id.eq.${profile.id},recipient_email.eq.${profile.email}`);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      setEnvelopes((data ?? []) as Envelope[]);
+    } catch (e) {
+      console.error('Failed to fetch envelopes:', e);
     }
-
-    const { data } = await query;
-    setEnvelopes((data ?? []) as Envelope[]);
     setLoading(false);
   }
 
@@ -133,7 +135,7 @@ export default function AgreementsPage({ role }: Props) {
                     <p className="text-[10px] text-[#9e9e9e] font-mono mt-0.5">{env.envelope_id}</p>
                   </div>
                   <a
-                    href={`${process.env.NEXT_PUBLIC_DOCUSIGN_APP_URL ?? 'https://app.docusign.com'}/documents/details/${e.envelope_id}`}
+                    href={`https://app-d.docusign.com/documents/details/${env.envelope_id}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="shrink-0"
