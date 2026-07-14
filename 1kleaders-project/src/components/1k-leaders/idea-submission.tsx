@@ -286,15 +286,51 @@ export default function IdeaSubmission({ role, navigate }: Props) {
     setSubmitting(true);
     const paths = await uploadAllFiles();
     const payload = { ...ideaPayload(paths), status: 'Submitted' };
+    let ideaId = draftId;
     if (draftId) {
       await supabase.from('ideas').update(payload).eq('id', draftId);
     } else {
-      await supabase.from('ideas').insert(payload);
+      const { data } = await supabase.from('ideas').insert(payload).select('id').single();
+      ideaId = data?.id ?? null;
     }
     setSubmitting(false);
     setShowForm(false);
     resetForm();
     fetchMyIdeas();
+
+    // Auto-feedback: fire and forget — ask AI to review the submitted idea
+    if (ideaId) {
+      const summary = [
+        `Title: ${title}`,
+        sector && `Sector: ${sector}`,
+        problem && `Problem: ${problem}`,
+        solution && `Solution: ${solution}`,
+        targetMarket && `Market: ${targetMarket}`,
+        targetCustomer && `Customer: ${targetCustomer}`,
+        revModel && `Revenue model: ${revModel}`,
+        mvpCost && `MVP cost: ${mvpCost}`,
+        mvpTimeline && `MVP timeline: ${mvpTimeline}`,
+      ].filter(Boolean).join('\n');
+
+      fetch('/api/ai/chat', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `You are reviewing a startup idea submitted to 1K Leaders for VEP evaluation. Give concise feedback (3-5 bullet points) on the strengths and weaknesses of this idea based on the VEP criteria (Product/Service, Market Opportunity, Competitive Advantage, Business Model). Be specific and constructive.\n\n${summary}`,
+          agent_type: 'idea',
+        }),
+      }).then(r => r.json()).then(async data => {
+        if (data.content && ideaId && profile) {
+          await supabase.from('notifications').insert({
+            user_id:           profile.id,
+            title:             'AI Feedback on Your Submission',
+            message:           data.content,
+            notification_type: 'info',
+            is_read:           false,
+          });
+        }
+      }).catch(() => {});
+    }
   }
 
   async function deleteIdea(id: string) {
@@ -787,7 +823,16 @@ export default function IdeaSubmission({ role, navigate }: Props) {
 
       {/* Floating AI assistant — only show during form */}
       {showForm && (
-        <IdeaAIAssistant context={{
+        <IdeaAIAssistant
+        onApplyField={(field, value) => {
+          if (field === 'title') setTitle(value);
+          else if (field === 'tagline') setTagline(value);
+          else if (field === 'problem') setProblem(value);
+          else if (field === 'solution') setSolution(value);
+          else if (field === 'targetMarket') setTargetMarket(value);
+          else if (field === 'targetCustomer') setTargetCustomer(value);
+        }}
+        context={{
           title,
           sector,
           problem,
