@@ -128,11 +128,12 @@ export default function Home() {
   }
 
   // ── Unauthenticated ───────────────────────────────────────────────────────
-  if (currentPage === 'waitlist')      return <WaitlistForm navigate={navigate} />;
-  if (currentPage === 'login' || currentPage === 'partner-login' || currentPage === 'idea-owner-login') {
-    return <LoginPage navigate={navigate} />;
+  // On the production hub domain, redirect logged-out visitors to the main site
+  if (typeof window !== 'undefined' && window.location.hostname === 'app.1kleaders.com') {
+    window.location.replace('https://1kleaders.com');
+    return null;
   }
-  if (currentPage === 'onboarding')    return <OnboardingKYC navigate={navigate} />;
 
-  return <LandingPage navigate={navigate} />;
+  // On localhost / Vercel preview — show login for development
+  return <LoginPage navigate={navigate} />;
 }
