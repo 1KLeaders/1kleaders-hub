@@ -139,7 +139,7 @@ export default function QualityReview() {
 
     if (submit && review.decision) {
       const newStatus =
-        review.decision === 'approve'       ? 'Quality Approved' :
+        review.decision === 'approve'       ? 'Assigned to VEP' :
         review.decision === 'reject'        ? 'Rejected' : 'Under Quality Review';
       await supabase.from('ideas').update({ status: newStatus }).eq('id', selectedId);
       // Notify submitter
@@ -147,8 +147,8 @@ export default function QualityReview() {
       if (idea) {
         await supabase.from('notifications').insert({
           user_id:           idea.submitted_by,
-          title:             `Quality Review: ${review.decision === 'approve' ? 'Approved ✓' : review.decision === 'reject' ? 'Not Approved' : 'More Info Needed'}`,
-          message:           `Your idea "${idea.title}" has completed quality review. Status: ${newStatus}.${review.notes ? ` Reviewer notes: ${review.notes}` : ''}`,
+          title:             `Quality Review: ${review.decision === 'approve' ? 'Approved — Assigned to VEP ✓' : review.decision === 'reject' ? 'Not Approved' : 'More Info Needed'}`,
+          message:           `Your idea "${idea.title}" has passed quality review and has been assigned to the Venture Evaluation Panel.${review.notes ? ' Reviewer notes: ' + review.notes : ''}`,
           notification_type: review.decision === 'approve' ? 'success' : review.decision === 'reject' ? 'warning' : 'info',
           is_read:           false,
         });
