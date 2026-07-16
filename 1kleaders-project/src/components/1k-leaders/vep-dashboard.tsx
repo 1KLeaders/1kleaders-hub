@@ -205,15 +205,30 @@ export default function VEPDashboard() {
       status:             'submitted',
     }, { onConflict: 'idea_id,evaluator_id' }).select().single();
 
-    // Update the idea's vep_score with the total, and advance status
+    // Update the idea's vep_score and advance status based on recommendation
     if (data) {
       const total = (eval_.score_product ?? 0) + (eval_.score_market ?? 0) +
                     (eval_.score_competitive ?? 0) + (eval_.score_business ?? 0);
+      const newStatus = eval_.recommendation === 'Move to MAB' ? 'Moved to MAB' : 'VEP Complete';
       await supabase.from('ideas').update({
         vep_score: total,
-        status: 'VEP Complete',
+        status:    newStatus,
         updated_at: new Date().toISOString(),
       }).eq('id', selectedId);
+
+      // Notify submitter if moving to MAB
+      if (eval_.recommendation === 'Move to MAB') {
+        const { data: idea } = await supabase.from('ideas').select('submitted_by, title').eq('id', selectedId).single();
+        if (idea) {
+          await supabase.from('notifications').insert({
+            user_id:           idea.submitted_by,
+            title:             'Your Idea Has Been Recommended for MAB Review 🎉',
+            message:           `Congratulations! Your idea "${idea.title}" has successfully passed VEP evaluation and has been recommended to the Management Advisory Board for final review.`,
+            notification_type: 'success',
+            is_read:           false,
+          });
+        }
+      }
     }
 
     setSaving(false);
