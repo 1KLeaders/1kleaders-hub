@@ -128,12 +128,5 @@ export default function Home() {
   }
 
   // ── Unauthenticated ───────────────────────────────────────────────────────
-  // On the production hub domain, redirect logged-out visitors to the main site
-  if (typeof window !== 'undefined' && window.location.hostname === 'app.1kleaders.com') {
-    window.location.replace('https://1kleaders.com');
-    return null;
-  }
-
-  // On localhost / Vercel preview — show login for development
   return <LoginPage navigate={navigate} />;
 }
