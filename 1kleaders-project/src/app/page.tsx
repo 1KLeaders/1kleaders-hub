@@ -51,7 +51,7 @@ const dashboardPages: Page[] = [
   'partners', 'settings', 'notifications', 'profile', 'calendar',
   'discussion-rooms', 'ai-assistant', 'newsletter-tracking',
   'vep-dashboard', 'mab-dashboard', 'recommendations', 'admin-dashboard',
-  'startup-page', 'bug-report', 'onboarding-tracker', 'cohort-management', 'onboarding', 'quality-review',
+  'startup-page', 'bug-report', 'onboarding-tracker', 'cohort-management', 'onboarding', 'quality-review', 'contributions', 'demo-day',
 ];
 
 export default function Home() {
