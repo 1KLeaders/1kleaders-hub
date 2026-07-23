@@ -189,46 +189,48 @@ export default function VEPDashboard() {
   async function submitEvaluation() {
     if (!profile || !selectedId) return;
     setSaving(true);
-    const { data } = await supabase.from('vep_evaluations').upsert({
-      idea_id:            selectedId,
-      evaluator_id:       profile.id,
-      score_product:      eval_.score_product,
-      score_market:       eval_.score_market,
-      score_competitive:  eval_.score_competitive,
-      score_business:     eval_.score_business,
-      comment_product:    eval_.comment_product || null,
-      comment_market:     eval_.comment_market || null,
-      comment_competitive:eval_.comment_competitive || null,
-      comment_business:   eval_.comment_business || null,
-      overall_comment:    eval_.overall_comment || null,
-      recommendation:     eval_.recommendation || null,
-      status:             'submitted',
-    }, { onConflict: 'idea_id,evaluator_id' }).select().single();
 
-    // Update the idea's vep_score and advance status based on recommendation
-    if (data) {
-      const total = (eval_.score_product ?? 0) + (eval_.score_market ?? 0) +
-                    (eval_.score_competitive ?? 0) + (eval_.score_business ?? 0);
-      const newStatus = eval_.recommendation === 'Move to MAB' ? 'Moved to MAB' : 'VEP Complete';
-      await supabase.from('ideas').update({
-        vep_score: total,
-        status:    newStatus,
-        updated_at: new Date().toISOString(),
-      }).eq('id', selectedId);
+    await supabase.from('vep_evaluations').upsert({
+      idea_id:             selectedId,
+      evaluator_id:        profile.id,
+      score_product:       eval_.score_product,
+      score_market:        eval_.score_market,
+      score_competitive:   eval_.score_competitive,
+      score_business:      eval_.score_business,
+      comment_product:     eval_.comment_product || null,
+      comment_market:      eval_.comment_market || null,
+      comment_competitive: eval_.comment_competitive || null,
+      comment_business:    eval_.comment_business || null,
+      overall_comment:     eval_.overall_comment || null,
+      recommendation:      eval_.recommendation || null,
+      status:              'submitted',
+    }, { onConflict: 'idea_id,evaluator_id' });
 
-      // Notify submitter if moving to MAB
-      if (eval_.recommendation === 'Move to MAB') {
-        const { data: idea } = await supabase.from('ideas').select('submitted_by, title').eq('id', selectedId).single();
-        if (idea) {
-          await supabase.from('notifications').insert({
-            user_id:           idea.submitted_by,
-            title:             'Your Idea Has Been Recommended for MAB Review 🎉',
-            message:           `Congratulations! Your idea "${idea.title}" has successfully passed VEP evaluation and has been recommended to the Management Advisory Board for final review.`,
-            notification_type: 'success',
-            is_read:           false,
-          });
-        }
+    // Always update the idea status — don't depend on upsert returning data
+    const total = (eval_.score_product ?? 0) + (eval_.score_market ?? 0) +
+                  (eval_.score_competitive ?? 0) + (eval_.score_business ?? 0);
+    const newStatus = eval_.recommendation === 'Move to MAB' ? 'Moved to MAB' : 'VEP Complete';
+
+    await supabase.from('ideas').update({
+      vep_score:  total,
+      status:     newStatus,
+      updated_at: new Date().toISOString(),
+    }).eq('id', selectedId);
+
+    // Notify submitter if moving to MAB
+    if (eval_.recommendation === 'Move to MAB') {
+      const { data: idea } = await supabase
+        .from('ideas').select('submitted_by, title').eq('id', selectedId).single();
+      if (idea) {
+        await supabase.from('notifications').insert({
+          user_id:           idea.submitted_by,
+          title:             'Your Idea Has Been Recommended for MAB Review 🎉',
+          message:           `Congratulations! Your idea "${idea.title}" has successfully passed VEP evaluation and has been recommended to the Management Advisory Board for final review.`,
+          notification_type: 'success',
+          is_read:           false,
+        });
       }
+    }
     }
 
     setSaving(false);

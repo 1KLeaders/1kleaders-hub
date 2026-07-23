@@ -67,6 +67,13 @@ export default function CalendarPage({ role }: Props) {
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear,  setCurrentYear]  = useState(today.getFullYear());
   const [selectedDay,  setSelectedDay]  = useState<number | null>(null);
+  const [teamsConnected, setTeamsConnected] = useState(false);
+
+  // Check if Teams is connected
+  useEffect(() => {
+    supabase.from('teams_connections').select('id').eq('connected', true).limit(1).maybeSingle()
+      .then(({ data }) => setTeamsConnected(!!data));
+  }, []);
 
   // Events from Supabase
   const [events,        setEvents]        = useState<CalendarEvent[]>([]);
@@ -186,11 +193,38 @@ export default function CalendarPage({ role }: Props) {
   const saveNewEvent = async () => {
     if (!profile || !newTitle.trim() || !newDate) return;
     setSavingEvent(true);
+
+    // Auto-create Teams meeting if event type is 'meeting'
+    let teamsJoinUrl: string | null = null;
+    if (newType === 'meeting' && newDate && newTime) {
+      try {
+        const startDT = new Date(`${newDate}T${newTime}`).toISOString();
+        const res = await fetch('/api/teams/create-meeting', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title:          newTitle.trim(),
+            start_datetime: startDT,
+            description:    newDesc.trim() || null,
+          }),
+        });
+        const data = await res.json();
+        if (data.join_url) teamsJoinUrl = data.join_url;
+      } catch (e) {
+        console.warn('Teams meeting creation failed (non-fatal):', e);
+      }
+    }
+
     const { data } = await supabase.from('calendar_events').insert({
-      title: newTitle.trim(), date: newDate, time: newTime || 'All Day',
-      type: newType, location: newLocation.trim() || 'TBD',
-      description: newDesc.trim() || null, created_by: profile.id,
+      title:       newTitle.trim(),
+      date:        newDate,
+      time:        newTime || 'All Day',
+      type:        newType,
+      location:    teamsJoinUrl ? 'Microsoft Teams' : (newLocation.trim() || 'TBD'),
+      description: [newDesc.trim(), teamsJoinUrl ? `Teams link: ${teamsJoinUrl}` : null].filter(Boolean).join('\n') || null,
+      created_by:  profile.id,
     }).select().single();
+
     if (data) setEvents(prev => [...prev, data as CalendarEvent]);
     setNewTitle(''); setNewDate(''); setNewTime(''); setNewLocation(''); setNewDesc('');
     setShowNewEvent(false);
@@ -211,13 +245,22 @@ export default function CalendarPage({ role }: Props) {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {(role === 'super-admin' || role === 'developer') && (
-            <Button variant="outline" size="sm" className="border-[#5059C9] text-[#5059C9] hover:bg-[#5059C9]/5 gap-2"
-              onClick={() => window.location.href = '/api/teams/auth'}>
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M20.625 5.4h-3.937V3.375A1.125 1.125 0 0015.563 2.25h-7.5a1.125 1.125 0 00-1.125 1.125V5.4H2.812a.563.563 0 00-.562.563v8.625a3.375 3.375 0 003.375 3.375h.938a5.625 5.625 0 005.437 4.125 5.625 5.625 0 005.438-4.125h.937A3.375 3.375 0 0021.75 14.25V5.963a.563.563 0 00-.563-.563zm-9 13.35a4.5 4.5 0 110-9 4.5 4.5 0 010 9z"/>
-              </svg>
-              Connect Teams
-            </Button>
+            teamsConnected ? (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#5059C9]/10 border border-[#5059C9]/20 rounded-lg text-xs font-medium text-[#5059C9]">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20.625 5.4h-3.937V3.375A1.125 1.125 0 0015.563 2.25h-7.5a1.125 1.125 0 00-1.125 1.125V5.4H2.812a.563.563 0 00-.562.563v8.625a3.375 3.375 0 003.375 3.375h.938a5.625 5.625 0 005.437 4.125 5.625 5.625 0 005.438-4.125h.937A3.375 3.375 0 0021.75 14.25V5.963a.563.563 0 00-.563-.563zm-9 13.35a4.5 4.5 0 110-9 4.5 4.5 0 010 9z"/>
+                </svg>
+                Teams Connected ✓
+              </div>
+            ) : (
+              <Button variant="outline" size="sm" className="border-[#5059C9] text-[#5059C9] hover:bg-[#5059C9]/5 gap-2"
+                onClick={() => window.location.href = '/api/teams/auth'}>
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20.625 5.4h-3.937V3.375A1.125 1.125 0 0015.563 2.25h-7.5a1.125 1.125 0 00-1.125 1.125V5.4H2.812a.563.563 0 00-.562.563v8.625a3.375 3.375 0 003.375 3.375h.938a5.625 5.625 0 005.437 4.125 5.625 5.625 0 005.438-4.125h.937A3.375 3.375 0 0021.75 14.25V5.963a.563.563 0 00-.563-.563zm-9 13.35a4.5 4.5 0 110-9 4.5 4.5 0 010 9z"/>
+                </svg>
+                Connect Teams
+              </Button>
+            )
           )}
           <Button size="sm" variant="outline" onClick={fetchData} disabled={loading}>
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
