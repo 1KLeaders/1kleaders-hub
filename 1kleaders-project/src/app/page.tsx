@@ -128,5 +128,6 @@ export default function Home() {
   }
 
   // ── Unauthenticated ───────────────────────────────────────────────────────
+  if (currentPage === 'waitlist') return <WaitlistForm navigate={navigate} />;
   return <LoginPage navigate={navigate} />;
 }
