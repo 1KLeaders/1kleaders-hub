@@ -77,6 +77,7 @@ function EmailChangeSection() {
 
 export default function SettingsPage() {
   const { profile, refreshProfile } = useAuth();
+  const { theme, setTheme, resolvedTheme } = useTheme();
 
   // Profile fields
   const [firstName,    setFirstName]    = useState('');
