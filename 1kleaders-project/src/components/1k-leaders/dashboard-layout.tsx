@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   LayoutDashboard, FileText, Users, Settings, Bell, Handshake, Lightbulb, LogOut,
   Menu, X, ChevronRight, FolderOpen, Calendar, MessageSquare, Bot, BarChart3,
-  Mail, Star, Shield, MessageCircle, FileCheck, ClipboardList, Briefcase,
+  Mail, Star, Shield, MessageCircle, FileCheck, ClipboardList, Briefcase, Award, Rocket,
 } from 'lucide-react';
 import type { Page, DashboardRole } from './types';
 import { roleBadgeConfig } from './types';
@@ -156,6 +156,14 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
               <button onClick={() => handleNav('quality-review')}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'quality-review' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
                 <ClipboardList className="w-4 h-4" />Quality Review
+              </button>
+              <button onClick={() => handleNav('demo-day')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'demo-day' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
+                <Rocket className="w-4 h-4" />Demo Day
+              </button>
+              <button onClick={() => handleNav('contributions')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'contributions' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
+                <Award className="w-4 h-4" />Contributions
               </button>
               <button onClick={() => handleNav('newsletter-tracking')}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'newsletter-tracking' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>

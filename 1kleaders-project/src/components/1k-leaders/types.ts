@@ -26,6 +26,8 @@ export type Page =
   | 'onboarding-tracker'
   | 'cohort-management'
   | 'quality-review'
+  | 'contributions'
+  | 'demo-day'
   | 'recommendations';
 
 // Main access roles — controls what pages/nav items a user sees
