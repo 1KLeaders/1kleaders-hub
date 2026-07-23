@@ -81,7 +81,7 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
   const isMAB = isAdmin;
 
   return (
-    <div className="min-h-screen flex bg-[#f6f6f6]" style={{ fontFamily: 'var(--font-manrope), Manrope, sans-serif' }}>
+    <div className="min-h-screen flex bg-[#f6f6f6] dark:bg-[#0f0f0f]" style={{ fontFamily: 'var(--font-manrope), Manrope, sans-serif' }}>
       {sidebarOpen && <div className="fixed inset-0 bg-black/30 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#141414] flex flex-col h-screen transform transition-transform lg:transform-none lg:translate-x-0 lg:sticky lg:top-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
@@ -210,12 +210,12 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#f0f0f0] px-4 lg:px-6 h-14 flex items-center gap-4">
-          <button className="lg:hidden" onClick={() => setSidebarOpen(true)}><Menu className="w-5 h-5" /></button>
-          <div className="flex items-center gap-2 text-sm text-[#7e7e7e]">
+        <header className="sticky top-0 z-30 bg-white/90 dark:bg-[#1a1a1a]/95 backdrop-blur-md border-b border-[#f0f0f0] dark:border-white/10 px-4 lg:px-6 h-14 flex items-center gap-4">
+          <button className="lg:hidden" onClick={() => setSidebarOpen(true)}><Menu className="w-5 h-5 text-[#222] dark:text-[#f0f0f0]" /></button>
+          <div className="flex items-center gap-2 text-sm text-[#7e7e7e] dark:text-[#888]">
             <span>Dashboard</span>
             <ChevronRight className="w-3 h-3" />
-            <span className="text-[#222] font-medium">{roleLabels[role]}</span>
+            <span className="text-[#222] dark:text-[#f0f0f0] font-medium">{roleLabels[role]}</span>
           </div>
           <div className="ml-auto flex items-center gap-3">
             {badgeInfo && (
@@ -223,11 +223,11 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
                 {badgeInfo.icon} {badgeInfo.label}
               </span>
             )}
-            <button onClick={() => handleNav('notifications')} className="relative p-2 hover:bg-[#f6f6f6] rounded-lg transition">
-              <Bell className="w-5 h-5 text-[#555353]" />
+            <button onClick={() => handleNav('notifications')} className="relative p-2 hover:bg-[#f6f6f6] dark:hover:bg-white/10 rounded-lg transition">
+              <Bell className="w-5 h-5 text-[#555353] dark:text-[#aaa]" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-[#e33b5f] rounded-full" />
             </button>
-            <button onClick={() => handleNav('ai-assistant')} className="p-2 hover:bg-[#e33b5f]/5 rounded-lg transition" title="AI Assistant">
+            <button onClick={() => handleNav('ai-assistant')} className="p-2 hover:bg-[#e33b5f]/10 dark:hover:bg-[#e33b5f]/20 rounded-lg transition" title="AI Assistant">
               <Bot className="w-5 h-5 text-[#e33b5f]" />
             </button>
             <button onClick={() => handleNav('profile')}>
@@ -236,7 +236,7 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
           </div>
         </header>
 
-        <main className="flex-1 p-4 lg:p-6">{children}</main>
+        <main className="flex-1 p-4 lg:p-6 dark:bg-[#0f0f0f]">{children}</main>
       </div>
     </div>
   );
