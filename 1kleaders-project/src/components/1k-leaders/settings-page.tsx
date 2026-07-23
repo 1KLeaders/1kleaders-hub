@@ -9,8 +9,9 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { User, Lock, Bell, Shield, Save, Loader2, Check, Eye, EyeOff, AlertCircle, X } from 'lucide-react';
+import { User, Lock, Bell, Shield, Save, Loader2, Check, Eye, EyeOff, AlertCircle, X, Moon, Sun, Monitor } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
+import { useTheme } from '@/context/theme-context';
 import { supabase } from '@/lib/supabase';
 
 const industries = [
@@ -193,6 +194,7 @@ export default function SettingsPage() {
             { value: 'profile',       label: 'Profile',       icon: User },
             { value: 'account',       label: 'Account',       icon: Lock },
             { value: 'notifications', label: 'Notifications', icon: Bell },
+            { value: 'appearance',    label: 'Appearance',    icon: Monitor },
             { value: 'privacy',       label: 'Privacy',       icon: Shield },
           ].map(t => (
             <TabsTrigger key={t.value} value={t.value} className="text-xs data-[state=active]:bg-white">
@@ -398,6 +400,44 @@ export default function SettingsPage() {
               <Button className="bg-[#e33b5f] hover:bg-[#c02d4f] text-white" onClick={saveProfile} disabled={saving}>
                 {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</> : <><Save className="w-4 h-4 mr-2" />Save Preferences</>}
               </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Appearance Tab ── */}
+        <TabsContent value="appearance">
+          <Card>
+            <CardHeader><CardTitle className="text-base">Appearance</CardTitle></CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <p className="text-sm font-semibold text-[#222] dark:text-[#f0f0f0] mb-3">Theme</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {([
+                    { key: 'light',  label: 'Light',  icon: Sun },
+                    { key: 'dark',   label: 'Dark',   icon: Moon },
+                    { key: 'system', label: 'System', icon: Monitor },
+                  ] as { key: 'light' | 'dark' | 'system'; label: string; icon: any }[]).map(({ key, label, icon: Icon }) => (
+                    <button key={key} onClick={() => setTheme(key)}
+                      className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition ${
+                        theme === key
+                          ? 'border-[#e33b5f] bg-[#e33b5f]/5'
+                          : 'border-[#f0f0f0] dark:border-[#2a2a2a] hover:border-[#e33b5f]/40'
+                      }`}>
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        theme === key ? 'bg-[#e33b5f] text-white' : 'bg-[#f6f6f6] dark:bg-[#222] text-[#555353] dark:text-[#888]'
+                      }`}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <span className={`text-sm font-medium ${theme === key ? 'text-[#e33b5f]' : 'text-[#555353] dark:text-[#888]'}`}>{label}</span>
+                      {theme === key && <Check className="w-3.5 h-3.5 text-[#e33b5f]" />}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-[#9e9e9e] mt-3">
+                  Current: {resolvedTheme === 'dark' ? '🌙 Dark' : '☀️ Light'} mode
+                  {theme === 'system' ? ' (following system setting)' : ''}
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

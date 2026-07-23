@@ -8,11 +8,12 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   LayoutDashboard, FileText, Users, Settings, Bell, Handshake, Lightbulb, LogOut,
   Menu, X, ChevronRight, FolderOpen, Calendar, MessageSquare, Bot, BarChart3,
-  Mail, Star, Shield, MessageCircle, FileCheck, ClipboardList, Briefcase, Award, Rocket,
+  Mail, Star, Shield, MessageCircle, FileCheck, ClipboardList, Briefcase, Award, Rocket, Moon, Sun,
 } from 'lucide-react';
 import type { Page, DashboardRole } from './types';
 import { roleBadgeConfig } from './types';
 import { useAuth } from '@/context/auth-context';
+import { useTheme } from '@/context/theme-context';
 
 interface Props {
   navigate:       (page: Page) => void;

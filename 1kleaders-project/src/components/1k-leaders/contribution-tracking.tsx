@@ -157,21 +157,21 @@ export default function ContributionTracking({ role }: Props) {
 
       {/* Level card */}
       <Card className="border-[#f0f0f0] overflow-hidden">
-        <div className="bg-gradient-to-r from-[#111] to-[#333] p-6 text-white">
+        <div className="bg-gradient-to-r from-[#e33b5f] to-[#c02d4f] p-6 text-white">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <p className="text-white/60 text-sm mb-1">Your Partner Level</p>
+              <p className="text-white/80 text-sm mb-1">Your Partner Level</p>
               <div className="flex items-center gap-3">
                 <Badge className={`text-sm px-3 py-1 border font-bold ${level.color}`}>
                   <Star className="w-3.5 h-3.5 mr-1.5" />{level.name}
                 </Badge>
                 <span className="text-2xl font-bold">{totalPoints} pts</span>
               </div>
-              {pendingPoints > 0 && <p className="text-white/50 text-xs mt-1">+{pendingPoints} pts pending verification</p>}
+              {pendingPoints > 0 && <p className="text-white/70 text-xs mt-1">+{pendingPoints} pts pending verification</p>}
             </div>
             {nextLevel && (
               <div className="text-right">
-                <p className="text-white/60 text-xs mb-1">Next: {nextLevel.name} at {nextLevel.min} pts</p>
+                <p className="text-white/70 text-xs mb-1">Next: {nextLevel.name} at {nextLevel.min} pts</p>
                 <p className="text-white font-bold">{nextLevel.min - totalPoints} pts to go</p>
               </div>
             )}
@@ -179,7 +179,7 @@ export default function ContributionTracking({ role }: Props) {
           {nextLevel && (
             <div className="mt-4">
               <Progress value={progress} className="h-2 bg-white/20" />
-              <div className="flex justify-between mt-1 text-xs text-white/40">
+              <div className="flex justify-between mt-1 text-xs text-white/60">
                 <span>{level.min}</span><span>{nextLevel.min}</span>
               </div>
             </div>
