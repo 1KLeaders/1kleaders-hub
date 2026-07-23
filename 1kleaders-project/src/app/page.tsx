@@ -27,6 +27,8 @@ import StartupPage from '@/components/1k-leaders/startup-page';
 import BugReportPage from '@/components/1k-leaders/bug-report-page';
 import CohortManagement from '@/components/1k-leaders/cohort-management';
 import QualityReview from '@/components/1k-leaders/quality-review';
+import ContributionTracking from '@/components/1k-leaders/contribution-tracking';
+import DemoDayPage from '@/components/1k-leaders/demo-day-page';
 import MABEvaluation from '@/components/1k-leaders/mab-evaluation';
 import OnboardingTracker from '@/components/1k-leaders/onboarding-tracker';
 
@@ -102,7 +104,9 @@ export default function Home() {
         case 'admin-dashboard':   return <SuperAdminDashboard onNavigate={navigate} />;
         case 'onboarding-tracker': return <OnboardingTracker />;
         case 'cohort-management':   return <CohortManagement />;
-        case 'quality-review':     return <QualityReview />;
+        case 'quality-review':       return <QualityReview />;
+        case 'contributions':        return <ContributionTracking role={role} />;
+        case 'demo-day':             return <DemoDayPage role={role} />;
         case 'startup-page':      return <StartupPage />;
         case 'bug-report':        return <BugReportPage />;
         case 'onboarding':        return <OnboardingKYC navigate={navigate} />;
