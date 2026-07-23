@@ -231,7 +231,6 @@ export default function VEPDashboard() {
         });
       }
     }
-    }
 
     setSaving(false);
     setSelectedId(null);
