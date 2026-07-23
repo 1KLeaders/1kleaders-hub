@@ -1,55 +1,19 @@
 
-/* ── Dark mode hover state fixes ───────────────────────────── */
-/* Prevent bright white flash on hover in dark mode */
-.dark .hover\:bg-white:hover            { background-color: #2a2a2a !important; }
-.dark .hover\:bg-gray-50:hover          { background-color: #1e1e1e !important; }
-.dark .hover\:bg-gray-100:hover         { background-color: #252525 !important; }
-.dark .hover\:bg-\[\#f6f6f6\]:hover    { background-color: #252525 !important; }
-.dark .hover\:bg-\[\#fafafa\]:hover     { background-color: #1e1e1e !important; }
+/* ── Dark mode hover fixes — targeted only ──────────────────── */
+/* Topbar hover buttons */
+.dark header button:hover { background-color: rgba(255,255,255,0.08) !important; }
 
-/* Button variants in dark mode */
-.dark button:not([class*="bg-[#e33b5f]"]):not([class*="bg-emerald"]):not([class*="bg-red"]):not([class*="bg-amber"]):not([class*="bg-blue"]):not([class*="bg-gradient"]):not([class*="bg-\[#141414\]"]):hover {
-  background-color: #2a2a2a;
-}
+/* Page content hover rows */
+.dark main .hover\:bg-\[\#f6f6f6\]:hover,
+.dark main .hover\:bg-\[\#fafafa\]:hover  { background-color: #252525 !important; }
 
-/* shadcn Button outline variant */
-.dark .border.bg-background:hover,
-.dark [class*="border-input"]:hover {
-  background-color: #252525 !important;
-}
-
-/* Card hover */
-.dark .hover\:shadow-md:hover,
-.dark .hover\:shadow-sm:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
-}
-
-/* Input focus ring in dark mode */
-.dark input:focus, .dark textarea:focus {
-  border-color: #e33b5f !important;
-  outline: none;
-}
-
-/* Dropdown / Select content in dark mode */
-.dark [role="listbox"],
-.dark [role="option"],
-.dark [data-radix-select-viewport] {
+/* shadcn Select / Dropdown menus */
+.dark [data-radix-popper-content-wrapper] > div {
   background-color: #1a1a1a !important;
   border-color: #2a2a2a !important;
   color: #f0f0f0 !important;
 }
 
-/* Tabs in dark mode */
-.dark [role="tablist"] {
-  background-color: #1e1e1e !important;
-}
-.dark [role="tab"][data-state="active"] {
-  background-color: #2a2a2a !important;
-  color: #f0f0f0 !important;
-}
-.dark [role="tab"]:hover {
-  background-color: #252525 !important;
-}
-
-/* Badge secondary in dark mode */
-.dark .bg-secondary { background-color: #252525 !important; color: #aaa !important; }
+/* shadcn Tabs list */
+.dark [role="tablist"] { background-color: #1e1e1e !important; }
+.dark [role="tab"][data-state="active"] { background-color: #2a2a2a !important; color: #f0f0f0 !important; }
