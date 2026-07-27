@@ -63,14 +63,22 @@ export default function ContributionTracking({ role }: Props) {
   const [saving,        setSaving]        = useState(false);
 
   // Form
-  const [cType,   setCType]   = useState('meeting');
-  const [cDesc,   setCDesc]   = useState('');
-  const [cHours,  setCHours]  = useState('');
-  const [cDate,   setCDate]   = useState(new Date().toISOString().slice(0, 10));
+  const [cType,      setCType]   = useState('meeting');
+  const [cDesc,      setCDesc]   = useState('');
+  const [cHours,     setCHours]  = useState('');
+  const [cDate,      setCDate]   = useState(new Date().toISOString().slice(0, 10));
+  const [cUserId,    setCUserId] = useState('');
+  const [partners,   setPartners] = useState<{id: string; name: string}[]>([]);
 
   async function fetchContributions() {
     if (!profile) return;
     setLoading(true);
+
+    // Fetch partners list for admin log form
+    if (isAdmin) {
+      const { data: pp } = await supabase.from('profiles').select('id, first_name, last_name').order('first_name');
+      setPartners((pp ?? []).map((p: any) => ({ id: p.id, name: `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim() || p.id })));
+    }
 
     // Own contributions
     const { data: own } = await supabase
@@ -107,7 +115,7 @@ export default function ContributionTracking({ role }: Props) {
     const points = cType === 'hours' && hoursNum ? Math.round(hoursNum * basePoints) : basePoints;
 
     await supabase.from('contributions').insert({
-      user_id:     profile.id,
+      user_id:     (isAdmin && cUserId) ? cUserId : profile.id,
       type:        cType,
       description: cDesc.trim(),
       hours:       hoursNum,
@@ -150,7 +158,7 @@ export default function ContributionTracking({ role }: Props) {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
           <Button className="bg-[#e33b5f] text-white" onClick={() => setShowForm(v => !v)}>
-            {showForm ? <><X className="w-4 h-4 mr-1" />Cancel</> : <><Plus className="w-4 h-4 mr-1" />Log Contribution</>}
+  {showForm ? <><X className="w-4 h-4 mr-1" />Cancel</> : <><Plus className="w-4 h-4 mr-1" />{isAdmin ? 'Log Contribution' : 'View My Contributions'}</>}
           </Button>
         </div>
       </div>
@@ -207,7 +215,7 @@ export default function ContributionTracking({ role }: Props) {
       {/* Log form */}
       {showForm && (
         <Card className="border-[#e33b5f]/20 bg-[#e33b5f]/5">
-          <CardHeader className="pb-3"><CardTitle className="text-base text-[#e33b5f]">Log a Contribution</CardTitle></CardHeader>
+          <CardHeader className="pb-3"><CardTitle className="text-base text-[#e33b5f]">Log Partner Contribution</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="grid sm:grid-cols-2 gap-4">
               <div>

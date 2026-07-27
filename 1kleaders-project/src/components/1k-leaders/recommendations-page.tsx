@@ -34,7 +34,7 @@ const CATEGORIES = [
 ];
 
 const QUICK_PROMPTS = [
-  { icon: Lightbulb,  text: 'Help me refine my startup idea',       color: 'text-[#f07969]' },
+  { icon: Lightbulb,  text: 'Help me refine my startup idea',       color: 'text-[#f07969]', redirect: 'idea-submission' },
   { icon: TrendingUp, text: 'What sectors are trending in MENA?',   color: 'text-[#e33b5f]' },
   { icon: Target,     text: 'Evaluate my idea using VEP criteria',  color: 'text-purple-600' },
   { icon: Sparkles,   text: 'Generate a business model canvas',     color: 'text-sky-600' },
@@ -63,7 +63,7 @@ function ImportanceStars({ value, onChange }: { value: number; onChange?: (v: nu
   );
 }
 
-export default function RecommendationsPage() {
+export default function RecommendationsPage({ navigate }: { navigate?: (page: string) => void }) {
   const { profile } = useAuth();
   const [view, setView] = useState<'chat' | 'new-rec' | 'history'>('chat');
 
@@ -431,7 +431,8 @@ export default function RecommendationsPage() {
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {QUICK_PROMPTS.map((p, i) => (
                   <button key={i} onClick={() => sendMessage(p.text)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-[#f0f0f0] hover:border-[#e33b5f]/50 hover:bg-[#e33b5f]/5 transition whitespace-nowrap">
+                    onClick={() => (p as any).redirect ? navigate?.((p as any).redirect) : sendMessage(p.text)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-[#f0f0f0] hover:border-[#e33b5f]/50 hover:bg-[#e33b5f]/5 transition whitespace-nowrap">
                     <p.icon className={`w-3 h-3 ${p.color}`} />{p.text}
                   </button>
                 ))}

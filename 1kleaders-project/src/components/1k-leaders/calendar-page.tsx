@@ -68,11 +68,23 @@ export default function CalendarPage({ role }: Props) {
   const [currentYear,  setCurrentYear]  = useState(today.getFullYear());
   const [selectedDay,  setSelectedDay]  = useState<number | null>(null);
   const [teamsConnected, setTeamsConnected] = useState(false);
+  const [syncing,        setSyncing]        = useState(false);
+  const [syncMsg,        setSyncMsg]        = useState('');
+  const [attendanceData, setAttendanceData] = useState<any>(null);
+  const [loadingAttendance, setLoadingAttendance] = useState(false);
+  const [partners,       setPartners]       = useState<{id: string; name: string; email: string}[]>([]);
+  const [invitees,       setInvitees]       = useState<string[]>([]);
 
   // Check if Teams is connected
   useEffect(() => {
     supabase.from('teams_connections').select('id').eq('connected', true).limit(1).maybeSingle()
       .then(({ data }) => setTeamsConnected(!!data));
+    supabase.from('profiles').select('id, first_name, last_name, email').order('first_name')
+      .then(({ data }) => setPartners((data ?? []).map((p: any) => ({
+        id: p.id,
+        name: `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim() || p.email,
+        email: p.email,
+      }))));
   }, []);
 
   // Events from Supabase
@@ -190,6 +202,45 @@ export default function CalendarPage({ role }: Props) {
     setShowNewVoteDialog(false);
   };
 
+  const syncTeams = async () => {
+    setSyncing(true); setSyncMsg('');
+    try {
+      const res = await fetch('/api/teams/sync-calendar');
+      const data = await res.json();
+      if (data.error) setSyncMsg('Sync failed: ' + data.error);
+      else { setSyncMsg(`Synced ${data.synced} meetings from Teams`); fetchEvents(); }
+    } catch { setSyncMsg('Sync failed — check connection'); }
+    setSyncing(false);
+    setTimeout(() => setSyncMsg(''), 4000);
+  };
+
+  const fetchAttendance = async (teamsEventId: string) => {
+    setLoadingAttendance(true); setAttendanceData(null);
+    const res = await fetch('/api/teams/attendance?meetingId=' + encodeURIComponent(teamsEventId));
+    const data = await res.json();
+    setAttendanceData(data);
+    setLoadingAttendance(false);
+  };
+
+  const downloadAttendance = (data: any) => {
+    const rows = [
+      ['Name', 'Email', 'Join Time', 'Leave Time', 'Duration (min)', 'Role'],
+      ...(data.attendees ?? []).map((a: any) => [
+        a.name, a.email,
+        a.joinTime ? new Date(a.joinTime).toLocaleString() : '',
+        a.leaveTime ? new Date(a.leaveTime).toLocaleString() : '',
+        a.duration ? Math.round(a.duration / 60) : '',
+        a.role ?? '',
+      ]),
+    ];
+    const csv = rows.map(r => r.map((v: any) => `"${v}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'attendance.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const saveNewEvent = async () => {
     if (!profile || !newTitle.trim() || !newDate) return;
     setSavingEvent(true);
@@ -223,10 +274,11 @@ export default function CalendarPage({ role }: Props) {
       location:    teamsJoinUrl ? 'Microsoft Teams' : (newLocation.trim() || 'TBD'),
       description: [newDesc.trim(), teamsJoinUrl ? `Teams link: ${teamsJoinUrl}` : null].filter(Boolean).join('\n') || null,
       created_by:  profile.id,
+      invitees:    invitees.length > 0 ? invitees : null,
     }).select().single();
 
     if (data) setEvents(prev => [...prev, data as CalendarEvent]);
-    setNewTitle(''); setNewDate(''); setNewTime(''); setNewLocation(''); setNewDesc('');
+    setNewTitle(''); setNewDate(''); setNewTime(''); setNewLocation(''); setNewDesc(''); setInvitees([]);
     setShowNewEvent(false);
     setSavingEvent(false);
   };
@@ -246,11 +298,18 @@ export default function CalendarPage({ role }: Props) {
         <div className="flex items-center gap-2 flex-wrap">
           {(role === 'super-admin' || role === 'developer') && (
             teamsConnected ? (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#5059C9]/10 border border-[#5059C9]/20 rounded-lg text-xs font-medium text-[#5059C9]">
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" className="border-[#5059C9] text-[#5059C9] hover:bg-[#5059C9]/5 gap-1.5 text-xs h-8"
+                  onClick={syncTeams} disabled={syncing}>
+                  {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                  Sync Teams
+                </Button>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#5059C9]/10 border border-[#5059C9]/20 rounded-lg text-xs font-medium text-[#5059C9]">
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M20.625 5.4h-3.937V3.375A1.125 1.125 0 0015.563 2.25h-7.5a1.125 1.125 0 00-1.125 1.125V5.4H2.812a.563.563 0 00-.562.563v8.625a3.375 3.375 0 003.375 3.375h.938a5.625 5.625 0 005.437 4.125 5.625 5.625 0 005.438-4.125h.937A3.375 3.375 0 0021.75 14.25V5.963a.563.563 0 00-.563-.563zm-9 13.35a4.5 4.5 0 110-9 4.5 4.5 0 010 9z"/>
                 </svg>
                 Teams Connected ✓
+                </div>
               </div>
             ) : (
               <Button variant="outline" size="sm" className="border-[#5059C9] text-[#5059C9] hover:bg-[#5059C9]/5 gap-2"
@@ -331,6 +390,27 @@ export default function CalendarPage({ role }: Props) {
               <div><Label className="text-sm">Location</Label><Input className="mt-1 border-[#f0f0f0]" placeholder="e.g. Board Room" value={newLocation} onChange={e => setNewLocation(e.target.value)} /></div>
             </div>
             <div><Label className="text-sm">Description (optional)</Label><Input className="mt-1 border-[#f0f0f0]" value={newDesc} onChange={e => setNewDesc(e.target.value)} /></div>
+            <div>
+              <Label className="text-sm">Invite Partners (optional)</Label>
+              <div className="mt-1 flex flex-wrap gap-1.5 p-2 border border-[#f0f0f0] rounded-lg min-h-[40px]">
+                {invitees.map(id => {
+                  const p = partners.find(p => p.id === id);
+                  return (
+                    <span key={id} className="flex items-center gap-1 bg-[#e33b5f]/10 text-[#e33b5f] text-xs px-2 py-0.5 rounded-full">
+                      {p?.name ?? id}
+                      <button onClick={() => setInvitees(prev => prev.filter(i => i !== id))} className="hover:text-red-600">×</button>
+                    </span>
+                  );
+                })}
+                <select className="text-xs border-0 bg-transparent text-[#9e9e9e] focus:outline-none cursor-pointer"
+                  value="" onChange={e => { if (e.target.value && !invitees.includes(e.target.value)) setInvitees(prev => [...prev, e.target.value]); }}>
+                  <option value="">+ Add person…</option>
+                  {partners.filter(p => !invitees.includes(p.id)).map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
             <Button className="bg-[#e33b5f] text-white" onClick={saveNewEvent} disabled={savingEvent || !newTitle.trim() || !newDate}>
               {savingEvent ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}Save Event
             </Button>
@@ -435,15 +515,33 @@ export default function CalendarPage({ role }: Props) {
                               <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{e.time}</span>
                               <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{e.location}</span>
                             </div>
-                            {e.description && <p className="text-xs text-[#7e7e7e] mt-1">{e.description}</p>}
-                            {isPast && e.type === 'meeting' && (
+                            {e.description && <p className="text-xs text-[#7e7e7e] mt-1 line-clamp-2">{e.description}</p>}
+                            {isPast && e.type === 'meeting' && (e as any).teams_event_id && (
                               <div className="flex gap-2 mt-2 flex-wrap">
-                                <button className="text-xs px-2 py-0.5 bg-white border border-[#e33b5f]/30 text-[#e33b5f] rounded-full hover:bg-[#e33b5f]/5 transition">
-                                  📄 Download Report
+                                <button
+                                  onClick={() => fetchAttendance((e as any).teams_event_id)}
+                                  disabled={loadingAttendance}
+                                  className="text-xs px-2 py-0.5 bg-white border border-[#e33b5f]/30 text-[#e33b5f] rounded-full hover:bg-[#e33b5f]/5 transition flex items-center gap-1">
+                                  {loadingAttendance ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : '👥'} Attendance
                                 </button>
-                                <button className="text-xs px-2 py-0.5 bg-white border border-[#f0f0f0] text-[#555353] rounded-full hover:border-[#e33b5f]/30 transition">
-                                  👥 View Attendance
-                                </button>
+                                {attendanceData && (
+                                  <button
+                                    onClick={() => downloadAttendance(attendanceData)}
+                                    className="text-xs px-2 py-0.5 bg-white border border-[#f0f0f0] text-[#555353] rounded-full hover:border-[#e33b5f]/30 transition">
+                                    📄 Download CSV
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                            {attendanceData && (e as any).teams_event_id === attendanceData.meetingId && (
+                              <div className="mt-2 bg-[#f6f6f6] rounded-lg p-2 text-xs space-y-1 max-h-32 overflow-y-auto">
+                                <p className="font-semibold text-[#222]">{attendanceData.totalParticipants} participants</p>
+                                {(attendanceData.attendees ?? []).map((a: any, i: number) => (
+                                  <div key={i} className="flex justify-between text-[#555353]">
+                                    <span>{a.name}</span>
+                                    <span>{a.duration ? Math.round(a.duration / 60) + ' min' : '—'}</span>
+                                  </div>
+                                ))}
                               </div>
                             )}
                           </div>

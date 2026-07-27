@@ -47,14 +47,11 @@ const navItems: NavItem[] = [
   { icon: Lightbulb,       label: 'Idea Submission',  page: 'idea-submission' },
   { icon: Calendar,        label: 'Calendar',         page: 'calendar' },
   { icon: MessageSquare,   label: 'Discussion Rooms', page: 'discussion-rooms', roles: ['shareholder', 'admin', 'super-admin', 'developer'] },
-  { icon: Bot,             label: 'AI Assistant',     page: 'ai-assistant' },
   { icon: FolderOpen,      label: 'Documents',        page: 'documents' },
   { icon: Handshake,       label: 'Shareholders',     page: 'partners',          roles: ['shareholder', 'admin', 'super-admin', 'developer'] },
   { icon: FileCheck,       label: 'KYC & Onboarding', page: 'onboarding',        roles: ['user', 'shareholder'] },
   { icon: BarChart3,       label: 'Idea Ranking',     page: 'idea-ranking',      roles: ['admin', 'super-admin', 'developer'] },
   { icon: FileText,        label: 'Agreements',       page: 'agreements' },
-  { icon: Bell,            label: 'Notifications',    page: 'notifications' },
-  { icon: Settings,        label: 'Settings',         page: 'settings' },
 ];
 
 function getNavItems(role: DashboardRole): NavItem[] {
@@ -67,6 +64,7 @@ function getNavItems(role: DashboardRole): NavItem[] {
 export default function DashboardLayout({ navigate, role, devViewRole, setDevViewRole, isDeveloper, currentPage, onSignOut, children }: Props) {
   const { profile } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const handleNav = (page: Page) => {
     navigate(page);
@@ -158,11 +156,7 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'quality-review' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
                 <ClipboardList className="w-4 h-4" />Quality Review
               </button>
-              <button onClick={() => handleNav('demo-day')}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'demo-day' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
-                <Rocket className="w-4 h-4" />Demo Day
-              </button>
-              <button onClick={() => handleNav('contributions')}
+<button onClick={() => handleNav('contributions')}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'contributions' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
                 <Award className="w-4 h-4" />Contributions
               </button>
@@ -227,16 +221,23 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
               <Bell className="w-5 h-5 text-[#555353] dark:text-[#aaa]" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-[#e33b5f] rounded-full" />
             </button>
-            <button onClick={() => handleNav('ai-assistant')} className="p-2 hover:bg-[#e33b5f]/10 dark:hover:bg-[#e33b5f]/20 rounded-lg transition" title="AI Assistant">
-              <Bot className="w-5 h-5 text-[#e33b5f]" />
-            </button>
-            <button onClick={() => handleNav('profile')}>
+<button onClick={() => handleNav('profile')}>
               <Avatar className="w-8 h-8"><AvatarFallback className="bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] text-white text-xs font-semibold">1K</AvatarFallback></Avatar>
             </button>
           </div>
         </header>
 
         <main className="flex-1 p-4 lg:p-6 dark:bg-[#0f0f0f]">{children}</main>
+
+        {/* Floating AI Assistant bubble */}
+        {currentPage !== 'ai-assistant' && (
+          <button
+            onClick={() => handleNav('ai-assistant')}
+            title="AI Assistant"
+            className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-gradient-to-br from-[#e33b5f] to-[#c02d4f] text-white rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center">
+            <Bot className="w-6 h-6" />
+          </button>
+        )}
       </div>
     </div>
   );
