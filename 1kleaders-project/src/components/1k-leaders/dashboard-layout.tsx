@@ -221,9 +221,40 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
               <Bell className="w-5 h-5 text-[#555353] dark:text-[#aaa]" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-[#e33b5f] rounded-full" />
             </button>
-<button onClick={() => handleNav('profile')}>
-              <Avatar className="w-8 h-8"><AvatarFallback className="bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] text-white text-xs font-semibold">1K</AvatarFallback></Avatar>
-            </button>
+            <div className="relative">
+              <button onClick={() => setProfileOpen(o => !o)} className="flex items-center p-1 rounded-lg hover:bg-[#f6f6f6] dark:hover:bg-white/10 transition">
+                <Avatar className="w-8 h-8">
+                  <AvatarFallback className="bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] text-white text-xs font-semibold">
+                    {(profile?.first_name?.[0] ?? '') + (profile?.last_name?.[0] ?? '') || '1K'}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
+              {profileOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
+                  <div className="absolute right-0 top-11 z-50 w-52 bg-white dark:bg-[#1a1a1a] border border-[#f0f0f0] dark:border-white/10 rounded-xl shadow-xl overflow-hidden">
+                    <div className="px-4 py-3 border-b border-[#f0f0f0] dark:border-white/10">
+                      <p className="text-sm font-semibold text-[#222] dark:text-[#f0f0f0] truncate">{profile?.first_name} {profile?.last_name}</p>
+                      <p className="text-xs text-[#9e9e9e] truncate">{profile?.email}</p>
+                    </div>
+                    <button onClick={() => { handleNav('profile'); setProfileOpen(false); }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#333] dark:text-[#e0e0e0] hover:bg-[#f6f6f6] dark:hover:bg-white/5 transition text-left">
+                      👤 Profile
+                    </button>
+                    <button onClick={() => { handleNav('settings'); setProfileOpen(false); }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#333] dark:text-[#e0e0e0] hover:bg-[#f6f6f6] dark:hover:bg-white/5 transition text-left">
+                      ⚙️ Settings
+                    </button>
+                    <div className="border-t border-[#f0f0f0] dark:border-white/10">
+                      <button onClick={() => { signOut(); setProfileOpen(false); }}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition text-left">
+                        🚪 Sign Out
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </header>
 

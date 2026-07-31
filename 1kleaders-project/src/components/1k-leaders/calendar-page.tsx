@@ -33,6 +33,9 @@ interface CalendarEvent {
   location: string;
   description?: string;
   created_by?: string;
+  teams_event_id?: string;
+  teams_join_url?: string;
+  invitees?: string[];
 }
 
 interface VoteSlot  { date: string; time: string; votes: number; voter_ids: string[] }
@@ -273,8 +276,9 @@ export default function CalendarPage({ role }: Props) {
       type:        newType,
       location:    teamsJoinUrl ? 'Microsoft Teams' : (newLocation.trim() || 'TBD'),
       description: [newDesc.trim(), teamsJoinUrl ? `Teams link: ${teamsJoinUrl}` : null].filter(Boolean).join('\n') || null,
-      created_by:  profile.id,
-      invitees:    invitees.length > 0 ? invitees : null,
+      created_by:      profile.id,
+      invitees:        invitees.length > 0 ? invitees : null,
+      teams_join_url:  teamsJoinUrl,
     }).select().single();
 
     if (data) setEvents(prev => [...prev, data as CalendarEvent]);
@@ -504,13 +508,19 @@ export default function CalendarPage({ role }: Props) {
                       const eventDate = new Date(e.date);
                       const todayDate = new Date(); todayDate.setHours(0,0,0,0);
                       const isPast = eventDate < todayDate;
+                      const joinUrl = e.teams_join_url ?? (e.description?.match(/Teams link: (https:\/\/\S+)/)?.[1]);
                       return (
-                        <div key={e.id} className={`flex items-start gap-3 p-3 ${c.light} rounded-xl`}>
+                        <div key={e.id}
+                          className={`flex items-start gap-3 p-3 ${c.light} rounded-xl ${joinUrl && !isPast ? 'cursor-pointer hover:opacity-90 transition' : ''}`}
+                          onClick={() => joinUrl && !isPast && window.open(joinUrl, '_blank')}>
                           <div className={`w-8 h-8 rounded-lg ${c.bg} flex items-center justify-center flex-shrink-0`}>
                             <Icon className="w-4 h-4 text-white" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-[#222] text-sm">{e.title}</h4>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-semibold text-[#222] text-sm">{e.title}</h4>
+                              {joinUrl && !isPast && <span className="text-[10px] bg-[#5059C9] text-white px-1.5 py-0.5 rounded font-medium">Join Teams</span>}
+                            </div>
                             <div className="flex items-center gap-2 mt-0.5 text-xs text-[#7e7e7e] flex-wrap">
                               <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{e.time}</span>
                               <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{e.location}</span>
