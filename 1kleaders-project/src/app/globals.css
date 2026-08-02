@@ -121,29 +121,90 @@
   }
 }
 
-/* ── 1K Leaders Dark Mode ──────────────────────────────────── */
-.dark body { background-color: #0f0f0f; color: #f0f0f0; }
+/* ═══════════════════════════════════════════════════════
+   1K Leaders — Dark Mode
+   Only targets structural elements, never Tailwind classes
+   ═══════════════════════════════════════════════════════ */
 
-.dark main { background-color: #0f0f0f; }
-
+/* Body & layout */
+.dark body  { background-color: #0f0f0f; color: #f0f0f0; }
+.dark main  { background-color: #0f0f0f; }
 .dark header {
-  background-color: rgba(26,26,26,0.95) !important;
-  border-bottom-color: rgba(255,255,255,0.1) !important;
+  background-color: rgba(20,20,20,0.97) !important;
+  border-bottom-color: rgba(255,255,255,0.08) !important;
 }
 
-.dark header button:hover {
-  background-color: rgba(255,255,255,0.08) !important;
-}
-
-.dark input,
-.dark textarea,
-.dark select {
-  background-color: #1e1e1e;
-  color: #f0f0f0;
+/* ── shadcn Card ── */
+.dark .rounded-lg.border,
+.dark .rounded-xl.border,
+.dark .rounded-2xl.border {
+  background-color: #1a1a1a;
   border-color: #2a2a2a;
+  color: #f0f0f0;
 }
 
-.dark input::placeholder,
-.dark textarea::placeholder {
-  color: #555;
+/* ── shadcn Input / Textarea / Select trigger ── */
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.dark textarea {
+  background-color: #1e1e1e !important;
+  color: #f0f0f0 !important;
+  border-color: #333 !important;
 }
+.dark input::placeholder,
+.dark textarea::placeholder { color: #555 !important; }
+
+/* ── shadcn Select content (dropdown) ── */
+.dark [role="listbox"] {
+  background-color: #1a1a1a !important;
+  border-color: #2a2a2a !important;
+}
+.dark [role="option"] {
+  color: #e0e0e0 !important;
+}
+.dark [role="option"]:hover,
+.dark [role="option"][data-highlighted] {
+  background-color: #252525 !important;
+}
+
+/* ── shadcn Button (outline variant) ── */
+.dark button.border {
+  border-color: #333;
+  color: #e0e0e0;
+}
+.dark button.border:hover { background-color: #252525; }
+
+/* ── shadcn Tabs ── */
+.dark [role="tablist"] {
+  background-color: #1e1e1e !important;
+}
+.dark [role="tab"] { color: #888 !important; }
+.dark [role="tab"][data-state="active"] {
+  background-color: #2a2a2a !important;
+  color: #f0f0f0 !important;
+}
+
+/* ── shadcn Separator ── */
+.dark [data-orientation="horizontal"].bg-border,
+.dark hr { border-color: #2a2a2a; background-color: #2a2a2a; }
+
+/* ── shadcn Badge (secondary) ── */
+.dark .bg-secondary { background-color: #2a2a2a !important; color: #aaa !important; }
+
+/* ── shadcn Progress ── */
+.dark [role="progressbar"] { background-color: #2a2a2a !important; }
+
+/* ── Popover / Dialog overlays ── */
+.dark [data-radix-popper-content-wrapper] > div {
+  background-color: #1a1a1a !important;
+  border-color: #2a2a2a !important;
+  color: #f0f0f0 !important;
+}
+
+/* ── Scrollbar ── */
+.dark ::-webkit-scrollbar-track { background: #1a1a1a; }
+.dark ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #444; }
+
+/* ── Page-level bg overrides ── */
+.dark .space-y-6 > div,
+.dark .space-y-4 > div { color: inherit; }

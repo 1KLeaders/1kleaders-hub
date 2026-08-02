@@ -94,7 +94,13 @@ export default function SettingsPage() {
   const [yearsExp,     setYearsExp]     = useState<number | ''>('');
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
   const [selectedExpertise,  setSelectedExpertise]  = useState<string[]>([]);
-  const [whatsappOptIn, setWhatsappOptIn] = useState(false);
+  const [whatsappOptIn,       setWhatsappOptIn]       = useState(false);
+  const [notifEmail,          setNotifEmail]          = useState(true);
+  const [notifActionRequired, setNotifActionRequired] = useState(true);
+  const [notifPlatform,       setNotifPlatform]       = useState(true);
+  const [notifCalendar,       setNotifCalendar]       = useState(true);
+  const [notifPartnerActivity,setNotifPartnerActivity] = useState(false);
+  const [photoUploading,      setPhotoUploading]      = useState(false);
 
   // Password fields
   const [newPassword,  setNewPassword]  = useState('');
@@ -127,11 +133,30 @@ export default function SettingsPage() {
     setSelectedIndustries(profile.org_industries ?? []);
     setSelectedExpertise(profile.expertise_domains ?? []);
     setWhatsappOptIn(profile.whatsapp_opt_in ?? false);
+    const np = profile.notification_prefs ?? {};
+    setNotifEmail(np.email ?? true);
+    setNotifActionRequired(np.action_required ?? true);
+    setNotifPlatform(np.platform ?? true);
+    setNotifCalendar(np.calendar ?? true);
+    setNotifPartnerActivity(np.partner_activity ?? false);
   }, [profile]);
 
   const toggleItem = (arr: string[], setArr: (v: string[]) => void, item: string) => {
     setArr(arr.includes(item) ? arr.filter(x => x !== item) : [...arr, item]);
   };
+
+  async function uploadPhoto(file: File) {
+    if (!profile) return;
+    setPhotoUploading(true);
+    const path = `avatars/${profile.id}/${Date.now()}_${file.name}`;
+    const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
+    if (!upErr) {
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+      await supabase.from('profiles').update({ profile_photo_url: publicUrl }).eq('id', profile.id);
+      await refreshProfile();
+    }
+    setPhotoUploading(false);
+  }
 
   async function saveProfile() {
     if (!profile) return;
@@ -154,6 +179,13 @@ export default function SettingsPage() {
         org_industries:    selectedIndustries,
         expertise_domains: selectedExpertise,
         whatsapp_opt_in:   whatsappOptIn,
+        notification_prefs: {
+          email:            notifEmail,
+          action_required:  notifActionRequired,
+          platform:         notifPlatform,
+          calendar:         notifCalendar,
+          partner_activity: notifPartnerActivity,
+        },
         updated_at:        new Date().toISOString(),
       })
       .eq('id', profile.id);
@@ -216,7 +248,12 @@ export default function SettingsPage() {
                 </Avatar>
                 <div>
                   <Button variant="outline" size="sm" disabled>Change Photo</Button>
-                  <p className="text-xs text-[#9e9e9e] mt-1">Photo upload coming soon</p>
+                  <input type="file" accept="image/*" className="hidden" id="photo-upload"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); e.target.value = ''; }} />
+                  <label htmlFor="photo-upload"
+                    className="mt-2 text-xs text-[#e33b5f] font-medium cursor-pointer hover:underline flex items-center gap-1">
+                    {photoUploading ? <><Loader2 className="w-3 h-3 animate-spin" />Uploading...</> : '📷 Upload Photo'}
+                  </label>
                 </div>
               </div>
 
@@ -379,15 +416,15 @@ export default function SettingsPage() {
             <CardHeader><CardTitle className="text-base">Notification Preferences</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               {[
-                { label: 'Email Notifications',   desc: 'Receive updates via email' },
-                { label: 'Action Required Alerts', desc: 'High-priority admin notifications' },
-                { label: 'Platform Notifications', desc: 'In-app notification alerts' },
-                { label: 'Calendar Reminders',     desc: 'Meeting and event reminders' },
-                { label: 'Partner Activity',       desc: 'Notifications about partner actions' },
+                { label: 'Email Notifications',    desc: 'Receive updates via email',                  checked: notifEmail,           setter: setNotifEmail },
+                { label: 'Action Required Alerts', desc: 'High-priority admin notifications',          checked: notifActionRequired,  setter: setNotifActionRequired },
+                { label: 'Platform Notifications', desc: 'In-app notification alerts',                 checked: notifPlatform,        setter: setNotifPlatform },
+                { label: 'Calendar Reminders',     desc: 'Meeting and event reminders',                checked: notifCalendar,        setter: setNotifCalendar },
+                { label: 'Partner Activity',       desc: 'Notifications about partner actions',        checked: notifPartnerActivity, setter: setNotifPartnerActivity },
               ].map(n => (
                 <div key={n.label} className="flex items-center justify-between py-2 border-b border-[#f0f0f0] last:border-0">
                   <div><p className="font-medium text-sm">{n.label}</p><p className="text-xs text-[#7e7e7e]">{n.desc}</p></div>
-                  <Switch defaultChecked />
+                  <Switch checked={n.checked} onCheckedChange={n.setter} />
                 </div>
               ))}
               <Separator />
