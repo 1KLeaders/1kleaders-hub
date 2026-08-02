@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   LayoutDashboard, FileText, Users, Settings, Bell, Handshake, Lightbulb, LogOut,
   Menu, X, ChevronRight, FolderOpen, Calendar, MessageSquare, Bot, BarChart3,
-  Mail, Star, Shield, MessageCircle, FileCheck, ClipboardList, Briefcase, Award, Rocket, Moon, Sun,
+  Mail, Star, Shield, MessageCircle, FileCheck, ClipboardList, Briefcase, Award, Rocket, Moon, Sun, GraduationCap,
 } from 'lucide-react';
 import type { Page, DashboardRole } from './types';
 import { roleBadgeConfig } from './types';
@@ -45,6 +45,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard',        page: 'dashboard' },
   { icon: Lightbulb,       label: 'Idea Submission',  page: 'idea-submission' },
+  { icon: BarChart3,       label: 'My Idea Status',   page: 'idea-status',       roles: ['user', 'shareholder'] },
   { icon: Calendar,        label: 'Calendar',         page: 'calendar' },
   { icon: MessageSquare,   label: 'Discussion Rooms', page: 'discussion-rooms', roles: ['shareholder', 'admin', 'super-admin', 'developer'] },
   { icon: FolderOpen,      label: 'Documents',        page: 'documents' },
@@ -155,6 +156,10 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
               <button onClick={() => handleNav('quality-review')}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'quality-review' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
                 <ClipboardList className="w-4 h-4" />Quality Review
+              </button>
+              <button onClick={() => handleNav('fellowship-applications')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'fellowship-applications' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
+                <GraduationCap className="w-4 h-4" />Fellowship Apps
               </button>
 <button onClick={() => handleNav('contributions')}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'contributions' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>

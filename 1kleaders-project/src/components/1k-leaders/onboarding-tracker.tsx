@@ -137,7 +137,10 @@ export default function OnboardingTracker() {
     loadKycDocs(id);
   };
 
+  const [statusFilter, setStatusFilter] = useState('All');
+
   const filtered = partners.filter(p => {
+    if (statusFilter !== 'All' && p.onboarding_status !== statusFilter) return false;
     const name = `${p.first_name ?? ''} ${p.last_name ?? ''}`.toLowerCase();
     if (search && !name.includes(search.toLowerCase()) && !p.email.includes(search.toLowerCase())) return false;
     if (phase !== 'All') {

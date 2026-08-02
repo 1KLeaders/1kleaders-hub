@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -156,6 +156,7 @@ export default function ShareholdersPage({ navigate, role }: Props) {
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
               <Avatar className="w-16 h-16 flex-shrink-0">
+                {selected.profile_photo_url && <AvatarImage src={selected.profile_photo_url} alt={name} />}
                 <AvatarFallback className="bg-[#e33b5f]/10 text-[#c02d4f] text-xl font-bold">{initials}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
@@ -440,6 +441,7 @@ export default function ShareholdersPage({ navigate, role }: Props) {
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3 mb-3">
                     <Avatar className="w-10 h-10 flex-shrink-0">
+                      {p.profile_photo_url && <AvatarImage src={p.profile_photo_url} alt={name} />}
                       <AvatarFallback className="bg-[#e33b5f]/10 text-[#c02d4f] text-sm font-bold">{initials}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">

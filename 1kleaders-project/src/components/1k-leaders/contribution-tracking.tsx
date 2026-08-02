@@ -132,8 +132,18 @@ export default function ContributionTracking({ role }: Props) {
 
   async function verifyContribution(id: string, verified: boolean) {
     if (!profile) return;
+    const contrib = allContribs.find(c => c.id === id);
     await supabase.from('contributions').update({ verified, verified_by: profile.id }).eq('id', id);
     setAllContribs(prev => prev.map(c => c.id === id ? { ...c, verified } : c));
+
+    // Recalculate and update partner level for the contribution's user
+    if (contrib) {
+      const { data: allUserContribs } = await supabase
+        .from('contributions').select('points, verified').eq('user_id', contrib.user_id);
+      const newTotal = (allUserContribs ?? []).filter(c => c.verified || (c === contrib && verified)).reduce((s, c) => s + (c.points ?? 0), 0);
+      const level = newTotal >= 1000 ? 'Diamond' : newTotal >= 500 ? 'Gold' : newTotal >= 200 ? 'Silver' : 'Bronze';
+      await supabase.from('profiles').update({ partner_level: level }).eq('id', contrib.user_id);
+    }
   }
 
   const totalPoints = contributions.filter(c => c.verified).reduce((s, c) => s + (c.points ?? 0), 0);

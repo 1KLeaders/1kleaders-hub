@@ -66,7 +66,11 @@ export default function IdeaRanking() {
   const [ideas,       setIdeas]       = useState<DbIdea[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [search,      setSearch]      = useState('');
-  const [stageFilter, setStageFilter] = useState('All');
+  const [stageFilter,    setStageFilter]    = useState('All');
+  const [searchTerm,     setSearchTerm]     = useState('');
+  const [selected,       setSelected]       = useState<Set<string>>(new Set());
+  const [bulkStatus,     setBulkStatus]     = useState('');
+  const [bulkMoving,     setBulkMoving]     = useState(false);
   const [sortBy,      setSortBy]      = useState<'vep_score' | 'created_at' | 'title'>('vep_score');
   const [expanded,    setExpanded]    = useState<string | null>(null);
   const [updating,    setUpdating]    = useState<string | null>(null);
@@ -103,6 +107,18 @@ export default function IdeaRanking() {
 
   useEffect(() => { fetchIdeas(); }, [sortBy]);
 
+  async function bulkUpdateStatus() {
+    if (!bulkStatus || selected.size === 0) return;
+    setBulkMoving(true);
+    await Promise.all([...selected].map(id =>
+      supabase.from('ideas').update({ status: bulkStatus, updated_at: new Date().toISOString() }).eq('id', id)
+    ));
+    setIdeas(prev => prev.map(i => selected.has(i.id) ? { ...i, status: bulkStatus } : i));
+    setSelected(new Set());
+    setBulkStatus('');
+    setBulkMoving(false);
+  }
+
   async function updateIdeaStatus(id: string, status: string) {
     setUpdating(id);
     await supabase.from('ideas').update({ status, updated_at: new Date().toISOString() }).eq('id', id);
@@ -112,6 +128,8 @@ export default function IdeaRanking() {
 
   const filtered = ideas.filter(i => {
     if (stageFilter !== 'All' && i.status !== stageFilter) return false;
+    if (searchTerm && !i.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        !(i.sector ?? '').toLowerCase().includes(searchTerm.toLowerCase())) return false;
     if (search && !i.title.toLowerCase().includes(search.toLowerCase()) &&
         !(i.submitter_name ?? '').toLowerCase().includes(search.toLowerCase())) return false;
     return true;
@@ -177,6 +195,25 @@ export default function IdeaRanking() {
         </Select>
       </div>
 
+      {/* Bulk actions */}
+      {selected.size > 0 && (
+        <div className="flex items-center gap-3 p-3 bg-[#e33b5f]/5 border border-[#e33b5f]/20 rounded-xl">
+          <span className="text-sm font-medium text-[#e33b5f]">{selected.size} idea{selected.size !== 1 ? 's' : ''} selected</span>
+          <Select value={bulkStatus} onValueChange={setBulkStatus}>
+            <SelectTrigger className="w-52 h-8 text-xs border-[#e33b5f]/30"><SelectValue placeholder="Move to stage…" /></SelectTrigger>
+            <SelectContent>
+              {PIPELINE_STAGES.filter(s => s !== 'All').map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Button size="sm" className="bg-[#e33b5f] text-white h-8 text-xs" onClick={bulkUpdateStatus} disabled={!bulkStatus || bulkMoving}>
+            {bulkMoving ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null} Move
+          </Button>
+          <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setSelected(new Set())}>
+            Clear
+          </Button>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-16 gap-2 text-[#7e7e7e]">
           <Loader2 className="w-5 h-5 animate-spin" /> Loading ideas...
@@ -196,11 +233,22 @@ export default function IdeaRanking() {
             const isExpanded = expanded === idea.id;
             return (
               <Card key={idea.id} className="border-[#f0f0f0] overflow-hidden">
-                <div className="flex items-center gap-3 p-4 cursor-pointer hover:bg-[#fafafa] transition" onClick={() => setExpanded(isExpanded ? null : idea.id)}>
-                  <div className="w-8 h-8 rounded-full bg-[#e33b5f]/10 flex items-center justify-center text-sm font-bold text-[#e33b5f] flex-shrink-0">
+                <div className="flex items-center gap-3 p-4 hover:bg-[#fafafa] transition">
+                  <input type="checkbox" className="w-4 h-4 accent-[#e33b5f] flex-shrink-0"
+                    checked={selected.has(idea.id)}
+                    onChange={e => {
+                      e.stopPropagation();
+                      setSelected(prev => {
+                        const next = new Set(prev);
+                        next.has(idea.id) ? next.delete(idea.id) : next.add(idea.id);
+                        return next;
+                      });
+                    }} />
+                  <div className="w-8 h-8 rounded-full bg-[#e33b5f]/10 flex items-center justify-center text-sm font-bold text-[#e33b5f] flex-shrink-0 cursor-pointer"
+                    onClick={() => setExpanded(isExpanded ? null : idea.id)}>
                     {idx + 1}
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setExpanded(isExpanded ? null : idea.id)}>
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-medium text-sm text-[#222] truncate">{idea.title}</p>
                       <Badge className={`text-xs ${sc.color}`}>{sc.label}</Badge>

@@ -27,6 +27,8 @@ export type Page =
   | 'cohort-management'
   | 'quality-review'
   | 'contributions'
+  | 'idea-status'
+  | 'fellowship-applications'
   | 'recommendations';
 
 // Main access roles — controls what pages/nav items a user sees
