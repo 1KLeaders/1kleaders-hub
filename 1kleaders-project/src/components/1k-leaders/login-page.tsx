@@ -61,7 +61,7 @@ export default function LoginPage({ navigate }: Props) {
         </Button>
         <Card className="border-[#f0f0f0] shadow-lg">
           <CardHeader className="text-center pb-2">
-            <img src="/logo-red-mid.png" alt="1KLeaders" className="h-12 mx-auto mb-3 object-contain" />
+            <img src="/logos/logos_1KL-Hub_Horizontal_TwoTone.svg" alt="1KL Hub" className="h-10 mx-auto mb-3 object-contain" />
             <CardTitle className="text-xl text-[#222]" style={{ fontFamily: 'var(--font-rethink-sans), Rethink Sans, sans-serif' }}>
               Welcome Back
             </CardTitle>

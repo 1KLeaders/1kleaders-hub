@@ -150,7 +150,7 @@ export default function FellowshipPage() {
   if (step === 0) return (
     <div className="min-h-screen bg-[#111] text-white flex items-center justify-center p-6">
       <div className="w-full max-w-2xl">
-        <img src="/logo-light-mid.png" alt="1K Leaders" className="h-8 mb-10 object-contain" />
+        <img src="/logos/logos_1KL-Hub_Horizontal_Light.svg" alt="1KL Hub" className="h-7 mb-10 object-contain" />
         <p className="text-xs font-bold tracking-widest text-[#f07969] uppercase mb-4">Application · Cohort 2026</p>
         <h1 className="text-4xl sm:text-5xl font-extrabold leading-none tracking-tight mb-5">
           AI Venture Builder<br />Fellowship
@@ -221,7 +221,7 @@ export default function FellowshipPage() {
         <div className="max-w-3xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
-              <img src="/logo-mark-coral.png" alt="1KL" className="h-5 object-contain" onError={e => (e.currentTarget.style.display='none')} />
+              <img src="/logos/logos_1KL-Hub_Horizontal_Accent.svg" alt="1KL Hub" className="h-4 object-contain" />
               <span className="text-sm font-bold text-[#222]">AI Venture Builder Fellowship</span>
             </div>
             <span className="font-mono text-xs font-bold text-[#e33b5f] bg-[#fff5f7] px-2 py-1 rounded">DEADLINE · JUL 31</span>

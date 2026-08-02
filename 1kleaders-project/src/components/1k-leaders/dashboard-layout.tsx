@@ -87,7 +87,7 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
         {/* Logo header — fixed */}
         <div className="shrink-0 p-4 flex items-center gap-3 border-b border-white/10">
           <button onClick={() => handleNav('dashboard')} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <img src="/logo-light-mid.png" alt="1KLeaders" className="h-8 object-contain" />
+            <img src="/logos/logos_1KL-Hub_Horizontal_Light.svg" alt="1KL Hub" className="h-7 object-contain" />
           </button>
           <button className="ml-auto lg:hidden text-white" onClick={() => setSidebarOpen(false)}><X className="w-5 h-5" /></button>
         </div>
