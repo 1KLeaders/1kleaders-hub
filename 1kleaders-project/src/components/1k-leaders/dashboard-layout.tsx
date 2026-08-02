@@ -85,11 +85,11 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
 
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#141414] flex flex-col h-screen transform transition-transform lg:transform-none lg:translate-x-0 lg:sticky lg:top-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         {/* Logo header — fixed */}
-        <div className="shrink-0 p-4 flex items-center gap-3 border-b border-white/10">
-          <button onClick={() => handleNav('dashboard')} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <img src="/logos/logos_1KL-Hub_Horizontal_Light.png" alt="1KL Hub" className="w-32 object-contain" />
+        <div className="shrink-0 px-4 py-3 flex items-center justify-between border-b border-white/10">
+          <button onClick={() => handleNav('dashboard')} className="hover:opacity-80 transition-opacity">
+            <img src="/logos/logos_1KL-Hub_Horizontal_Light.png" alt="1KL Hub" style={{ height: '28px', width: 'auto' }} />
           </button>
-          <button className="ml-auto lg:hidden text-white" onClick={() => setSidebarOpen(false)}><X className="w-5 h-5" /></button>
+          <button className="lg:hidden text-white" onClick={() => setSidebarOpen(false)}><X className="w-5 h-5" /></button>
         </div>
 
         {/* Scrollable nav — takes remaining space between header and footer */}
