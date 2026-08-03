@@ -83,7 +83,7 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
     <div className="min-h-screen flex bg-[#f6f6f6] dark:bg-[#111]" style={{ fontFamily: 'var(--font-manrope), Manrope, sans-serif' }}>
       {sidebarOpen && <div className="fixed inset-0 bg-black/30 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
-      <aside style={{ backgroundColor: '#141414' }} className={`fixed inset-y-0 left-0 z-50 w-64 flex flex-col h-screen transform transition-transform lg:transform-none lg:translate-x-0 lg:sticky lg:top-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside style={{ backgroundColor: '#141414', colorScheme: 'dark', color: 'rgba(255,255,255,0.7)' }} className={`fixed inset-y-0 left-0 z-50 w-64 flex flex-col h-screen transform transition-transform lg:transform-none lg:translate-x-0 lg:sticky lg:top-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         {/* Logo header — fixed */}
         <div className="shrink-0 px-4 h-14 flex items-center justify-between border-b border-white/10">
           <button onClick={() => handleNav('dashboard')} className="hover:opacity-80 transition-opacity">

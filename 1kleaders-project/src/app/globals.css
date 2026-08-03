@@ -301,3 +301,15 @@
 .dark [class*="text-amber-800"]   { color: #fbbf24 !important; }
 .dark [class*="text-emerald-800"] { color: #4ade80 !important; }
 .dark [class*="text-red-800"]     { color: #fca5a5 !important; }
+
+/* ── Sidebar: always dark, never affected by theme switching ── */
+aside { color-scheme: dark !important; }
+aside * { color: inherit; }
+aside [class*="bg-white"],
+aside [class*="bg-[#f"],
+aside [class*="bg-gray"] { background-color: transparent !important; }
+aside [class*="text-[#222]"],
+aside [class*="text-[#333]"],
+aside [class*="text-[#555"] { color: rgba(255,255,255,0.7) !important; }
+aside [class*="border-[#f0f0f0]"],
+aside [class*="border-[#e8e8e8]"] { border-color: rgba(255,255,255,0.1) !important; }
