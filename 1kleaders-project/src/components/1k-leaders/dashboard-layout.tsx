@@ -80,10 +80,10 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
   const isMAB = isAdmin;
 
   return (
-    <div className="min-h-screen flex bg-[#f6f6f6] dark:bg-[#0f0f0f]" style={{ fontFamily: 'var(--font-manrope), Manrope, sans-serif' }}>
+    <div className="min-h-screen flex bg-[#f6f6f6] dark:bg-[#111]" style={{ fontFamily: 'var(--font-manrope), Manrope, sans-serif' }}>
       {sidebarOpen && <div className="fixed inset-0 bg-black/30 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#141414] flex flex-col h-screen transform transition-transform lg:transform-none lg:translate-x-0 lg:sticky lg:top-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside style={{ backgroundColor: '#141414', colorScheme: 'dark' }} className={`fixed inset-y-0 left-0 z-50 w-64 flex flex-col h-screen transform transition-transform lg:transform-none lg:translate-x-0 lg:sticky lg:top-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         {/* Logo header — fixed */}
         <div className="shrink-0 px-4 py-3 flex items-center justify-between border-b border-white/10">
           <button onClick={() => handleNav('dashboard')} className="hover:opacity-80 transition-opacity">
@@ -94,20 +94,7 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
 
         {/* Scrollable nav — takes remaining space between header and footer */}
         <div className="flex-1 overflow-y-auto p-3 min-h-0">
-          {/* Developer-only role switcher */}
-          {isDeveloper && devViewRole && setDevViewRole && (
-            <div className="mb-4">
-              <p className="text-xs text-[#f07969] uppercase tracking-wider mb-2 px-2 flex items-center gap-1">
-                🛠 Dev: View As
-              </p>
-              <Select value={devViewRole} onValueChange={(v) => setDevViewRole(v as DashboardRole)}>
-                <SelectTrigger className="w-full text-sm bg-white/10 border-white/10 text-white"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(roleLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+
           <Separator className="mb-3 bg-white/10" />
           <nav className="space-y-1">
             {visibleNav.map(item => (
@@ -209,7 +196,7 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="sticky top-0 z-30 bg-white/90 dark:bg-[#1a1a1a]/95 backdrop-blur-md border-b border-[#f0f0f0] dark:border-white/10 px-4 lg:px-6 h-14 flex items-center gap-4">
+        <header className="sticky top-0 z-30 bg-white dark:bg-[#1e1e1e] border-b border-[#f0f0f0] dark:border-white/10 px-4 lg:px-6 h-14 flex items-center gap-4" style={{ boxShadow: 'none' }}>
           <button className="lg:hidden" onClick={() => setSidebarOpen(true)}><Menu className="w-5 h-5 text-[#222] dark:text-[#f0f0f0]" /></button>
           <div className="flex items-center gap-2 text-sm text-[#7e7e7e] dark:text-[#888]">
             <span>Dashboard</span>

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { MessageSquare, Send, Plus, Users, Lock, Search, Hash, Loader2, Shield, Pencil, Trash2, X, ChevronDown } from 'lucide-react';
+import { MessageSquare, Send, Plus, Users, Lock, Search, Hash, Loader2, Shield, Pencil, Trash2, X, ChevronDown, Paperclip, FileText } from 'lucide-react';
 import type { Page, DashboardRole, RoleBadge } from './types';
 import { roleBadgeConfig } from './types';
 import { supabase } from '@/lib/supabase';
@@ -64,6 +64,9 @@ export default function DiscussionRooms({ role }: Props) {
   const [messages,     setMessages]     = useState<Message[]>([]);
   const [message,      setMessage]      = useState('');
   const [sending,      setSending]      = useState(false);
+  const [attachment,   setAttachment]   = useState<File | null>(null);
+  const [uploading,    setUploading]    = useState(false);
+  const attachRef = useRef<HTMLInputElement>(null);
   const [loadingMsgs,  setLoadingMsgs]  = useState(false);
   const [search,       setSearch]       = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -197,17 +200,34 @@ export default function DiscussionRooms({ role }: Props) {
     };
   }, [selectedRoom]);
 
+  async function uploadAttachment(file: File): Promise<string | null> {
+    if (!profile) return null;
+    const path = `${selectedRoom}/${profile.id}/${Date.now()}_${file.name}`;
+    const { error } = await supabase.storage.from('room-attachments').upload(path, file, { upsert: true });
+    if (error) { console.error('Upload error:', error); return null; }
+    const { data: { publicUrl } } = supabase.storage.from('room-attachments').getPublicUrl(path);
+    return publicUrl;
+  }
+
   async function sendMessage() {
-    if (!message.trim() || !selectedRoom || !profile || sending) return;
+    if ((!message.trim() && !attachment) || !selectedRoom || !profile || sending) return;
     setSending(true);
 
     const name    = `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim() || profile.email;
     const initials = `${profile.first_name?.[0] ?? ''}${profile.last_name?.[0] ?? ''}`.toUpperCase() || '?';
 
+    let attachUrl: string | null = null;
+    if (attachment) {
+      setUploading(true);
+      attachUrl = await uploadAttachment(attachment);
+      setUploading(false);
+      setAttachment(null);
+    }
+
     const newMsg: Omit<Message, 'id'> = {
       room_id:         selectedRoom,
       user_id:         profile.id,
-      content:         message.trim(),
+      content:         message.trim() || (attachUrl ? `📎 ${attachment?.name ?? 'File'}` : ''),
       created_at:      new Date().toISOString(),
       sender_name:     name,
       sender_role:     profile.role,
@@ -415,7 +435,20 @@ export default function DiscussionRooms({ role }: Props) {
 
               {/* Input */}
               <div className="p-3 border-t border-[#f0f0f0] shrink-0">
+                {attachment && (
+                  <div className="flex items-center gap-2 mb-2 px-2 py-1.5 bg-[#f6f6f6] rounded-lg text-xs">
+                    <FileText className="w-3.5 h-3.5 text-[#e33b5f]" />
+                    <span className="flex-1 truncate text-[#444]">{attachment.name}</span>
+                    <button onClick={() => setAttachment(null)} className="text-[#9e9e9e] hover:text-red-500"><X className="w-3 h-3" /></button>
+                  </div>
+                )}
                 <div className="flex gap-2">
+                  <input ref={attachRef} type="file" className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) setAttachment(f); e.target.value = ''; }} />
+                  <button onClick={() => attachRef.current?.click()}
+                    className="p-2 text-[#9e9e9e] hover:text-[#e33b5f] hover:bg-[#e33b5f]/5 rounded-lg transition flex-shrink-0">
+                    <Paperclip className="w-4 h-4" />
+                  </button>
                   <Input
                     placeholder={`Message #${selectedRoomData.name}...`}
                     value={message}
@@ -423,8 +456,8 @@ export default function DiscussionRooms({ role }: Props) {
                     onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
                     className="flex-1 border-[#f0f0f0]"
                   />
-                  <Button className="bg-[#e33b5f] text-white shrink-0" onClick={sendMessage} disabled={!message.trim() || sending}>
-                    {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  <Button className="bg-[#e33b5f] text-white shrink-0" onClick={sendMessage} disabled={(!message.trim() && !attachment) || sending || uploading}>
+                    {sending || uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   </Button>
                 </div>
               </div>

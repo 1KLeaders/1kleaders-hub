@@ -453,7 +453,7 @@ export default function CalendarPage({ role }: Props) {
               ) : (
                 <div className="grid grid-cols-7 gap-0.5">
                   {Array.from({ length: firstDay }).map((_, i) => (
-                    <div key={`prev-${i}`} className="aspect-square p-1 text-center text-xs text-[#d0d0d0] flex items-start justify-center pt-2">
+                    <div key={`prev-${i}`} className="aspect-square p-1 text-center text-xs text-[#d0d0d0] flex items-start justify-center pt-2 pointer-events-none select-none">
                       {prevMonthDays - firstDay + i + 1}
                     </div>
                   ))}

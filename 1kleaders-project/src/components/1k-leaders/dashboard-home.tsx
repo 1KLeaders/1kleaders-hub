@@ -176,10 +176,17 @@ export default function DashboardHome({ role, navigate }: Props) {
 
         // Recent notifications for current user
         if (profile) {
+          const accountCreated = new Date(profile.created_at);
+          const oneMonthAgo = new Date();
+          oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+          // Show activity from whichever is more recent: account creation or 1 month ago
+          const cutoff = accountCreated > oneMonthAgo ? accountCreated : oneMonthAgo;
+
           const { data: notifs } = await supabase
             .from('notifications')
-            .select('title, message, notification_type, created_at')
+            .select('title, message, notification_type, created_at, is_read')
             .eq('user_id', profile.id)
+            .gte('created_at', cutoff.toISOString())
             .order('created_at', { ascending: false })
             .limit(4);
           setRecentActivity(

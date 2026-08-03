@@ -74,15 +74,27 @@ export default function FellowshipApplications() {
   }
 
   function downloadCSV() {
-    const rows = [
-      ['Name', 'Email', 'University', 'Major', 'Year', 'City', 'AI Level', 'Status', 'Submitted'],
-      ...apps.map(a => [
-        a.full_name, a.email, a.university ?? '', a.major ?? '',
-        a.academic_year ?? '', a.city ?? '', a.ai_skill_level ?? '',
-        a.status, new Date(a.created_at).toLocaleDateString(),
-      ]),
+    const esc = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const header = [
+      'Name','Email','Mobile','City','University','Major','Academic Year','Grad Year','LinkedIn',
+      'AI Skill Level','Tools','Interests','Challenge Track',
+      'Why Join','AI Generalist','Learned Quickly','Team Pressure','Startup Problem','Describes You',
+      'Challenge Response','Conf Comfortable','Willing NDA','Understand Verify','Biggest Risk','Handle Uncertain',
+      'Why Select You','Become After','Anything Else',
+      'Status','Reviewer Notes','Submitted',
     ];
-    const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+    const rows = apps.map(a => [
+      a.full_name, a.email, a.mobile ?? '', a.city ?? '',
+      a.university ?? '', a.major ?? '', a.academic_year ?? '', a.grad_year ?? '', a.linkedin ?? '',
+      a.ai_skill_level ?? '', (a.tools ?? []).join('; '), (a.interests ?? []).join('; '), a.challenge_option ?? '',
+      a.why_join ?? '', (a as any).ai_generalist ?? '', (a as any).learned_quickly ?? '',
+      (a as any).team_pressure ?? '', (a as any).startup_problem ?? '', (a as any).describes_you ?? '',
+      a.challenge_response ?? '', (a as any).conf_comfortable ?? '', (a as any).willing_sign_nda ?? '',
+      (a as any).understand_verify ?? '', (a as any).biggest_risk ?? '', (a as any).handle_uncertain ?? '',
+      a.why_select_you ?? '', a.become_after ?? '', a.anything_else ?? '',
+      a.status, a.reviewer_notes ?? '', new Date(a.created_at).toLocaleDateString(),
+    ]);
+    const csv = [header, ...rows].map(r => r.map(esc).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = 'fellowship-applications.csv'; a.click();
