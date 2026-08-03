@@ -83,7 +83,7 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
     <div className="min-h-screen flex bg-[#f6f6f6] dark:bg-[#111]" style={{ fontFamily: 'var(--font-manrope), Manrope, sans-serif' }}>
       {sidebarOpen && <div className="fixed inset-0 bg-black/30 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
-      <aside style={{ backgroundColor: '#141414', colorScheme: 'dark' }} className={`fixed inset-y-0 left-0 z-50 w-64 flex flex-col h-screen transform transition-transform lg:transform-none lg:translate-x-0 lg:sticky lg:top-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside style={{ backgroundColor: '#141414' }} className={`fixed inset-y-0 left-0 z-50 w-64 flex flex-col h-screen transform transition-transform lg:transform-none lg:translate-x-0 lg:sticky lg:top-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         {/* Logo header — fixed */}
         <div className="shrink-0 px-4 h-14 flex items-center justify-between border-b border-white/10">
           <button onClick={() => handleNav('dashboard')} className="hover:opacity-80 transition-opacity">
@@ -197,7 +197,7 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="sticky top-0 z-30 bg-white dark:bg-[#1e1e1e] border-b border-[#f0f0f0] dark:border-white/10 px-4 lg:px-6 h-14 flex items-center gap-4">
-          <button className="lg:hidden" onClick={() => setSidebarOpen(true)}><Menu className="w-5 h-5 text-[#222] dark:text-[#f0f0f0]" /></button>
+          <button className="lg:hidden" onClick={() => setSidebarOpen(true)}><Menu className="w-5 h-5 text-[#555353]" /></button>
           <div className="flex items-center gap-2 text-sm text-[#7e7e7e] dark:text-[#888]">
             <span>Dashboard</span>
             <ChevronRight className="w-3 h-3" />

@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user,        setUser]        = useState<User | null>(null);
   const [profile,     setProfile]     = useState<DbProfile | null>(null);
   const [loading,     setLoading]     = useState(true);
-  const [devViewRole, setDevViewRole] = useState<DashboardRole>('shareholder');
+  const [devViewRole, setDevViewRole] = useState<DashboardRole>('developer');
 
   const isDeveloper = profile?.role === 'developer';
   // Developers see the devViewRole; everyone else sees their real DB role
