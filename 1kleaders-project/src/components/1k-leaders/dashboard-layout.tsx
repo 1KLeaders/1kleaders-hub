@@ -85,7 +85,7 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
 
       <aside style={{ backgroundColor: '#141414', colorScheme: 'dark' }} className={`fixed inset-y-0 left-0 z-50 w-64 flex flex-col h-screen transform transition-transform lg:transform-none lg:translate-x-0 lg:sticky lg:top-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         {/* Logo header — fixed */}
-        <div className="shrink-0 px-4 py-3 flex items-center justify-between border-b border-white/10">
+        <div className="shrink-0 px-4 h-14 flex items-center justify-between border-b border-white/10">
           <button onClick={() => handleNav('dashboard')} className="hover:opacity-80 transition-opacity">
             <img src="/logos/logos_1KL-Hub_Horizontal_Light.png" alt="1KL Hub" style={{ height: '28px', width: 'auto' }} />
           </button>
@@ -196,7 +196,7 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="sticky top-0 z-30 bg-white dark:bg-[#1e1e1e] border-b border-[#f0f0f0] dark:border-white/10 px-4 lg:px-6 h-14 flex items-center gap-4" style={{ boxShadow: 'none' }}>
+        <header className="sticky top-0 z-30 bg-white dark:bg-[#1e1e1e] border-b border-[#f0f0f0] dark:border-white/10 px-4 lg:px-6 h-14 flex items-center gap-4">
           <button className="lg:hidden" onClick={() => setSidebarOpen(true)}><Menu className="w-5 h-5 text-[#222] dark:text-[#f0f0f0]" /></button>
           <div className="flex items-center gap-2 text-sm text-[#7e7e7e] dark:text-[#888]">
             <span>Dashboard</span>
