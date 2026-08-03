@@ -93,7 +93,7 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
         </div>
 
         {/* Scrollable nav — takes remaining space between header and footer */}
-        <div className="flex-1 overflow-y-auto p-3 min-h-0">
+        <div className="flex-1 overflow-y-auto p-3 min-h-0" style={{ scrollbarWidth: 'thin', scrollbarColor: '#333 #141414' }}>
 
           <Separator className="mb-3 bg-white/10" />
           <nav className="space-y-1">

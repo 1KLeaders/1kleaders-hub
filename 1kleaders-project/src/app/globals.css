@@ -244,23 +244,23 @@
 .dark .rounded-xl.border .text-xs { color: #aaa; }
 
 /* Override specific dark text classes */
-.dark [class*="text-[#222]"]    { color: #f0f0f0 !important; }
-.dark [class*="text-[#333]"]    { color: #e8e8e8 !important; }
-.dark [class*="text-[#444]"]    { color: #d0d0d0 !important; }
-.dark [class*="text-[#555"]     { color: #b8b8b8 !important; }
-.dark [class*="text-[#7e7e7e]"] { color: #888    !important; }
-.dark [class*="text-[#9e9e9e]"] { color: #666    !important; }
+.dark :not(aside):not(aside *)[class*="text-[#222]"]    { color: #f0f0f0 !important; }
+.dark :not(aside):not(aside *)[class*="text-[#333]"]    { color: #e8e8e8 !important; }
+.dark :not(aside):not(aside *)[class*="text-[#444]"]    { color: #d0d0d0 !important; }
+.dark :not(aside):not(aside *)[class*="text-[#555"]     { color: #b8b8b8 !important; }
+.dark :not(aside):not(aside *)[class*="text-[#7e7e7e]"] { color: #888    !important; }
+.dark :not(aside):not(aside *)[class*="text-[#9e9e9e]"] { color: #666    !important; }
 
 /* Background overrides for page/card backgrounds */
-.dark [class*="bg-[#f6f6f6]"]  { background-color: #1e1e1e !important; }
-.dark [class*="bg-[#fafafa]"]  { background-color: #1a1a1a !important; }
-.dark [class*="bg-[#f0f0f0]"]  { background-color: #252525 !important; }
-.dark [class*="bg-[#fbfbfb]"]  { background-color: #111    !important; }
-.dark [class*="bg-white"]      { background-color: #1a1a1a !important; }
+.dark :not(aside):not(aside *)[class*="bg-[#f6f6f6]"]  { background-color: #1e1e1e !important; }
+.dark :not(aside):not(aside *)[class*="bg-[#fafafa]"]  { background-color: #1a1a1a !important; }
+.dark :not(aside):not(aside *)[class*="bg-[#f0f0f0]"]  { background-color: #252525 !important; }
+.dark :not(aside):not(aside *)[class*="bg-[#fbfbfb]"]  { background-color: #111    !important; }
+.dark :not(aside):not(aside *)[class*="bg-white"]      { background-color: #1a1a1a !important; }
 
 /* Border overrides */
-.dark [class*="border-[#f0f0f0]"] { border-color: #2a2a2a !important; }
-.dark [class*="border-[#e8e8e8]"] { border-color: #2a2a2a !important; }
+.dark :not(aside):not(aside *)[class*="border-[#f0f0f0]"] { border-color: #2a2a2a !important; }
+.dark :not(aside):not(aside *)[class*="border-[#e8e8e8]"] { border-color: #2a2a2a !important; }
 
 /* Keep colored text as-is (badges, status, brand colors) */
 .dark [class*="text-[#e33b5f]"] { color: #f07969 !important; }
@@ -302,14 +302,33 @@
 .dark [class*="text-emerald-800"] { color: #4ade80 !important; }
 .dark [class*="text-red-800"]     { color: #fca5a5 !important; }
 
-/* ── Sidebar: always dark, never affected by theme switching ── */
-aside { color-scheme: dark !important; }
-aside * { color: inherit; }
-aside [class*="bg-white"],
-aside [class*="bg-[#f"],
-aside [class*="bg-gray"] { background-color: transparent !important; }
-aside [class*="text-[#222]"],
-aside [class*="text-[#333]"],
-aside [class*="text-[#555"] { color: rgba(255,255,255,0.7) !important; }
-aside [class*="border-[#f0f0f0]"],
-aside [class*="border-[#e8e8e8]"] { border-color: rgba(255,255,255,0.1) !important; }
+/* ── Sidebar: locked to dark appearance, immune to theme switching ── */
+aside,
+aside *,
+.dark aside,
+.dark aside * {
+  color-scheme: dark !important;
+}
+
+/* Force sidebar background always dark */
+.dark aside { background-color: #141414 !important; }
+
+/* Force all text inside sidebar to stay white-ish */
+.dark aside p,
+.dark aside span,
+.dark aside button,
+.dark aside a,
+.dark aside div { color: inherit !important; }
+
+/* Prevent dark mode bg overrides inside sidebar */
+.dark aside [class*="bg-[#1"] { background-color: transparent !important; }
+.dark aside [class*="bg-[#2"] { background-color: transparent !important; }
+.dark aside [class*="bg-white"] { background-color: transparent !important; }
+
+/* Active nav item should stay the same red highlight */
+.dark aside button.bg-gradient-to-r { background: linear-gradient(to right, rgba(227,59,95,0.2), rgba(230,95,92,0.2)) !important; }
+
+/* Scrollbar inside sidebar */
+aside::-webkit-scrollbar-track { background: #1a1a1a !important; }
+aside::-webkit-scrollbar-thumb { background: #333 !important; }
+aside::-webkit-scrollbar { width: 4px !important; }
