@@ -8,8 +8,15 @@ export default function HomePage() {
   const [mobileOpen,      setMobileOpen]      = useState(false);
   const [landingActive,   setLandingActive]   = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
+    // Firefox autoplay fix — must call play() programmatically
+    if (videoRef.current) {
+      videoRef.current.muted = true;
+      videoRef.current.play().catch(() => {});
+    }
+
     // Pre-hide all reveal elements before observer kicks in
     document.querySelectorAll('.lk-reveal').forEach(el => {
       (el as HTMLElement).style.opacity = '0';
@@ -180,7 +187,7 @@ export default function HomePage() {
         }
 
         /* ── HERO ── */
-        .lk-hero { background-color: #111;
+        .lk-hero { position: relative; background-color: #111;
           width: 100%; position: relative;
           display: flex; flex-direction: column; justify-content: flex-end;
           padding: 0 5vw 10vh; gap: 10vh;
@@ -194,16 +201,21 @@ export default function HomePage() {
         .lk-hero-text h1 { color: #fff !important; width: 85%; }
         @media (max-width: 1120px) { .lk-hero-text h1 { width: 100%; } }
         .lk-hero-video {
-          position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-          z-index: -1; overflow: hidden; background-color: #111;
+          position: absolute; top: 0; left: 0;
+          width: 100%; height: 100%;
+          z-index: 0; background-color: #111;
+          overflow: hidden;
         }
         .lk-hero-video video {
-          position: absolute; top: 50%; left: 50%;
-          transform: translate(-50%, -50%);
-          min-width: 100%; min-height: 100%;
-          width: auto; height: auto;
-          object-fit: cover; opacity: 0.8;
+          width: 100%; height: 100%;
+          object-fit: cover;
           display: block;
+          opacity: 0.8 !important;
+          visibility: visible !important;
+        }
+        .lk-hero-text {
+          position: relative;
+          z-index: 1;
         }
 
         /* Animated word cycle */
@@ -361,7 +373,7 @@ export default function HomePage() {
         {/* ── HERO ── */}
         <div ref={heroRef} className={`lk-hero ${landingActive ? 'active' : ''}`} id="what-we-do">
           <div className="lk-hero-video">
-            <video autoPlay muted loop playsInline preload="auto" style={{ display: "block", width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => console.error("Video error:", e)}>
+            <video ref={videoRef} autoPlay muted loop playsInline preload="auto" onError={(e) => console.error("Video error:", e)} style={{ display: "block", width: "100%", height: "100%", objectFit: "cover", opacity: 0.8, visibility: "visible", position: "relative", zIndex: 0 }}>
               <source src="/main-site/landing.mp4" type="video/mp4" />
             </video>
           </div>
