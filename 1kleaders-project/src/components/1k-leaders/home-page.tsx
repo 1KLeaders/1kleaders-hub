@@ -10,6 +10,12 @@ export default function HomePage() {
   const heroRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Pre-hide all reveal elements before observer kicks in
+    document.querySelectorAll('.lk-reveal').forEach(el => {
+      (el as HTMLElement).style.opacity = '0';
+      (el as HTMLElement).style.transform = 'translateY(40px)';
+    });
+
     // Show Humane decorators only after font loads
     document.fonts.load('700 1em Humane').then(() => {
       document.documentElement.style.setProperty('--humane-loaded', 'visible');
@@ -40,7 +46,7 @@ export default function HomePage() {
       setNavBg(scrollY > 60);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
+    // Don't call immediately — hero starts off-screen so scrollY=0 is always in hero
     return () => {
       clearTimeout(t1); clearTimeout(t2);
       window.removeEventListener('scroll', onScroll);
@@ -183,9 +189,9 @@ export default function HomePage() {
           width: 100%; position: relative;
           display: flex; flex-direction: column; justify-content: flex-end;
           padding: 0 5vw 10vh; gap: 10vh;
-          padding-top: 60vh; margin-top: 100vh;
+          height: 100vh; min-height: 600px;
+          margin-top: 100vh;
           transition: margin-top 1s cubic-bezier(0.76, 0, 0.24, 1);
-          min-height: 100vh;
         }
         .lk-hero.active { margin-top: 0; }
         .lk-hero-text { display: flex; flex-direction: column; gap: 2vh; text-shadow: 0 0 10px rgba(0,0,0,0.5); }
@@ -194,9 +200,12 @@ export default function HomePage() {
         @media (max-width: 1120px) { .lk-hero-text h1 { width: 100%; } }
         .lk-hero-video {
           position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-          z-index: -1; overflow: hidden; background-color: #000;
+          z-index: -1; overflow: hidden; background-color: #111;
         }
-        .lk-hero-video video { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; }
+        .lk-hero-video video {
+          position: absolute; top: 0; left: 0;
+          width: 100%; height: 100%; object-fit: cover; opacity: 0.8;
+        }
 
         /* Animated word cycle */
         .lk-word {
@@ -311,7 +320,7 @@ export default function HomePage() {
         @media (max-width: 700px) { .lk-footer-bottom { flex-direction: column; gap: 2vh; } }
 
         /* ── SCROLL ANIMATIONS ── */
-        .lk-reveal { opacity: 0; transform: translateY(40px); transition: opacity 0.9s ease, transform 0.9s cubic-bezier(0.16,1,0.3,1); }
+        .lk-reveal { opacity: 0; transform: translateY(40px); transition: opacity 0.9s ease, transform 0.9s cubic-bezier(0.16,1,0.3,1); will-change: opacity, transform; }
         .lk-reveal.visible { opacity: 1; transform: translateY(0); }
         .lk-reveal-delay-1 { transition-delay: 0.1s; }
         .lk-reveal-delay-2 { transition-delay: 0.2s; }
@@ -487,15 +496,33 @@ export default function HomePage() {
   );
 }
 
-// Scroll reveal — watches .lk-reveal elements
+// Scroll reveal — waits for hero animation to complete before observing
 function ScrollReveal() {
   useEffect(() => {
-    const els = document.querySelectorAll('.lk-reveal');
-    const obs = new IntersectionObserver(entries => {
-      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
-    }, { threshold: 0.15 });
-    els.forEach(el => obs.observe(el));
-    return () => obs.disconnect();
+    // Wait for entrance animation (1s) before setting up observer
+    // so elements below the fold start hidden and animate in on scroll
+    const setup = () => {
+      const els = document.querySelectorAll('.lk-reveal');
+      const obs = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            const el = e.target as HTMLElement;
+            el.style.opacity = '';
+            el.style.transform = '';
+            el.classList.add('visible');
+            obs.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -50px 0px' });
+      els.forEach(el => obs.observe(el));
+      return obs;
+    };
+    // Small delay to ensure elements are in their initial hidden state
+    const t = setTimeout(() => {
+      const obs = setup();
+      return () => obs.disconnect();
+    }, 400);
+    return () => clearTimeout(t);
   }, []);
   return null;
 }
