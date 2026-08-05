@@ -70,7 +70,6 @@ export default function HomePage() {
         [data-theme="light"] [class*="border-[#f0f0f0]"] { border-color: #f0f0f0 !important; }
 
         @import url('https://fonts.googleapis.com/css2?family=Rethink+Sans:wght@400;500;700;800&family=Manrope:wght@200;300;400;500;600;700;800&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0');
 
         @font-face {
           font-family: Humane;
@@ -185,7 +184,7 @@ export default function HomePage() {
         }
 
         /* ── HERO ── */
-        .lk-hero {
+        .lk-hero { background-color: #111;
           width: 100%; position: relative;
           display: flex; flex-direction: column; justify-content: flex-end;
           padding: 0 5vw 10vh; gap: 10vh;
@@ -199,12 +198,13 @@ export default function HomePage() {
         .lk-hero-text h1 { color: #fff !important; width: 85%; }
         @media (max-width: 1120px) { .lk-hero-text h1 { width: 100%; } }
         .lk-hero-video {
-          position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-          z-index: -1; overflow: hidden; background-color: #111;
+          position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+          z-index: -2; overflow: hidden; background-color: #111;
         }
         .lk-hero-video video {
           position: absolute; top: 0; left: 0;
           width: 100%; height: 100%; object-fit: cover; opacity: 0.8;
+          display: block;
         }
 
         /* Animated word cycle */
@@ -362,7 +362,7 @@ export default function HomePage() {
         {/* ── HERO ── */}
         <div ref={heroRef} className={`lk-hero ${landingActive ? 'active' : ''}`} id="what-we-do">
           <div className="lk-hero-video">
-            <video autoPlay muted loop playsInline preload="auto" style={{ display: "block" }}>
+            <video autoPlay muted loop playsInline preload="auto" style={{ display: "block", width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => console.error("Video error:", e)}>
               <source src="/site-assets/landing.mp4" type="video/mp4" />
             </video>
           </div>
