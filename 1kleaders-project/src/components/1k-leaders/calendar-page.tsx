@@ -210,11 +210,17 @@ export default function CalendarPage({ role }: Props) {
     try {
       const res = await fetch('/api/teams/sync-calendar');
       const data = await res.json();
-      if (data.error) setSyncMsg('Sync failed: ' + data.error);
-      else { setSyncMsg(`Synced ${data.synced} meetings from Teams`); fetchEvents(); }
-    } catch { setSyncMsg('Sync failed — check connection'); }
+      if (data.error) {
+        setSyncMsg(`❌ ${data.error}`);
+      } else {
+        setSyncMsg(`✓ Synced ${data.synced} of ${data.total} meetings from Teams`);
+        fetchEvents();
+      }
+    } catch (e: any) {
+      setSyncMsg('❌ Network error — check your connection');
+    }
     setSyncing(false);
-    setTimeout(() => setSyncMsg(''), 4000);
+    setTimeout(() => setSyncMsg(''), 8000);
   };
 
   const fetchAttendance = async (teamsEventId: string) => {
@@ -264,8 +270,10 @@ export default function CalendarPage({ role }: Props) {
         });
         const data = await res.json();
         if (data.join_url) teamsJoinUrl = data.join_url;
-      } catch (e) {
-        console.warn('Teams meeting creation failed (non-fatal):', e);
+      } catch (e: any) {
+        console.error('Teams meeting creation failed:', e);
+        setSyncMsg('⚠️ Meeting saved but Teams link failed: ' + (e?.message ?? 'unknown error'));
+        setTimeout(() => setSyncMsg(''), 8000);
       }
     }
 
