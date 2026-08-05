@@ -10,6 +10,11 @@ export default function HomePage() {
   const heroRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Show Humane decorators only after font loads
+    document.fonts.load('700 1em Humane').then(() => {
+      document.documentElement.style.setProperty('--humane-loaded', 'visible');
+    }).catch(() => {}); // hide if font fails
+
     // Force light mode on body for this page
     const origBg = document.body.style.backgroundColor;
     const origColor = document.body.style.color;
@@ -63,7 +68,7 @@ export default function HomePage() {
 
         @font-face {
           font-family: Humane;
-          src: url('https://1kleaders.com/_app/immutable/assets/humane-bold.5dfbda44.woff2') format('woff2');
+          src: url('/site-assets/humane-bold.woff2') format('woff2');
           font-weight: 700;
         }
 
@@ -159,8 +164,11 @@ export default function HomePage() {
         .lk-hb-btn.open .lk-hb-icon span:nth-child(3) { transform: translateY(-100%) rotate(45deg); }
         .lk-mask { overflow: hidden; height: 0; transition: height 0.3s ease; position: absolute; left: 0; top: 100%; width: 100%; }
         .lk-mask.open { height: calc(100vh - 100%); }
+        .lk-hb { display: none; }
+        .lk-nav-desktop { display: flex !important; }
         @media (max-width: 780px) {
           .lk-hb { display: block; }
+          .lk-nav-desktop { display: none !important; }
           .lk-nav-ul { flex-direction: column !important; align-items: flex-start !important; padding: 0 10vw; gap: 5vh !important; }
           .lk-nav-ul li a { font-size: 7vw; font-family: Manrope, sans-serif; }
           .lk-nav-ul .lk-btn { margin-top: 10vh; background: none; font-weight: 700;
@@ -218,11 +226,11 @@ export default function HomePage() {
         }
         .lk-about-decorator {
           position: absolute; top: 20%; left: 0; white-space: nowrap;
-          font-family: Humane, sans-serif; font-weight: 700;
+          font-family: Humane, 'Arial Narrow', sans-serif; font-weight: 700;
           font-size: 48vw; line-height: 100%; color: transparent;
           -webkit-text-stroke: 2px rgba(255,255,255,0.07);
           pointer-events: none; user-select: none; text-transform: uppercase;
-          z-index: 0;
+          z-index: 0; visibility: var(--humane-loaded, hidden);
         }
         .lk-about-title h2 { color: #fff; width: 75%; position: relative; z-index: 1; }
         @media (max-width: 1120px) { .lk-about-title h2 { width: 100%; } }
@@ -250,10 +258,10 @@ export default function HomePage() {
           writing-mode: vertical-lr;
         }
         .lk-usp-decorator-text {
-          font-family: Humane, sans-serif; font-weight: 700;
+          font-family: Humane, 'Arial Narrow', sans-serif; font-weight: 700;
           font-size: 25vw; line-height: 70%; color: transparent;
           -webkit-text-stroke: 2px rgba(255,255,255,0.07);
-          user-select: none; text-transform: uppercase;
+          user-select: none; text-transform: uppercase; visibility: var(--humane-loaded, hidden);
         }
         .lk-usp-content { flex-basis: 70%; display: flex; flex-direction: column; gap: 10vh; color: #fff; }
         .lk-usp-item-header { padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.3); margin-bottom: 2.5rem; }
@@ -318,33 +326,34 @@ export default function HomePage() {
             <img src="/site-assets/logo.svg" alt="1K Leaders" />
           </button>
           <div style={{ display: 'flex', flexDirection: 'row', position: 'relative' }}>
-            {/* Hamburger */}
-            <button className={`lk-hb-btn ${mobileOpen ? 'open' : ''}`} onClick={() => setMobileOpen(o => !o)}>
-              <div className="lk-hb-icon"><span/><span/><span/></div>
-            </button>
-            {/* Mobile mask */}
-            <div className={`lk-mask ${mobileOpen ? 'open' : ''}`}>
-              <ul className="lk-nav-links lk-nav-ul">
-                <li><a href="#what-we-do" onClick={() => setMobileOpen(false)}>What We Do</a></li>
-                <li><a href="#what-we-offer" onClick={() => setMobileOpen(false)}>What We Offer</a></li>
-                <li><a href="#join" onClick={() => setMobileOpen(false)}>Join Us</a></li>
-                <li><a href="https://app.1kleaders.com" className="lk-btn">Get Started</a></li>
-              </ul>
-            </div>
-            {/* Desktop */}
-            <ul className="lk-nav-links lk-nav-desktop" style={{ display: 'flex' }}>
+            {/* Desktop nav — hidden on mobile via CSS */}
+            <ul className="lk-nav-links lk-nav-desktop">
               <li><a href="#what-we-do">What We Do</a></li>
               <li><a href="#what-we-offer">What We Offer</a></li>
               <li><a href="#join">Join Us</a></li>
               <li><a href="https://app.1kleaders.com" className="lk-btn">Get Started</a></li>
             </ul>
+            {/* Hamburger — shown on mobile only via CSS */}
+            <div className="lk-hb">
+              <button className={`lk-hb-btn ${mobileOpen ? 'open' : ''}`} onClick={() => setMobileOpen(o => !o)}>
+                <div className="lk-hb-icon"><span/><span/><span/></div>
+              </button>
+              <div className={`lk-mask ${mobileOpen ? 'open' : ''}`}>
+                <ul className="lk-nav-links lk-nav-ul">
+                  <li><a href="#what-we-do" onClick={() => setMobileOpen(false)}>What We Do</a></li>
+                  <li><a href="#what-we-offer" onClick={() => setMobileOpen(false)}>What We Offer</a></li>
+                  <li><a href="#join" onClick={() => setMobileOpen(false)}>Join Us</a></li>
+                  <li><a href="https://app.1kleaders.com" className="lk-btn">Get Started</a></li>
+                </ul>
+              </div>
+            </div>
           </div>
         </nav>
 
         {/* ── HERO ── */}
         <div ref={heroRef} className={`lk-hero ${landingActive ? 'active' : ''}`} id="what-we-do">
           <div className="lk-hero-video">
-            <video autoPlay muted loop playsInline preload="auto">
+            <video autoPlay muted loop playsInline preload="auto" style={{ display: "block" }}>
               <source src="/site-assets/landing.mp4" type="video/mp4" />
             </video>
           </div>
