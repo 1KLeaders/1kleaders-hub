@@ -146,16 +146,12 @@ export default function HomePage() {
           display: inline-flex; align-items: center; border: none; cursor: pointer;
           position: relative; transition: opacity 0.2s ease;
         }
-        .lk-btn::after, .lk-btn::before {
-          content: 'arrow_forward'; font-family: 'Material Symbols Outlined';
-          font-weight: 400; font-size: 1.2rem; line-height: 1.1;
-          display: inline-block; overflow: hidden;
-          transition: width 0.3s ease, margin 0.3s ease;
+        .lk-btn::after, .lk-btn::before { content: none; display: none; }
+        .lk-btn-arrow {
+          display: inline-block; margin-left: 0.5rem;
+          transition: transform 0.3s ease;
         }
-        .lk-btn::after  { margin-left: 0.5rem; width: 1.1rem; }
-        .lk-btn::before { margin-right: 0; width: 0; }
-        .lk-btn:hover::after  { margin-left: 0; width: 0; }
-        .lk-btn:hover::before { margin-right: 0.5rem; width: 1.1rem; }
+        .lk-btn:hover .lk-btn-arrow { transform: translateX(4px); }
 
         /* ── HAMBURGER ── */
         .lk-hb { display: none; }
@@ -198,12 +194,15 @@ export default function HomePage() {
         .lk-hero-text h1 { color: #fff !important; width: 85%; }
         @media (max-width: 1120px) { .lk-hero-text h1 { width: 100%; } }
         .lk-hero-video {
-          position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-          z-index: -2; overflow: hidden; background-color: #111;
+          position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+          z-index: -1; overflow: hidden; background-color: #111;
         }
         .lk-hero-video video {
-          position: absolute; top: 0; left: 0;
-          width: 100%; height: 100%; object-fit: cover; opacity: 0.8;
+          position: absolute; top: 50%; left: 50%;
+          transform: translate(-50%, -50%);
+          min-width: 100%; min-height: 100%;
+          width: auto; height: auto;
+          object-fit: cover; opacity: 0.8;
           display: block;
         }
 
@@ -340,7 +339,7 @@ export default function HomePage() {
               <li><a href="#what-we-do">What We Do</a></li>
               <li><a href="#what-we-offer">What We Offer</a></li>
               <li><a href="#join">Join Us</a></li>
-              <li><a href="https://app.1kleaders.com" className="lk-btn">Get Started</a></li>
+              <li><a href="https://app.1kleaders.com" className="lk-btn">Get Started <span className="lk-btn-arrow">→</span></a></li>
             </ul>
             {/* Hamburger — shown on mobile only via CSS */}
             <div className="lk-hb">
@@ -352,7 +351,7 @@ export default function HomePage() {
                   <li><a href="#what-we-do" onClick={() => setMobileOpen(false)}>What We Do</a></li>
                   <li><a href="#what-we-offer" onClick={() => setMobileOpen(false)}>What We Offer</a></li>
                   <li><a href="#join" onClick={() => setMobileOpen(false)}>Join Us</a></li>
-                  <li><a href="https://app.1kleaders.com" className="lk-btn">Get Started</a></li>
+                  <li><a href="https://app.1kleaders.com" className="lk-btn">Get Started <span className="lk-btn-arrow">→</span></a></li>
                 </ul>
               </div>
             </div>
@@ -466,7 +465,7 @@ export default function HomePage() {
               ))}
             </div>
             <div className="lk-cta-center">
-              <a href="https://app.1kleaders.com" className="lk-btn">Join the Waitlist</a>
+              <a href="https://app.1kleaders.com" className="lk-btn">Join the Waitlist <span className="lk-btn-arrow">→</span></a>
             </div>
           </div>
         </section>
