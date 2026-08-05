@@ -10,6 +10,20 @@ export default function HomePage() {
   const heroRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Force light mode on body for this page
+    const origBg = document.body.style.backgroundColor;
+    const origColor = document.body.style.color;
+    document.body.style.backgroundColor = '#fbfbfb';
+    document.body.style.color = '#222';
+    document.documentElement.style.backgroundColor = '#fbfbfb';
+    return () => {
+      document.body.style.backgroundColor = origBg;
+      document.body.style.color = origColor;
+      document.documentElement.style.backgroundColor = '';
+    };
+  }, []);
+
+  useEffect(() => {
     // Entrance animation
     const t1 = setTimeout(() => setNavActive(true), 100);
     const t2 = setTimeout(() => setLandingActive(true), 300);
@@ -31,6 +45,19 @@ export default function HomePage() {
   return (
     <>
       <style>{`
+        /* Hard reset — block ALL dark mode globals from this page */
+        [data-theme="light"] { color-scheme: light !important; }
+        [data-theme="light"], [data-theme="light"] * {
+          --tw-bg-opacity: 1;
+        }
+        [data-theme="light"] [class*="bg-[#f6f6f6]"] { background-color: #f6f6f6 !important; }
+        [data-theme="light"] [class*="bg-[#141414]"] { background-color: #141414 !important; }
+        [data-theme="light"] [class*="bg-[#111]"]    { background-color: #111    !important; }
+        [data-theme="light"] [class*="text-[#222]"]  { color: #222 !important; }
+        [data-theme="light"] [class*="text-white"]   { color: #fff !important; }
+        [data-theme="light"] [class*="bg-white"]     { background-color: #fff !important; }
+        [data-theme="light"] [class*="border-[#f0f0f0]"] { border-color: #f0f0f0 !important; }
+
         @import url('https://fonts.googleapis.com/css2?family=Rethink+Sans:wght@400;500;700;800&family=Manrope:wght@200;300;400;500;600;700;800&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0');
 
@@ -283,7 +310,7 @@ export default function HomePage() {
         .lk-reveal-delay-3 { transition-delay: 0.35s; }
       `}</style>
 
-      <div className="lk-root">
+      <div className="lk-root" data-theme="light" style={{ colorScheme: 'light', backgroundColor: '#fbfbfb' }}>
         {/* ── NAV ── */}
         <nav className={`lk-nav ${navActive ? 'active' : ''} ${navDark ? 'dark' : ''} ${navBg ? 'with-bg' : ''} ${mobileOpen ? 'mobileOpen' : ''}`}>
           <div className="lk-nav-bg" />
