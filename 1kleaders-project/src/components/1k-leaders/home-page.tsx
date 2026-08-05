@@ -73,7 +73,7 @@ export default function HomePage() {
 
         @font-face {
           font-family: Humane;
-          src: url('/site-assets/humane-bold.woff2') format('woff2');
+          src: url('/main-site/humane-bold.woff2') format('woff2');
           font-weight: 700;
         }
 
@@ -331,7 +331,7 @@ export default function HomePage() {
         <nav className={`lk-nav ${navActive ? 'active' : ''} ${navDark ? 'dark' : ''} ${navBg ? 'with-bg' : ''} ${mobileOpen ? 'mobileOpen' : ''}`}>
           <div className="lk-nav-bg" />
           <button className="lk-nav-logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <img src="/site-assets/logo.svg" alt="1K Leaders" />
+            <img src="/main-site/logo.svg" alt="1K Leaders" />
           </button>
           <div style={{ display: 'flex', flexDirection: 'row', position: 'relative' }}>
             {/* Desktop nav — hidden on mobile via CSS */}
@@ -362,7 +362,7 @@ export default function HomePage() {
         <div ref={heroRef} className={`lk-hero ${landingActive ? 'active' : ''}`} id="what-we-do">
           <div className="lk-hero-video">
             <video autoPlay muted loop playsInline preload="auto" style={{ display: "block", width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => console.error("Video error:", e)}>
-              <source src="/site-assets/landing.mp4" type="video/mp4" />
+              <source src="/main-site/landing.mp4" type="video/mp4" />
             </video>
           </div>
           <div className="lk-hero-text">
@@ -389,7 +389,7 @@ export default function HomePage() {
               <p className="medium">Driven by collective professionals, leaders, advisors, and investors.</p>
             </div>
             <div className="lk-about-img lk-reveal lk-reveal-delay-2">
-              <img src="/site-assets/about.jpg" alt="1K Leaders team" />
+              <img src="/main-site/about.jpg" alt="1K Leaders team" />
             </div>
           </div>
           <div className="lk-usp-section">
@@ -436,19 +436,19 @@ export default function HomePage() {
             <div className="lk-cta-items">
               {[
                 {
-                  img:   '/site-assets/cta-1.jpg',
+                  img:   '/main-site/cta-1.jpg',
                   tag:   'passionate dreamers',
                   title: 'Co-Founders & Idea Owners',
                   body:  "Innovate, collaborate, co-found. If you are passionate about problem-solving or challenging the status quo with ideas big and small, join 1K Leaders as a co-founder, whether part-time or full-time and let us turn your ambition into action.",
                 },
                 {
-                  img:   '/site-assets/cta-2.jpg',
+                  img:   '/main-site/cta-2.jpg',
                   tag:   'ambitious professionals',
                   title: 'Field Experts & Subject Matter Experts',
                   body:  'Share knowledge and expertise. If you are a passionate professional or seasoned expert, your insight and experience can guide, mentor, and inspire. Join 1K Leaders to lead transformation and ignite our network.',
                 },
                 {
-                  img:   '/site-assets/cta-3.jpg',
+                  img:   '/main-site/cta-3.jpg',
                   tag:   'Future visionary',
                   title: 'Angel Investors & Venture Capitals',
                   body:  'Invest time and money. If you are enthusiastic about sharing wisdom and willing to dedicate your time, you can ignite measurable transformation and yield quantifiable returns. Join the 1K Leaders ecosystem to mentor, guide, and invest with us.',
@@ -476,9 +476,9 @@ export default function HomePage() {
             <h2>Invent, Build, <span className="gradient">Scale...</span></h2>
             <div className="lk-footer-links">
               <a href="https://www.linkedin.com/company/1kleaders/" target="_blank" rel="noopener noreferrer">
-                <img className="linkedin" src="/site-assets/linkedin.png" alt="LinkedIn" />
+                <img className="linkedin" src="/main-site/linkedin.png" alt="LinkedIn" />
               </a>
-              <img className="logo" src="/site-assets/logo.svg" alt="1K Leaders" />
+              <img className="logo" src="/main-site/logo.svg" alt="1K Leaders" />
               <a href="mailto:info@1kleaders.com">info@1kleaders.com</a>
             </div>
           </div>
