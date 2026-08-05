@@ -78,5 +78,9 @@ export async function GET(req: NextRequest) {
     console.warn('Teams callback: no Supabase session found — connection not saved');
   }
 
+  // Trigger initial calendar sync in background
+  const syncUrl = `${APP_URL}/api/teams/sync-calendar`;
+  fetch(syncUrl, { headers: { Cookie: req.headers.get('cookie') ?? '' } }).catch(() => {});
+
   return NextResponse.redirect(`${APP_URL}/?teams_connected=true`);
 }

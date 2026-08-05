@@ -29,10 +29,12 @@ export async function GET(req: NextRequest) {
   }
 
   const now = new Date();
-  const end = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  // Pull 90 days back and 30 days forward
+  const start = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+  const end   = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
   const eventsRes = await fetch(
-    `https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=${now.toISOString()}&endDateTime=${end.toISOString()}&$select=id,subject,start,end,location,bodyPreview,isOnlineMeeting,onlineMeeting&$top=50`,
+    `https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=${start.toISOString()}&endDateTime=${end.toISOString()}&$select=id,subject,start,end,location,bodyPreview,isOnlineMeeting,onlineMeeting&$top=200`,
     { headers: { 'Authorization': `Bearer ${conn.access_token}` } }
   );
 
