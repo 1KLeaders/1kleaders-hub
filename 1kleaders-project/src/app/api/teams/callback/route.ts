@@ -63,19 +63,48 @@ export async function GET(req: NextRequest) {
   );
   const { data: { user } } = await supabaseClient.auth.getUser();
 
-  if (user) {
-    await supabaseAdmin.from('teams_connections').upsert({
-      user_id:       user.id,
+  // Save token regardless of session — use Microsoft user ID as the key
+  // This allows Teams to work as a shared org connection
+  const msUserId = graphData.id ?? 'org-teams-connection';
+
+  // Try to get Supabase user from cookie (may fail)
+  const supabaseClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false }, global: { headers: { Cookie: req.headers.get('cookie') ?? '' } } }
+  );
+  const { data: { user } } = await supabaseClient.auth.getUser();
+
+  // Use actual user ID if available, otherwise use a fixed org-level key
+  const supabaseUserId = user?.id ?? null;
+
+  // Store using Microsoft user ID to avoid conflicts
+  const { error: upsertErr } = await supabaseAdmin.from('teams_connections').upsert({
+    user_id:       supabaseUserId,
+    ms_user_id:    msUserId,
+    access_token:  tokenData.access_token,
+    refresh_token: tokenData.refresh_token ?? null,
+    expires_at:    new Date(Date.now() + (tokenData.expires_in ?? 3600) * 1000).toISOString(),
+    tenant_id:     graphData.tenantId ?? null,
+    display_name:  graphData.displayName ?? null,
+    email:         graphData.mail ?? graphData.userPrincipalName ?? null,
+    connected:     true,
+  }, { onConflict: 'ms_user_id' });
+
+  if (upsertErr) {
+    console.error('Teams connection save error:', upsertErr);
+    // Fall back to inserting without conflict handling
+    await supabaseAdmin.from('teams_connections').insert({
+      user_id:       supabaseUserId,
+      ms_user_id:    msUserId,
       access_token:  tokenData.access_token,
       refresh_token: tokenData.refresh_token ?? null,
       expires_at:    new Date(Date.now() + (tokenData.expires_in ?? 3600) * 1000).toISOString(),
-      tenant_id:     graphData.id ?? null,
+      tenant_id:     graphData.tenantId ?? null,
       display_name:  graphData.displayName ?? null,
       email:         graphData.mail ?? graphData.userPrincipalName ?? null,
       connected:     true,
-    }, { onConflict: 'user_id' });
-  } else {
-    console.warn('Teams callback: no Supabase session found — connection not saved');
+    });
   }
 
   // Trigger initial calendar sync in background
