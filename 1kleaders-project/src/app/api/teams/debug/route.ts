@@ -5,20 +5,29 @@ import { supabaseAdmin } from '@/lib/supabase-server';
 
 export async function GET(req: NextRequest) {
   // Get most recent Teams connection regardless of user
+  // Check ALL rows regardless of connected flag
+  const { data: allRows } = await supabaseAdmin
+    .from('teams_connections')
+    .select('user_id, email, display_name, connected, expires_at, created_at, ms_user_id')
+    .order('created_at', { ascending: false })
+    .limit(5);
+
   const { data: conn, error: connErr } = await supabaseAdmin
     .from('teams_connections')
-    .select('access_token, expires_at, connected, user_id, email, display_name, created_at')
-    .eq('connected', true)
+    .select('access_token, expires_at, connected, user_id, email, display_name, created_at, ms_user_id')
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
-
+  
   if (!conn) {
     return NextResponse.json({ 
-      error: 'No Teams connection found in DB',
-      db_error: connErr,
+      error: 'No Teams connection found in DB at all',
+      all_rows: allRows ?? [],
+      row_count: allRows?.length ?? 0,
     });
   }
+
+
 
   const expired = conn.expires_at && new Date(conn.expires_at) < new Date();
 
