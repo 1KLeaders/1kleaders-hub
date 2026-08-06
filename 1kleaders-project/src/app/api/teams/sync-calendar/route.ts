@@ -44,6 +44,16 @@ export async function GET(req: NextRequest) {
 
   const events = eventsBody.value ?? [];
   let synced = 0;
+  const errors: string[] = [];
+
+  // Get a valid user_id to use as created_by — use the teams connection owner or first admin
+  const { data: adminProfile } = await supabaseAdmin
+    .from('profiles')
+    .select('id')
+    .in('role', ['admin', 'super-admin', 'developer'])
+    .limit(1)
+    .maybeSingle();
+  const createdBy = adminProfile?.id ?? null;
 
   for (const event of events) {
     const startDT  = new Date(event.start?.dateTime ?? event.start?.date);
@@ -52,19 +62,25 @@ export async function GET(req: NextRequest) {
     const joinUrl  = event.onlineMeeting?.joinUrl ?? null;
     const location = event.location?.displayName || (joinUrl ? 'Microsoft Teams' : 'TBD');
 
-    await supabaseAdmin.from('calendar_events').upsert({
+    const { error: upsertErr } = await supabaseAdmin.from('calendar_events').upsert({
       title:          event.subject ?? 'Teams Meeting',
       date,
       time,
       type:           'meeting',
       location,
       description:    [event.bodyPreview?.slice(0, 200), joinUrl ? `Teams link: ${joinUrl}` : null].filter(Boolean).join('\n') || null,
-      created_by:     null,
+      created_by:     createdBy,
       teams_event_id: event.id,
       teams_join_url: joinUrl,
     }, { onConflict: 'teams_event_id', ignoreDuplicates: false });
-    synced++;
+
+    if (upsertErr) {
+      console.error('Event upsert error:', upsertErr);
+      errors.push(`${event.subject}: ${upsertErr.message}`);
+    } else {
+      synced++;
+    }
   }
 
-  return NextResponse.json({ synced, total: events.length });
+  return NextResponse.json({ synced, total: events.length, errors });
 }
