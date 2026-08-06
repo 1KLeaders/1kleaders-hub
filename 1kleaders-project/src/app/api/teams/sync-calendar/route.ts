@@ -4,14 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase-server';
 import { createClient } from '@supabase/supabase-js';
 
 export async function GET(req: NextRequest) {
-  const supabaseClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { persistSession: false }, global: { headers: { Cookie: req.headers.get('cookie') ?? '' } } }
-  );
-  const { data: { user } } = await supabaseClient.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Not logged in' }, { status: 401 });
-
+  // No user auth needed - use the org-level Teams connection
   const { data: conn } = await supabaseAdmin
     .from('teams_connections')
     .select('access_token, expires_at')
@@ -66,7 +59,7 @@ export async function GET(req: NextRequest) {
       type:           'meeting',
       location,
       description:    [event.bodyPreview?.slice(0, 200), joinUrl ? `Teams link: ${joinUrl}` : null].filter(Boolean).join('\n') || null,
-      created_by:     user.id,
+      created_by:     null,
       teams_event_id: event.id,
       teams_join_url: joinUrl,
     }, { onConflict: 'teams_event_id', ignoreDuplicates: false });

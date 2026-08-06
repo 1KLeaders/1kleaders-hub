@@ -82,6 +82,8 @@ export default function CalendarPage({ role }: Props) {
   useEffect(() => {
     supabase.from('teams_connections').select('id').eq('connected', true).limit(1).maybeSingle()
       .then(({ data }) => setTeamsConnected(!!data));
+    // If teams_connected param in URL, refresh connected state
+    if (window.location.search.includes('teams_connected=true')) setTeamsConnected(true);
     supabase.from('profiles').select('id, first_name, last_name, email').order('first_name')
       .then(({ data }) => setPartners((data ?? []).map((p: any) => ({
         id: p.id,
@@ -214,7 +216,7 @@ export default function CalendarPage({ role }: Props) {
         setSyncMsg(`❌ ${data.error}`);
       } else {
         setSyncMsg(`✓ Synced ${data.synced} of ${data.total} meetings from Teams`);
-        fetchEvents();
+        await fetchData();
       }
     } catch (e: any) {
       setSyncMsg('❌ Network error — check your connection');
@@ -333,7 +335,7 @@ export default function CalendarPage({ role }: Props) {
               </Button>
             )
           )}
-          <Button size="sm" variant="outline" onClick={fetchData} disabled={loading}>
+          <Button size="sm" variant="outline" onClick={() => { fetchData(); }} disabled={loading} title="Refresh">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
           {isAdmin && (
