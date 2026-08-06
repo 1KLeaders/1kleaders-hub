@@ -52,19 +52,7 @@ export async function GET(req: NextRequest) {
   });
   const graphData = await graphRes.json();
 
-  // Get Supabase user from cookie-based session
-  const supabaseClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      auth: { persistSession: false },
-      global: { headers: { Cookie: req.headers.get('cookie') ?? '' } },
-    }
-  );
-  const { data: { user } } = await supabaseClient.auth.getUser();
-
   // Save token regardless of session — use Microsoft user ID as the key
-  // This allows Teams to work as a shared org connection
   const msUserId = graphData.id ?? 'org-teams-connection';
 
   // Try to get Supabase user from cookie (may fail)
@@ -75,7 +63,7 @@ export async function GET(req: NextRequest) {
   );
   const { data: { user } } = await supabaseClient.auth.getUser();
 
-  // Use actual user ID if available, otherwise use a fixed org-level key
+  // Use actual user ID if available, otherwise null
   const supabaseUserId = user?.id ?? null;
 
   // Store using Microsoft user ID to avoid conflicts
