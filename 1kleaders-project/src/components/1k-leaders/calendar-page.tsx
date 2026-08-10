@@ -268,6 +268,7 @@ export default function CalendarPage({ role }: Props) {
             title:          newTitle.trim(),
             start_datetime: startDT,
             description:    newDesc.trim() || null,
+            invitee_emails: invitees.map(id => partners.find((p: any) => p.id === id)?.email).filter(Boolean),
           }),
         });
         const data = await res.json();
@@ -515,9 +516,13 @@ export default function CalendarPage({ role }: Props) {
                     {selectedDayEvents.map(e => {
                       const c = typeColors[e.type] ?? typeColors.meeting;
                       const Icon = e.type === 'meeting' ? Video : e.type === 'newsletter' ? Mail : e.type === 'expiry' ? AlertTriangle : Clock;
-                      const eventDate = new Date(e.date);
-                      const todayDate = new Date(); todayDate.setHours(0,0,0,0);
-                      const isPast = eventDate < todayDate;
+                      const [ey, em, ed] = e.date.split('-').map(Number);
+                      // Combine date + time for accurate past check
+                      const timeParts = (e.time || '').match(/(\d+):(\d+)/);
+                      const eventDateTime = timeParts
+                        ? new Date(ey, em - 1, ed, parseInt(timeParts[1]), parseInt(timeParts[2]))
+                        : new Date(ey, em - 1, ed, 23, 59);
+                      const isPast = eventDateTime < new Date();
                       const joinUrl = e.teams_join_url ?? (e.description?.match(/Teams link: (https:\/\/\S+)/)?.[1]);
                       return (
                         <div key={e.id}
@@ -536,34 +541,46 @@ export default function CalendarPage({ role }: Props) {
                               <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{e.location}</span>
                             </div>
                             {e.description && <p className="text-xs text-[#7e7e7e] mt-1 line-clamp-2">{e.description}</p>}
-                            {isPast && e.type === 'meeting' && (e as any).teams_event_id && (
-                              <div className="flex gap-2 mt-2 flex-wrap">
-                                <button
-                                  onClick={() => fetchAttendance((e as any).teams_event_id)}
-                                  disabled={loadingAttendance}
-                                  className="text-xs px-2 py-0.5 bg-white border border-[#e33b5f]/30 text-[#e33b5f] rounded-full hover:bg-[#e33b5f]/5 transition flex items-center gap-1">
-                                  {loadingAttendance ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : '👥'} Attendance
-                                </button>
-                                {attendanceData && (
-                                  <button
-                                    onClick={() => downloadAttendance(attendanceData)}
-                                    className="text-xs px-2 py-0.5 bg-white border border-[#f0f0f0] text-[#555353] rounded-full hover:border-[#e33b5f]/30 transition">
-                                    📄 Download CSV
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                            {attendanceData && (e as any).teams_event_id === attendanceData.meetingId && (
-                              <div className="mt-2 bg-[#f6f6f6] rounded-lg p-2 text-xs space-y-1 max-h-32 overflow-y-auto">
-                                <p className="font-semibold text-[#222]">{attendanceData.totalParticipants} participants</p>
-                                {(attendanceData.attendees ?? []).map((a: any, i: number) => (
-                                  <div key={i} className="flex justify-between text-[#555353]">
-                                    <span>{a.name}</span>
-                                    <span>{a.duration ? Math.round(a.duration / 60) + ' min' : '—'}</span>
+                            {isPast && e.type === 'meeting' && (e as any).teams_event_id && (() => {
+                              const isThis = attendanceData?.meetingId === (e as any).teams_event_id;
+                              return (
+                                <div className="mt-2 space-y-1">
+                                  <div className="flex gap-2 flex-wrap">
+                                    <button
+                                      onClick={() => { if (isThis) { setAttendanceData(null); } else { fetchAttendance((e as any).teams_event_id); } }}
+                                      disabled={loadingAttendance}
+                                      className="text-xs px-2 py-0.5 bg-white border border-[#e33b5f]/30 text-[#e33b5f] rounded-full hover:bg-[#e33b5f]/5 transition flex items-center gap-1">
+                                      {loadingAttendance && !isThis ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : '👥'}
+                                      {isThis ? 'Hide Attendance' : 'View Attendance'}
+                                    </button>
+                                    {isThis && attendanceData && (
+                                      <button
+                                        onClick={() => downloadAttendance(attendanceData)}
+                                        className="text-xs px-2 py-0.5 bg-white border border-[#f0f0f0] text-[#555353] rounded-full hover:border-[#e33b5f]/30 transition">
+                                        📄 Download CSV
+                                      </button>
+                                    )}
                                   </div>
-                                ))}
-                              </div>
-                            )}
+                                  {isThis && (
+                                    <div className="bg-[#f6f6f6] rounded-lg p-2 text-xs space-y-1 max-h-40 overflow-y-auto">
+                                      {attendanceData?.message ? (
+                                        <p className="text-[#9e9e9e] italic">{attendanceData.message}</p>
+                                      ) : (
+                                        <>
+                                          <p className="font-semibold text-[#222]">{attendanceData?.totalParticipants ?? 0} participants</p>
+                                          {(attendanceData?.attendees ?? []).map((a: any, i: number) => (
+                                            <div key={i} className="flex justify-between text-[#555353]">
+                                              <span className="truncate flex-1">{a.name}</span>
+                                              <span className="ml-2 flex-shrink-0">{a.duration ? Math.round(a.duration / 60) + ' min' : '—'}</span>
+                                            </div>
+                                          ))}
+                                        </>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
                       );
@@ -641,10 +658,10 @@ export default function CalendarPage({ role }: Props) {
                     return (
                       <div key={e.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-[#f6f6f6] transition cursor-pointer"
                         onClick={() => {
-                          const d = new Date(e.date);
-                          setCurrentMonth(d.getMonth());
-                          setCurrentYear(d.getFullYear());
-                          setSelectedDay(d.getDate());
+                          const [year, month, day] = e.date.split('-').map(Number);
+                          setCurrentMonth(month - 1);
+                          setCurrentYear(year);
+                          setSelectedDay(day);
                         }}>
                         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${c.dot}`} />
                         <div className="flex-1 min-w-0">

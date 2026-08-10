@@ -18,16 +18,16 @@ type Visibility = 'shareholders_only' | 'external_use';
 type Category   = 'Updates' | 'Reports' | 'Podcast' | 'Newsletter' | 'Announcement';
 
 type Announcement = {
-  id:          string;
-  created_at:  string;
-  title:       string;
-  description: string;
-  category:    Category;
-  visibility:  Visibility;
-  content:     string | null;    // Rich text / markdown body
-  meta:        string | null;    // e.g. "August 2026 · 5 min read"
-  cta:         string | null;    // e.g. "Read Update →"
-  media_url:   string | null;    // Podcast/video URL
+  id:           string;
+  created_at:   string;
+  title:        string;
+  category:     Category;
+  visibility:   Visibility;
+  content:      string | null;
+  meta:         string | null;
+  cta:          string | null;
+  media_url:    string | null;
+  attachments:  { name: string; url: string; size?: number }[] | null;
   is_published: boolean;
 };
 
@@ -36,8 +36,8 @@ type NewAnn = Omit<Announcement, 'id' | 'created_at'>;
 const CATEGORIES: Category[] = ['Updates', 'Reports', 'Podcast', 'Newsletter', 'Announcement'];
 
 const EMPTY_ANN: NewAnn = {
-  title: '', description: '', category: 'Announcement', visibility: 'shareholders_only',
-  content: '', meta: '', cta: 'Read →', media_url: null, is_published: false,
+  title: '', category: 'Announcement', visibility: 'shareholders_only',
+  content: '', meta: '', cta: 'Read →', media_url: null, attachments: null, is_published: false,
 };
 
 export default function AnnouncementsPage({ role }: Props) {
@@ -54,6 +54,9 @@ export default function AnnouncementsPage({ role }: Props) {
   const [form,        setForm]        = useState<NewAnn>(EMPTY_ANN);
   const [saving,      setSaving]      = useState(false);
   const [editId,      setEditId]      = useState<string | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [uploading,    setUploading]    = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const docRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLDivElement>(null);
 
@@ -77,14 +80,42 @@ export default function AnnouncementsPage({ role }: Props) {
     }
   }, [openId]);
 
+  function autoMeta(title: string, cat: Category): string {
+    const now = new Date();
+    const month = now.toLocaleString('en-GB', { month: 'long' });
+    const year = now.getFullYear();
+    const readTime = cat === 'Podcast' ? '35 min' : cat === 'Updates' ? '8 min read' : cat === 'Reports' ? '12 min read' : '3 min read';
+    return `${month} ${year} · ${readTime}`;
+  }
+
+  async function uploadAttachments(): Promise<{ name: string; url: string; size: number }[]> {
+    const results: { name: string; url: string; size: number }[] = [];
+    for (const file of pendingFiles) {
+      const path = `announcements/${Date.now()}_${file.name}`;
+      const { error } = await supabase.storage.from('announcement-attachments').upload(path, file, { upsert: true });
+      if (!error) {
+        const { data: { publicUrl } } = supabase.storage.from('announcement-attachments').getPublicUrl(path);
+        results.push({ name: file.name, url: publicUrl, size: file.size });
+      }
+    }
+    return results;
+  }
+
   async function saveAnn() {
     if (!form.title.trim()) return;
     setSaving(true);
+    setUploading(true);
+    const uploadedFiles = await uploadAttachments();
+    setUploading(false);
+    setPendingFiles([]);
+    const existingAtts = form.attachments ?? [];
+    const allAttachments = [...existingAtts, ...uploadedFiles];
+    const formWithAtts = { ...form, attachments: allAttachments.length > 0 ? allAttachments : null };
     if (editId) {
-      const { data } = await supabase.from('announcements').update({ ...form, updated_at: new Date().toISOString() }).eq('id', editId).select().single();
+      const { data } = await supabase.from('announcements').update({ ...formWithAtts, updated_at: new Date().toISOString() }).eq('id', editId).select().single();
       if (data) setItems(prev => prev.map(i => i.id === editId ? data as Announcement : i));
     } else {
-      const { data } = await supabase.from('announcements').insert(form).select().single();
+      const { data } = await supabase.from('announcements').insert(formWithAtts).select().single();
       if (data) setItems(prev => [data as Announcement, ...prev]);
     }
     setSaving(false);
@@ -149,7 +180,10 @@ export default function AnnouncementsPage({ role }: Props) {
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider block mb-1">Title *</label>
-              <Input className="border-[#e8e8e8]" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
+              <Input className="border-[#e8e8e8]" value={form.title} onChange={e => {
+                const t = e.target.value;
+                setForm(f => ({ ...f, title: t, meta: f.meta || autoMeta(t, f.category) }));
+              }} />
             </div>
             <div>
               <label className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider block mb-1">Meta</label>
@@ -157,7 +191,10 @@ export default function AnnouncementsPage({ role }: Props) {
             </div>
             <div>
               <label className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider block mb-1">Category</label>
-              <select className="w-full border border-[#e8e8e8] rounded-lg px-3 py-2 text-sm" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value as Category }))}>
+              <select className="w-full border border-[#e8e8e8] rounded-lg px-3 py-2 text-sm" value={form.category} onChange={e => {
+                const cat = e.target.value as Category;
+                setForm(f => ({ ...f, category: cat, meta: autoMeta(f.title, cat) }));
+              }}>
                 {CATEGORIES.map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
@@ -188,6 +225,28 @@ export default function AnnouncementsPage({ role }: Props) {
             <div>
               <label className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider block mb-1">Media URL (Podcast/Video)</label>
               <Input className="border-[#e8e8e8]" placeholder="https://..." value={form.media_url ?? ''} onChange={e => setForm(f => ({ ...f, media_url: e.target.value || null }))} />
+            </div>
+          </div>
+          {/* Attachments */}
+          <div>
+            <label className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider block mb-2">Attachments</label>
+            <input ref={fileInputRef} type="file" multiple className="hidden"
+              onChange={e => { setPendingFiles(prev => [...prev, ...Array.from(e.target.files ?? [])]); e.target.value = ''; }} />
+            <div className="border-2 border-dashed border-[#e8e8e8] rounded-lg p-4 space-y-2">
+              {[...(form.attachments ?? []), ...pendingFiles.map(f => ({ name: f.name, url: null, size: f.size }))].map((a, i) => (
+                <div key={i} className="flex items-center gap-2 bg-[#f6f6f6] rounded px-3 py-1.5 text-xs">
+                  <span className="flex-1 truncate">{a.name}</span>
+                  {a.size && <span className="text-[#9e9e9e]">{(a.size / 1024).toFixed(1)} KB</span>}
+                  <button onClick={() => {
+                    if ((a as any).url) setForm(f => ({ ...f, attachments: (f.attachments ?? []).filter(x => x.url !== (a as any).url) }));
+                    else setPendingFiles(prev => prev.filter(f => f.name !== a.name));
+                  }} className="text-[#9e9e9e] hover:text-red-500">×</button>
+                </div>
+              ))}
+              <button onClick={() => fileInputRef.current?.click()}
+                className="text-xs text-[#e33b5f] font-medium hover:underline">
+                + Add attachment
+              </button>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -252,7 +311,7 @@ export default function AnnouncementsPage({ role }: Props) {
                   <span className="text-xs text-[#9e9e9e]">{featured.meta}</span>
                 </div>
                 <h2 className="text-xl font-bold text-[#222] mb-2">{featured.title}</h2>
-                <p className="text-sm text-[#7e7e7e] flex-1">{featured.description}</p>
+<p className="text-sm text-[#7e7e7e] flex-1 line-clamp-3">{featured.content?.slice(0, 200)?.replace(/#+\s/g, '').replace(/\*\*/g, '')}</p>
                 <div className="flex items-center gap-3 mt-5 flex-wrap">
                   <Button className="bg-[#e33b5f] text-white text-sm"
                     onClick={e => { e.stopPropagation(); setOpenId(openId === featured.id ? null : featured.id); }}>
@@ -297,7 +356,7 @@ export default function AnnouncementsPage({ role }: Props) {
                     <VisiBadge vis={ann.visibility} />
                   </div>
                   <h3 className="font-bold text-[#222] text-base mb-2">{ann.title}</h3>
-                  <p className="text-sm text-[#7e7e7e] flex-1">{ann.description}</p>
+<p className="text-sm text-[#7e7e7e] flex-1 line-clamp-3">{ann.content?.slice(0, 180)?.replace(/#+\s/g, '').replace(/\*\*/g, '')}</p>
                   <div className="flex items-center justify-between mt-5 pt-4 border-t border-[#f0f0f0] flex-wrap gap-2">
                     <span className="text-xs text-[#9e9e9e]">{ann.meta}</span>
                     <div className="flex items-center gap-2">
@@ -480,6 +539,23 @@ function AnnouncementDetail({ ann, onClose, onShare }: { ann: Announcement; onCl
               </div>
             )}
           </aside>
+        </div>
+      )}
+
+      {/* Attachments */}
+      {ann.attachments && ann.attachments.length > 0 && (
+        <div className="mt-6 pt-5 border-t border-[#f0f0f0]">
+          <p className="text-xs font-bold tracking-widest text-[#9e9e9e] uppercase mb-3">Attachments</p>
+          <div className="flex flex-wrap gap-2">
+            {ann.attachments.map((att, i) => (
+              <a key={i} href={att.url} download target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3 py-2 bg-[#f6f6f6] border border-[#e8e8e8] rounded-lg text-sm hover:border-[#e33b5f]/40 hover:bg-[#e33b5f]/5 transition group">
+                <FileText className="w-4 h-4 text-[#9e9e9e] group-hover:text-[#e33b5f]" />
+                <span className="text-[#555353] font-medium">{att.name}</span>
+                {att.size && <span className="text-xs text-[#9e9e9e]">({(att.size / 1024).toFixed(1)} KB)</span>}
+              </a>
+            ))}
+          </div>
         </div>
       )}
 
