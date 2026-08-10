@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   LayoutDashboard, FileText, Users, Settings, Bell, Handshake, Lightbulb, LogOut,
   Menu, X, ChevronRight, FolderOpen, Calendar, MessageSquare, Bot, BarChart3,
-  Mail, Star, Shield, MessageCircle, FileCheck, ClipboardList, Briefcase, Award, Rocket, Moon, Sun, GraduationCap,
+  Mail, Star, Shield, MessageCircle, FileCheck, ClipboardList, Briefcase, Award, Rocket, Moon, Sun, GraduationCap, Megaphone,
 } from 'lucide-react';
 import type { Page, DashboardRole } from './types';
 import { roleBadgeConfig } from './types';
@@ -44,6 +44,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard',        page: 'dashboard' },
+  { icon: Megaphone,       label: 'Announcements',    page: 'announcements' },
   { icon: Lightbulb,       label: 'Idea Submission',  page: 'idea-submission' },
   { icon: BarChart3,       label: 'My Idea Status',   page: 'idea-status',       roles: ['user', 'shareholder'] },
   { icon: Calendar,        label: 'Calendar',         page: 'calendar' },

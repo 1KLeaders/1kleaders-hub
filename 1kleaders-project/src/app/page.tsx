@@ -28,6 +28,7 @@ import BugReportPage from '@/components/1k-leaders/bug-report-page';
 import CohortManagement from '@/components/1k-leaders/cohort-management';
 import QualityReview from '@/components/1k-leaders/quality-review';
 import ContributionTracking from '@/components/1k-leaders/contribution-tracking';
+import AnnouncementsPage from '@/components/1k-leaders/announcements-page';
 import IdeaStatusTracker from '@/components/1k-leaders/idea-status-tracker';
 import FellowshipApplications from '@/components/1k-leaders/fellowship-applications';
 import DemoDayPage from '@/components/1k-leaders/demo-day-page';
@@ -53,7 +54,7 @@ const dashboardPages: Page[] = [
   'partners', 'settings', 'notifications', 'profile', 'calendar',
   'discussion-rooms', 'ai-assistant', 'newsletter-tracking',
   'vep-dashboard', 'mab-dashboard', 'recommendations', 'admin-dashboard',
-  'startup-page', 'bug-report', 'onboarding-tracker', 'cohort-management', 'onboarding', 'quality-review', 'contributions', 'idea-status', 'fellowship-applications',
+  'startup-page', 'bug-report', 'onboarding-tracker', 'cohort-management', 'onboarding', 'quality-review', 'contributions', 'idea-status', 'fellowship-applications', 'announcements',
 ];
 
 export default function Home() {
@@ -108,6 +109,7 @@ export default function Home() {
         case 'cohort-management':   return <CohortManagement />;
         case 'quality-review':       return <QualityReview />;
         case 'contributions':           return <ContributionTracking role={role} />;
+        case 'announcements':          return <AnnouncementsPage role={role} />;
         case 'idea-status':             return <IdeaStatusTracker />;
         case 'fellowship-applications': return <FellowshipApplications />;
         case 'demo-day':             return <DemoDayPage role={role} />;

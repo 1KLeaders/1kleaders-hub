@@ -28,6 +28,7 @@ export type Page =
   | 'quality-review'
   | 'contributions'
   | 'idea-status'
+  | 'announcements'
   | 'fellowship-applications'
   | 'recommendations';
 
