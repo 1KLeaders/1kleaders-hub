@@ -220,13 +220,14 @@ export default function CalendarPage({ role }: Props) {
       const res = await fetch('/api/teams/sync-calendar');
       const data = await res.json();
 
-      // Token expired — redirect to Teams auth, return here after
-      if (res.status === 401 || data.error?.toLowerCase().includes('expired') || data.error?.toLowerCase().includes('token')) {
+      // No connection or token expired — redirect to Teams auth
+      if (res.status === 401 || res.status === 503 ||
+          data.error?.toLowerCase().includes('expired') ||
+          data.error?.toLowerCase().includes('token') ||
+          data.error?.toLowerCase().includes('not connected')) {
         setSyncing(false);
-        setSyncMsg('🔄 Token expired — redirecting to Teams login...');
-        setTimeout(() => {
-          window.location.href = '/api/teams/auth?redirect=/';
-        }, 1200);
+        setSyncMsg('🔄 Redirecting to Teams login...');
+        setTimeout(() => { window.location.href = '/api/teams/auth'; }, 1200);
         return;
       }
 
