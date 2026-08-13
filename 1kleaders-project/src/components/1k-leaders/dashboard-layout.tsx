@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   LayoutDashboard, FileText, Users, Settings, Bell, Handshake, Lightbulb, LogOut,
   Menu, X, ChevronRight, FolderOpen, Calendar, MessageSquare, Bot, BarChart3,
@@ -45,6 +45,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard',        page: 'dashboard' },
   { icon: Megaphone,       label: 'Announcements',    page: 'announcements' },
+  { icon: Rocket,          label: 'Startups',         page: 'startups' },
   { icon: Lightbulb,       label: 'Idea Submission',  page: 'idea-submission' },
   { icon: BarChart3,       label: 'My Idea Status',   page: 'idea-status',       roles: ['user', 'shareholder'] },
   { icon: Calendar,        label: 'Calendar',         page: 'calendar' },
@@ -217,6 +218,7 @@ export default function DashboardLayout({ navigate, role, devViewRole, setDevVie
             <div className="relative">
               <button onClick={() => setProfileOpen(o => !o)} className="flex items-center p-1 rounded-lg hover:bg-[#f6f6f6] dark:hover:bg-white/10 transition">
                 <Avatar className="w-8 h-8">
+                  {profile?.profile_photo_url && <AvatarImage src={profile.profile_photo_url} alt="Profile" />}
                   <AvatarFallback className="bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] text-white text-xs font-semibold">
                     {(profile?.first_name?.[0] ?? '') + (profile?.last_name?.[0] ?? '') || '1K'}
                   </AvatarFallback>

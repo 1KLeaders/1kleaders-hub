@@ -29,6 +29,7 @@ export type Page =
   | 'contributions'
   | 'idea-status'
   | 'announcements'
+  | 'startups'
   | 'fellowship-applications'
   | 'recommendations';
 
