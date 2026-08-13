@@ -376,11 +376,17 @@ export default function CalendarPage({ role }: Props) {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {(role === 'super-admin' || role === 'developer') && (
-            <Button size="sm" variant="outline" className="border-[#5059C9] text-[#5059C9] hover:bg-[#5059C9]/5 gap-1.5 text-xs h-8"
-              onClick={syncTeams} disabled={syncing}>
-              {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-              Sync Teams
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" className="border-[#5059C9] text-[#5059C9] hover:bg-[#5059C9]/5 gap-1.5 text-xs h-8"
+                onClick={syncTeams} disabled={syncing}>
+                {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                Sync Teams
+              </Button>
+              <Button size="sm" variant="outline" className="border-[#5059C9] text-[#5059C9] hover:bg-[#5059C9]/5 gap-1.5 text-xs h-8"
+                onClick={() => window.location.href = '/api/teams/auth'}>
+                Connect Teams
+              </Button>
+            </div>
           )}
           <Button size="sm" variant="outline" onClick={() => { fetchData(); }} disabled={loading} title="Refresh">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
