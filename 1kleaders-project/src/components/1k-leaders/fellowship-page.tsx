@@ -148,9 +148,9 @@ export default function FellowshipPage() {
 
   // ── COVER ────────────────────────────────────────────────────
   if (step === 0) return (
-    <div className="min-h-screen bg-[#111] text-white flex items-center justify-center p-6">
+    <div className="min-h-screen text-white flex items-center justify-center p-6" style={{ backgroundColor: '#111111', colorScheme: 'dark' }}>
       <div className="w-full max-w-2xl">
-        <img src="/logos/logos_1KL-Hub_Horizontal_Light.svg" alt="1KL Hub" className="h-7 mb-10 object-contain" />
+        <img src="/logos/logos_1KL-Hub_Horizontal_Light.png" alt="1KL Hub" style={{ height: '28px', width: 'auto', filter: 'none', colorScheme: 'light' }} />
         <p className="text-xs font-bold tracking-widest text-[#f07969] uppercase mb-4">Application · Cohort 2026</p>
         <h1 className="text-4xl sm:text-5xl font-extrabold leading-none tracking-tight mb-5">
           AI Venture Builder<br />Fellowship

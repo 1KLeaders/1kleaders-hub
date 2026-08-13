@@ -54,14 +54,14 @@ export default function LoginPage({ navigate }: Props) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f6f6f6] p-4" style={{ fontFamily: 'var(--font-manrope), Manrope, sans-serif' }}>
+    <div className="min-h-screen flex items-center justify-center bg-[#f6f6f6] p-4" style={{ fontFamily: 'var(--font-manrope), Manrope, sans-serif', colorScheme: 'light', backgroundColor: '#f6f6f6', color: '#222' }} data-theme="light">
       <div className="max-w-md w-full">
         <Button variant="ghost" onClick={() => navigate('landing')} className="mb-6 text-[#7e7e7e] hover:text-[#222]">
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
         </Button>
         <Card className="border-[#f0f0f0] shadow-lg">
           <CardHeader className="text-center pb-2">
-            <img src="/logos/logos_1KL-Hub_Horizontal_TwoTone.svg" alt="1KL Hub" className="h-10 mx-auto mb-3 object-contain" />
+            <img src="/logos/logos_1KL-Hub_Horizontal_Dark.png" alt="1KL Hub" style={{ height: "36px", width: "auto", display: "block", margin: "0 auto 12px" }} />
             <CardTitle className="text-xl text-[#222]" style={{ fontFamily: 'var(--font-rethink-sans), Rethink Sans, sans-serif' }}>
               Welcome Back
             </CardTitle>

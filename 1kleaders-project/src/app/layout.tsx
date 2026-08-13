@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   description: "We are a start-up venture builder that is transforming ideas into scalable start-ups through dedicated regional expertise. We are driven by collective professionals, leaders, advisors, and investors.",
   keywords: ["venture builder", "united arab emirates", "saudi arabia", "bahrain", "middle east", "entrepreneurship", "venture funding", "startup", "investors", "investment", "venture capitalists", "angel investors"],
   authors: [{ name: "1000 Leaders Holding Limited" }],
-  icons: { icon: "/logos/logos_1KL-Hub_Stacked_Dark.png" },
+  icons: { icon: "/logos/logos_1KL-Hub_Stacked_Accent.png" },
   openGraph: {
     title: "1000 Leaders: Venture Builder and Community",
     description: "Invent, Build, Scale - Transforming ideas into scalable startups",
