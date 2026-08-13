@@ -703,6 +703,48 @@ export default function CalendarPage({ role }: Props) {
               )}
             </CardContent>
           </Card>
+
+          {/* Attendance Leaderboard */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-1.5">
+                🏆 Attendance Leaderboard
+              </CardTitle>
+              <p className="text-[10px] text-[#9e9e9e]">Most attended meetings</p>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {(() => {
+                // Build leaderboard from past events that have been attended
+                const pastMeetings = events.filter(e => {
+                  const [ey, em, ed] = e.date.split('-').map(Number);
+                  const timeParts = (e.time || '').match(/(\d+):(\d+)/);
+                  const dt = timeParts
+                    ? new Date(ey, em - 1, ed, parseInt(timeParts[1]), parseInt(timeParts[2]))
+                    : new Date(ey, em - 1, ed);
+                  return dt < new Date() && e.type === 'meeting' && (e as any).teams_event_id;
+                });
+
+                if (pastMeetings.length === 0) {
+                  return <p className="text-xs text-[#9e9e9e] text-center py-3">No past meetings yet</p>;
+                }
+
+                return pastMeetings.slice(0, 5).map((e, i) => (
+                  <div key={e.id} className="flex items-center gap-2 p-1.5 rounded-lg">
+                    <span className="text-xs font-black text-[#9e9e9e] w-4 text-center">{i + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-[#222] truncate">{e.title}</p>
+                      <p className="text-[10px] text-[#9e9e9e]">{e.date}</p>
+                    </div>
+                    <button
+                      onClick={() => fetchAttendance((e as any).teams_event_id)}
+                      className="text-[10px] text-[#e33b5f] hover:underline flex-shrink-0">
+                      {loadingAttendance ? '...' : 'View'}
+                    </button>
+                  </div>
+                ));
+              })()}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
