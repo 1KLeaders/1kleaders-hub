@@ -112,7 +112,6 @@ export default function Home() {
         case 'quality-review':       return <QualityReview />;
         case 'contributions':           return <ContributionTracking role={role} />;
         case 'startups':             return <StartupsPage role={role} navigate={navigate} />;
-        default: if (currentPage.startsWith('startup-')) { return <StartupDetailPage startupId={currentPage.replace('startup-', '')} navigate={navigate} />; }
         case 'announcements':          return <AnnouncementsPage role={role} />;
         case 'idea-status':             return <IdeaStatusTracker />;
         case 'fellowship-applications': return <FellowshipApplications />;
@@ -121,7 +120,11 @@ export default function Home() {
         case 'bug-report':        return <BugReportPage />;
         case 'onboarding':        return <OnboardingKYC navigate={navigate} />;
         case 'recommendations':   return <RecommendationsPage />;
-        default:                  return <DashboardHome role={role} navigate={navigate} />;
+        default:
+          if (currentPage.startsWith('startup-')) {
+            return <StartupDetailPage startupId={currentPage.replace('startup-', '')} navigate={navigate} />;
+          }
+          return <DashboardHome role={role} navigate={navigate} />;
       }
     };
 
