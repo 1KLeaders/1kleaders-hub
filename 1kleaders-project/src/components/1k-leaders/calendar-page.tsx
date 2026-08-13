@@ -375,41 +375,11 @@ export default function CalendarPage({ role }: Props) {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {(role === 'super-admin' || role === 'developer') && (
-            teamsConnected ? (
-              <div className="flex items-center gap-2">
-                {!teamsExpired && (
-                  <Button size="sm" variant="outline" className="border-[#5059C9] text-[#5059C9] hover:bg-[#5059C9]/5 gap-1.5 text-xs h-8"
-                    onClick={syncTeams} disabled={syncing}>
-                    {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                    Sync Teams
-                  </Button>
-                )}
-                {teamsExpired ? (
-                  <Button size="sm" variant="outline" className="border-amber-500 text-amber-600 hover:bg-amber-50 gap-1.5 text-xs h-8"
-                    onClick={() => window.location.href = '/api/teams/auth'}>
-                    ⚠️ Token Expired — Reconnect Teams
-                  </Button>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#5059C9]/10 border border-[#5059C9]/20 rounded-lg text-xs font-medium text-[#5059C9]">
-                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M20.625 5.4h-3.937V3.375A1.125 1.125 0 0015.563 2.25h-7.5a1.125 1.125 0 00-1.125 1.125V5.4H2.812a.563.563 0 00-.562.563v8.625a3.375 3.375 0 003.375 3.375h.938a5.625 5.625 0 005.437 4.125 5.625 5.625 0 005.438-4.125h.937A3.375 3.375 0 0021.75 14.25V5.963a.563.563 0 00-.563-.563zm-9 13.35a4.5 4.5 0 110-9 4.5 4.5 0 010 9z"/>
-                      </svg>
-                      Teams Connected ✓
-                    </div>
-
-                  </div>
-                )}
-              </div>
-            ) : (
-              <Button variant="outline" size="sm" className="border-[#5059C9] text-[#5059C9] hover:bg-[#5059C9]/5 gap-2"
-                onClick={() => window.location.href = '/api/teams/auth'}>
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M20.625 5.4h-3.937V3.375A1.125 1.125 0 0015.563 2.25h-7.5a1.125 1.125 0 00-1.125 1.125V5.4H2.812a.563.563 0 00-.562.563v8.625a3.375 3.375 0 003.375 3.375h.938a5.625 5.625 0 005.437 4.125 5.625 5.625 0 005.438-4.125h.937A3.375 3.375 0 0021.75 14.25V5.963a.563.563 0 00-.563-.563zm-9 13.35a4.5 4.5 0 110-9 4.5 4.5 0 010 9z"/>
-                </svg>
-                Connect Teams
-              </Button>
-            )
+            <Button size="sm" variant="outline" className="border-[#5059C9] text-[#5059C9] hover:bg-[#5059C9]/5 gap-1.5 text-xs h-8"
+              onClick={syncTeams} disabled={syncing}>
+              {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              Sync Teams
+            </Button>
           )}
           <Button size="sm" variant="outline" onClick={() => { fetchData(); }} disabled={loading} title="Refresh">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -628,7 +598,7 @@ export default function CalendarPage({ role }: Props) {
                                       {loadingAttendance && !isThis ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : '👥'}
                                       {isThis ? 'Hide Attendance' : 'View Attendance'}
                                     </button>
-                                    {isThis && attendanceData && (
+                                    {isThis && attendanceData && attendanceData.attendees?.length > 0 && (
                                       <button
                                         onClick={() => downloadAttendance(attendanceData, e.title)}
                                         className="text-xs px-2 py-0.5 bg-white border border-[#f0f0f0] text-[#555353] rounded-full hover:border-[#e33b5f]/30 transition">
