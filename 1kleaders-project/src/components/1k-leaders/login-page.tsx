@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,16 @@ interface Props { navigate: (page: Page) => void; type?: string; }
 
 export default function LoginPage({ navigate }: Props) {
   const { signIn } = useAuth();
+  const [isDark, setIsDark] = useState(false);
+  useEffect(() => {
+    const theme = localStorage.getItem('1kl-theme');
+    setIsDark(theme === 'dark');
+    // Also watch for changes (e.g. user switches theme on another tab)
+    const onStorage = (e: StorageEvent) => { if (e.key === '1kl-theme') setIsDark(e.newValue === 'dark'); };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
   const [email,       setEmail]       = useState('');
   const [password,    setPassword]    = useState('');
   const [showPw,      setShowPw]      = useState(false);
@@ -54,14 +64,14 @@ export default function LoginPage({ navigate }: Props) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f6f6f6] p-4" style={{ fontFamily: 'var(--font-manrope), Manrope, sans-serif', colorScheme: 'light', backgroundColor: '#f6f6f6', color: '#222' }} data-theme="light">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ fontFamily: 'var(--font-manrope), Manrope, sans-serif', backgroundColor: isDark ? '#111' : '#f6f6f6', color: isDark ? '#f0f0f0' : '#222', colorScheme: isDark ? 'dark' : 'light' }}>
       <div className="max-w-md w-full">
         <Button variant="ghost" onClick={() => navigate('landing')} className="mb-6 text-[#7e7e7e] hover:text-[#222]">
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
         </Button>
         <Card className="border-[#f0f0f0] shadow-lg">
           <CardHeader className="text-center pb-2">
-            <img src="/logos/logos_1KL-Hub_Horizontal_Dark.png" alt="1KL Hub" style={{ height: "36px", width: "auto", display: "block", margin: "0 auto 12px" }} />
+            <img src={isDark ? "/logos/logos_1KL-Hub_Horizontal_Light.png" : "/logos/logos_1KL-Hub_Horizontal_Dark.png"} alt="1KL Hub" style={{ height: "36px", width: "auto", display: "block", margin: "0 auto 12px" }} />
             <CardTitle className="text-xl text-[#222]" style={{ fontFamily: 'var(--font-rethink-sans), Rethink Sans, sans-serif' }}>
               Welcome Back
             </CardTitle>

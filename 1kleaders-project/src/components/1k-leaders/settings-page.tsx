@@ -247,13 +247,12 @@ export default function SettingsPage() {
                   <AvatarFallback className="bg-[#e33b5f]/10 text-[#c02d4f] text-lg font-bold">{initials}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <Button variant="outline" size="sm" disabled>Change Photo</Button>
                   <input type="file" accept="image/*" className="hidden" id="photo-upload"
                     onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); e.target.value = ''; }} />
-                  <label htmlFor="photo-upload"
-                    className="mt-2 text-xs text-[#e33b5f] font-medium cursor-pointer hover:underline flex items-center gap-1">
-                    {photoUploading ? <><Loader2 className="w-3 h-3 animate-spin" />Uploading...</> : '📷 Upload Photo'}
-                  </label>
+                  <Button variant="outline" size="sm" disabled={photoUploading}
+                    onClick={() => document.getElementById('photo-upload')?.click()}>
+                    {photoUploading ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Uploading...</> : 'Change Photo'}
+                  </Button>
                 </div>
               </div>
 
