@@ -75,6 +75,7 @@ export default function CalendarPage({ role }: Props) {
   const [syncing,        setSyncing]        = useState(false);
   const [syncMsg,        setSyncMsg]        = useState('');
   const [attendanceData,   setAttendanceData]   = useState<any>(null);
+  const [openAttendId,    setOpenAttendId]     = useState<string | null>(null);
   const [leaderboard,      setLeaderboard]      = useState<{name: string; email: string; minutes: number; meetings: number}[]>([]);
   const [loadingBoard,     setLoadingBoard]      = useState(false);
   const [boardLoaded,      setBoardLoaded]       = useState(false);
@@ -279,10 +280,16 @@ export default function CalendarPage({ role }: Props) {
   };
 
   const fetchAttendance = async (teamsEventId: string) => {
-    setLoadingAttendance(true); setAttendanceData(null);
-    const res = await fetch('/api/teams/attendance?meetingId=' + encodeURIComponent(teamsEventId));
-    const data = await res.json();
-    setAttendanceData(data);
+    setLoadingAttendance(true);
+    setAttendanceData(null);
+    setOpenAttendId(teamsEventId);
+    try {
+      const res = await fetch('/api/teams/attendance?meetingId=' + encodeURIComponent(teamsEventId));
+      const data = await res.json();
+      setAttendanceData({ ...data, _meetingId: teamsEventId });
+    } catch (err) {
+      setAttendanceData({ _meetingId: teamsEventId, attendees: [], message: 'Network error fetching attendance.' });
+    }
     setLoadingAttendance(false);
   };
 
@@ -610,12 +617,12 @@ export default function CalendarPage({ role }: Props) {
                             </div>
                             {e.description && <p className="text-xs text-[#7e7e7e] mt-1 line-clamp-2">{e.description}</p>}
                             {isPast && e.type === 'meeting' && (e as any).teams_event_id && (() => {
-                              const isThis = attendanceData?.meetingId === (e as any).teams_event_id;
+                              const isThis = openAttendId === (e as any).teams_event_id;
                               return (
                                 <div className="mt-2 space-y-1">
                                   <div className="flex gap-2 flex-wrap">
                                     <button
-                                      onClick={() => { if (isThis) { setAttendanceData(null); } else { fetchAttendance((e as any).teams_event_id); } }}
+                                      onClick={() => { if (isThis) { setAttendanceData(null); setOpenAttendId(null); } else { fetchAttendance((e as any).teams_event_id); } }}
                                       disabled={loadingAttendance}
                                       className="text-xs px-2 py-0.5 bg-white border border-[#e33b5f]/30 text-[#e33b5f] rounded-full hover:bg-[#e33b5f]/5 transition flex items-center gap-1">
                                       {loadingAttendance && !isThis ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : '👥'}
@@ -631,6 +638,7 @@ export default function CalendarPage({ role }: Props) {
                                   </div>
                                   {isThis && (
                                     <div className="bg-[#f6f6f6] rounded-lg p-2 text-xs space-y-1 max-h-40 overflow-y-auto">
+                                      {loadingAttendance && <div className="flex items-center gap-1.5 py-1"><Loader2 className="w-3 h-3 animate-spin text-[#9e9e9e]" /><span className="text-[#9e9e9e]">Fetching attendance...</span></div>}
                                       {attendanceData?.message ? (
                                         <p className="text-[#9e9e9e] italic">{attendanceData.message}</p>
                                       ) : (
