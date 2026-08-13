@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth-context';
 import type { DashboardRole } from './types';
 
-interface Props { role?: DashboardRole; }
+interface Props { role?: DashboardRole; navigate?: (page: string) => void; }
 
 type TeamMember = { name: string; role: string; bio?: string };
 type Financials  = { raise_target?: string; raise_currency?: string; stage?: string; arr_target?: string; arr_year?: number };
@@ -43,7 +43,7 @@ const STATUS_COLOR: Record<string, string> = {
   Exited:  'bg-stone-100 text-stone-500',
 };
 
-export default function StartupsPage({ role }: Props) {
+export default function StartupsPage({ role, navigate }: Props) {
   const isAdmin = ['admin', 'super-admin', 'developer'].includes(role ?? '');
   const [startups, setStartups]   = useState<Startup[]>([]);
   const [loading,  setLoading]    = useState(true);
@@ -339,6 +339,13 @@ export default function StartupsPage({ role }: Props) {
                             <p className="text-xs text-[#9e9e9e]">ARR Target</p>
                             <p className="font-semibold text-[#222]">${s.financials.arr_target} by {s.financials.arr_year}</p>
                           </div>
+                        )}
+                        {navigate && (
+                          <button onClick={() => navigate(`startup-${s.id}`)}
+                            className="flex items-center gap-1.5 text-sm font-semibold hover:underline"
+                            style={{ color: accent }}>
+                            Full Profile <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
                         )}
                         {s.website && (
                           <a href={s.website} target="_blank" rel="noopener noreferrer"

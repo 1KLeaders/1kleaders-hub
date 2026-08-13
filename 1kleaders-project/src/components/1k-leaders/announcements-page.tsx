@@ -82,10 +82,9 @@ export default function AnnouncementsPage({ role }: Props) {
 
   function autoMeta(title: string, cat: Category): string {
     const now = new Date();
-    const month = now.toLocaleString('en-GB', { month: 'long' });
-    const year = now.getFullYear();
-    const readTime = cat === 'Podcast' ? '35 min' : cat === 'Updates' ? '8 min read' : cat === 'Reports' ? '12 min read' : '3 min read';
-    return `${month} ${year} · ${readTime}`;
+    const fullDate = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    const readTime = cat === 'Podcast' ? '35 min listen' : cat === 'Updates' ? '8 min read' : cat === 'Reports' ? '12 min read' : cat === 'Newsletter' ? '5 min read' : '3 min read';
+    return `${fullDate} · ${readTime}`;
   }
 
   async function uploadAttachments(): Promise<{ name: string; url: string; size: number }[]> {
@@ -186,8 +185,8 @@ export default function AnnouncementsPage({ role }: Props) {
               }} />
             </div>
             <div>
-              <label className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider block mb-1">Meta</label>
-              <Input className="border-[#e8e8e8]" placeholder="e.g. August 2026 · 5 min read" value={form.meta ?? ''} onChange={e => setForm(f => ({ ...f, meta: e.target.value }))} />
+              <label className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider block mb-1">Metadata <span className="normal-case font-normal text-[#9e9e9e]">(auto-generated)</span></label>
+              <Input className="border-[#e8e8e8] text-xs text-[#9e9e9e]" value={form.meta ?? ''} onChange={e => setForm(f => ({ ...f, meta: e.target.value }))} />
             </div>
             <div>
               <label className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider block mb-1">Category</label>

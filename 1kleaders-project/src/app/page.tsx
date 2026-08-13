@@ -29,6 +29,7 @@ import CohortManagement from '@/components/1k-leaders/cohort-management';
 import QualityReview from '@/components/1k-leaders/quality-review';
 import ContributionTracking from '@/components/1k-leaders/contribution-tracking';
 import StartupsPage from '@/components/1k-leaders/startups-page';
+import StartupDetailPage from '@/components/1k-leaders/startup-detail-page';
 import AnnouncementsPage from '@/components/1k-leaders/announcements-page';
 import IdeaStatusTracker from '@/components/1k-leaders/idea-status-tracker';
 import FellowshipApplications from '@/components/1k-leaders/fellowship-applications';
@@ -110,7 +111,8 @@ export default function Home() {
         case 'cohort-management':   return <CohortManagement />;
         case 'quality-review':       return <QualityReview />;
         case 'contributions':           return <ContributionTracking role={role} />;
-        case 'startups':             return <StartupsPage role={role} />;
+        case 'startups':             return <StartupsPage role={role} navigate={navigate} />;
+        default: if (currentPage.startsWith('startup-')) { return <StartupDetailPage startupId={currentPage.replace('startup-', '')} navigate={navigate} />; }
         case 'announcements':          return <AnnouncementsPage role={role} />;
         case 'idea-status':             return <IdeaStatusTracker />;
         case 'fellowship-applications': return <FellowshipApplications />;

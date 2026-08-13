@@ -71,6 +71,7 @@ export default function CalendarPage({ role }: Props) {
   const [currentYear,  setCurrentYear]  = useState(today.getFullYear());
   const [selectedDay,  setSelectedDay]  = useState<number | null>(null);
   const [teamsConnected, setTeamsConnected] = useState(false);
+  const [teamsExpired,   setTeamsExpired]   = useState(false);
   const [syncing,        setSyncing]        = useState(false);
   const [syncMsg,        setSyncMsg]        = useState('');
   const [attendanceData, setAttendanceData] = useState<any>(null);
@@ -80,10 +81,12 @@ export default function CalendarPage({ role }: Props) {
 
   // Check if Teams is connected
   useEffect(() => {
-    supabase.from('teams_connections').select('id').eq('connected', true).limit(1).maybeSingle()
-      .then(({ data }) => setTeamsConnected(!!data));
-    // If teams_connected param in URL, refresh connected state
-    if (window.location.search.includes('teams_connected=true')) setTeamsConnected(true);
+    supabase.from('teams_connections').select('id, expires_at').eq('connected', true).limit(1).maybeSingle()
+      .then(({ data }) => {
+        setTeamsConnected(!!data);
+        if (data?.expires_at && new Date(data.expires_at) < new Date()) setTeamsExpired(true);
+      });
+    if (window.location.search.includes('teams_connected=true')) { setTeamsConnected(true); setTeamsExpired(false); }
     supabase.from('profiles').select('id, first_name, last_name, email').order('first_name')
       .then(({ data }) => setPartners((data ?? []).map((p: any) => ({
         id: p.id,
@@ -212,6 +215,17 @@ export default function CalendarPage({ role }: Props) {
     try {
       const res = await fetch('/api/teams/sync-calendar');
       const data = await res.json();
+
+      // Token expired — redirect to Teams auth, return here after
+      if (res.status === 401 || data.error?.toLowerCase().includes('expired') || data.error?.toLowerCase().includes('token')) {
+        setSyncing(false);
+        setSyncMsg('🔄 Token expired — redirecting to Teams login...');
+        setTimeout(() => {
+          window.location.href = '/api/teams/auth?redirect=/';
+        }, 1200);
+        return;
+      }
+
       if (data.error) {
         setSyncMsg(`❌ ${data.error}`);
       } else {
@@ -233,22 +247,25 @@ export default function CalendarPage({ role }: Props) {
     setLoadingAttendance(false);
   };
 
-  const downloadAttendance = (data: any) => {
+  const downloadAttendance = (data: any, title: string) => {
+    const esc = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const rows = [
       ['Name', 'Email', 'Join Time', 'Leave Time', 'Duration (min)', 'Role'],
       ...(data.attendees ?? []).map((a: any) => [
-        a.name, a.email,
-        a.joinTime ? new Date(a.joinTime).toLocaleString() : '',
+        a.name ?? '', a.email ?? '',
+        a.joinTime  ? new Date(a.joinTime).toLocaleString()  : '',
         a.leaveTime ? new Date(a.leaveTime).toLocaleString() : '',
-        a.duration ? Math.round(a.duration / 60) : '',
+        a.duration  ? Math.round(a.duration / 60)            : '',
         a.role ?? '',
       ]),
     ];
-    const csv = rows.map(r => r.map((v: any) => `"${v}"`).join(',')).join('\n');
+    const csv = rows.map(r => r.map(esc).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'attendance.csv'; a.click();
+    a.href = url;
+    a.download = `attendance-${title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.csv`;
+    a.click();
     URL.revokeObjectURL(url);
   };
 
@@ -314,17 +331,29 @@ export default function CalendarPage({ role }: Props) {
           {(role === 'super-admin' || role === 'developer') && (
             teamsConnected ? (
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="outline" className="border-[#5059C9] text-[#5059C9] hover:bg-[#5059C9]/5 gap-1.5 text-xs h-8"
-                  onClick={syncTeams} disabled={syncing}>
-                  {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                  Sync Teams
-                </Button>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#5059C9]/10 border border-[#5059C9]/20 rounded-lg text-xs font-medium text-[#5059C9]">
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M20.625 5.4h-3.937V3.375A1.125 1.125 0 0015.563 2.25h-7.5a1.125 1.125 0 00-1.125 1.125V5.4H2.812a.563.563 0 00-.562.563v8.625a3.375 3.375 0 003.375 3.375h.938a5.625 5.625 0 005.437 4.125 5.625 5.625 0 005.438-4.125h.937A3.375 3.375 0 0021.75 14.25V5.963a.563.563 0 00-.563-.563zm-9 13.35a4.5 4.5 0 110-9 4.5 4.5 0 010 9z"/>
-                </svg>
-                Teams Connected ✓
-                </div>
+                {!teamsExpired && (
+                  <Button size="sm" variant="outline" className="border-[#5059C9] text-[#5059C9] hover:bg-[#5059C9]/5 gap-1.5 text-xs h-8"
+                    onClick={syncTeams} disabled={syncing}>
+                    {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                    Sync Teams
+                  </Button>
+                )}
+                {teamsExpired ? (
+                  <Button size="sm" variant="outline" className="border-amber-500 text-amber-600 hover:bg-amber-50 gap-1.5 text-xs h-8"
+                    onClick={() => window.location.href = '/api/teams/auth'}>
+                    ⚠️ Token Expired — Reconnect Teams
+                  </Button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#5059C9]/10 border border-[#5059C9]/20 rounded-lg text-xs font-medium text-[#5059C9]">
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20.625 5.4h-3.937V3.375A1.125 1.125 0 0015.563 2.25h-7.5a1.125 1.125 0 00-1.125 1.125V5.4H2.812a.563.563 0 00-.562.563v8.625a3.375 3.375 0 003.375 3.375h.938a5.625 5.625 0 005.437 4.125 5.625 5.625 0 005.438-4.125h.937A3.375 3.375 0 0021.75 14.25V5.963a.563.563 0 00-.563-.563zm-9 13.35a4.5 4.5 0 110-9 4.5 4.5 0 010 9z"/>
+                      </svg>
+                      Teams Connected ✓
+                    </div>
+
+                  </div>
+                )}
               </div>
             ) : (
               <Button variant="outline" size="sm" className="border-[#5059C9] text-[#5059C9] hover:bg-[#5059C9]/5 gap-2"
@@ -555,7 +584,7 @@ export default function CalendarPage({ role }: Props) {
                                     </button>
                                     {isThis && attendanceData && (
                                       <button
-                                        onClick={() => downloadAttendance(attendanceData)}
+                                        onClick={() => downloadAttendance(attendanceData, e.title)}
                                         className="text-xs px-2 py-0.5 bg-white border border-[#f0f0f0] text-[#555353] rounded-full hover:border-[#e33b5f]/30 transition">
                                         📄 Download CSV
                                       </button>
