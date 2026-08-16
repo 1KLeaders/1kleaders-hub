@@ -261,6 +261,7 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
     const { data, error } = await supabase
       .from('waitlist_submissions')
       .select('id, created_at, first_name, last_name, email, org_name, leader_profiles, status, admin_notes, meeting_date')
+      .not('status', 'in', '("approved","rejected")')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -294,6 +295,10 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
   const [inviting, setInviting] = useState<string | null>(null)
 
   const approveAndInvite = async (row: WaitlistRow) => {
+    if (row.status === 'approved') {
+      alert('This user has already been approved and invited.');
+      return;
+    }
     setInviting(row.id)
     try {
       const res = await fetch('/api/auth/invite', {
