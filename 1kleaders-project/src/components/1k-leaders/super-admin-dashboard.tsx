@@ -327,10 +327,10 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
 
   const approveAndInvite = async (row: WaitlistRow) => {
     if (row.status === 'approved') {
-      alert('This user has already been approved and invited.');
+      alert('This user has already been approved.');
       return;
     }
-    setInviting(row.id)
+    setInviting(row.id);
     try {
       const res = await fetch('/api/auth/invite', {
         method: 'POST',
@@ -342,18 +342,31 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
           role:        'user',
           waitlist_id: row.id,
         }),
-      })
-      const json = await res.json()
+      });
+      const json = await res.json();
+
       if (!res.ok) {
-        alert(`Invite failed: ${json.error}`)
+        // If user already exists, just mark the waitlist entry as approved
+        if (json.error?.includes('already') || json.error?.includes('exists')) {
+          await supabase.from('waitlist_submissions').update({ status: 'approved' }).eq('id', row.id);
+          setWaitlist(prev => prev.filter(r => r.id !== row.id));
+          alert('User already has an account — marked as approved.');
+        } else {
+          alert(`Invite failed: ${json.error}`);
+        }
       } else {
-        setWaitlist(prev => prev.map(r => r.id === row.id ? { ...r, status: 'approved' as const } : r))
+        setWaitlist(prev => prev.filter(r => r.id !== row.id));
       }
     } catch (e) {
-      alert('Network error — could not send invite.')
+      alert('Network error — could not send invite.');
     }
-    setInviting(null)
-  }
+    setInviting(null);
+  };
+
+  const markApproved = async (row: WaitlistRow) => {
+    await supabase.from('waitlist_submissions').update({ status: 'approved' }).eq('id', row.id);
+    setWaitlist(prev => prev.filter(r => r.id !== row.id));
+  };
 
   const undoDecision = (id: string) => updateStatus(id, 'meeting-scheduled')
 
@@ -468,7 +481,7 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
 
                     {/* STEP 2: Meeting Scheduled → Approve / Reject / Park */}
                     {row.status === 'meeting-scheduled' && (
-                      <div className="flex gap-2 flex-shrink-0">
+                      <div className="flex gap-2 flex-shrink-0 flex-wrap">
                         <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-8"
                           disabled={updating === row.id || inviting === row.id}
                           onClick={() => approveAndInvite(row)}>
