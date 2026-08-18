@@ -27,6 +27,8 @@ import {
   Tag,
   Plus,
   X,
+  Search,
+  Shield,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -249,6 +251,35 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
     fetchMetrics();
   }, []);
 
+  const [users,        setUsers]        = useState<any[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [roleChanging, setRoleChanging] = useState<string | null>(null);
+  const [userSearch,   setUserSearch]   = useState('');
+
+  async function fetchUsers() {
+    setUsersLoading(true);
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, email, role, created_at, onboarding_status')
+      .order('created_at', { ascending: false });
+    setUsers(data ?? []);
+    setUsersLoading(false);
+  }
+
+  async function changeRole(userId: string, newRole: string) {
+    setRoleChanging(userId);
+    await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+    setRoleChanging(null);
+  }
+
+  const ROLES = ['user', 'shareholder', 'vep', 'mab', 'admin', 'super-admin'];
+
+  const filteredUsers = users.filter(u =>
+    !userSearch ||
+    `${u.first_name} ${u.last_name} ${u.email}`.toLowerCase().includes(userSearch.toLowerCase())
+  );
+
   const [waitlist, setWaitlist] = useState<WaitlistRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -261,7 +292,7 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
     const { data, error } = await supabase
       .from('waitlist_submissions')
       .select('id, created_at, first_name, last_name, email, org_name, leader_profiles, status, admin_notes, meeting_date')
-      .not('status', 'in', '("approved","rejected")')
+      .in('status', ['pending', 'meeting-scheduled', 'more-info-required', 'parked'])
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -565,6 +596,65 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
           </div>
         </CardContent>
       </Card>
+      {/* User Role Management */}
+      <Card className="border-[#f0f0f0]">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <CardTitle className="text-lg text-[#222] flex items-center gap-2">
+                <Shield className="w-5 h-5 text-[#e33b5f]" /> User Role Management
+              </CardTitle>
+              <p className="text-sm text-[#7e7e7e] mt-0.5">Change roles for any platform user</p>
+            </div>
+            <Button size="sm" variant="outline" onClick={fetchUsers} disabled={usersLoading}>
+              {usersLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Load Users'}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {users.length > 0 && (
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#9e9e9e]" />
+              <Input placeholder="Search by name or email..." className="pl-9 border-[#f0f0f0]"
+                value={userSearch} onChange={e => setUserSearch(e.target.value)} />
+            </div>
+          )}
+          {usersLoading ? (
+            <div className="flex items-center justify-center py-8 gap-2 text-[#9e9e9e]">
+              <Loader2 className="w-4 h-4 animate-spin" /> Loading users...
+            </div>
+          ) : users.length === 0 ? (
+            <p className="text-sm text-[#9e9e9e] text-center py-6">Click "Load Users" to manage roles</p>
+          ) : filteredUsers.length === 0 ? (
+            <p className="text-sm text-[#9e9e9e] text-center py-4">No users match your search</p>
+          ) : (
+            <div className="border border-[#f0f0f0] rounded-xl overflow-hidden">
+              {filteredUsers.map((u, i) => (
+                <div key={u.id} className={`flex items-center gap-4 px-4 py-3 ${i < filteredUsers.length - 1 ? 'border-b border-[#f0f0f0]' : ''} hover:bg-[#fafafa] transition`}>
+                  <div className="w-8 h-8 rounded-full bg-[#e33b5f]/10 flex items-center justify-center text-xs font-bold text-[#e33b5f] flex-shrink-0">
+                    {(u.first_name?.[0] ?? '') + (u.last_name?.[0] ?? '') || '?'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-[#222] truncate">{u.first_name} {u.last_name}</p>
+                    <p className="text-xs text-[#9e9e9e] truncate">{u.email}</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <select
+                      value={u.role ?? 'user'}
+                      onChange={e => changeRole(u.id, e.target.value)}
+                      disabled={roleChanging === u.id}
+                      className="text-xs border border-[#f0f0f0] rounded-lg px-2 py-1.5 bg-white text-[#222] focus:outline-none focus:border-[#e33b5f]/50 cursor-pointer">
+                      {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                    {roleChanging === u.id && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#9e9e9e]" />}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* New Badge Creator — Super Admin only */}
       <NewBadgeCreator isSuperAdmin={true} />
 
