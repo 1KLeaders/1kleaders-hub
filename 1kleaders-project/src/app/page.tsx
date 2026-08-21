@@ -31,6 +31,7 @@ import ContributionTracking from '@/components/1k-leaders/contribution-tracking'
 import StartupsPage from '@/components/1k-leaders/startups-page';
 import StartupDetailPage from '@/components/1k-leaders/startup-detail-page';
 import AnnouncementsPage from '@/components/1k-leaders/announcements-page';
+import AnnouncementDetailPage from '@/components/1k-leaders/announcement-detail-page';
 import IdeaStatusTracker from '@/components/1k-leaders/idea-status-tracker';
 import FellowshipApplications from '@/components/1k-leaders/fellowship-applications';
 import DemoDayPage from '@/components/1k-leaders/demo-day-page';
@@ -107,12 +108,14 @@ export default function Home() {
         case 'vep-dashboard':     return <VEPDashboard />;
         case 'mab-dashboard':     return <MABEvaluation />;
         case 'admin-dashboard':   return <SuperAdminDashboard onNavigate={navigate} />;
+        case 'admin-users':       return <SuperAdminDashboard onNavigate={navigate} />;
+        case 'admin-settings':    return <SettingsPage />;
         case 'onboarding-tracker': return <OnboardingTracker />;
         case 'cohort-management':   return <CohortManagement />;
         case 'quality-review':       return <QualityReview />;
         case 'contributions':           return <ContributionTracking role={role} />;
         case 'startups':             return <StartupsPage role={role} navigate={navigate} />;
-        case 'announcements':          return <AnnouncementsPage role={role} />;
+        case 'announcements':          return <AnnouncementsPage role={role} navigate={navigate} />;
         case 'idea-status':             return <IdeaStatusTracker />;
         case 'fellowship-applications': return <FellowshipApplications />;
         case 'demo-day':             return <DemoDayPage role={role} />;
@@ -121,8 +124,11 @@ export default function Home() {
         case 'onboarding':        return <OnboardingKYC navigate={navigate} />;
         case 'recommendations':   return <RecommendationsPage />;
         default:
-          if (currentPage.startsWith('startup-')) {
+          if (currentPage.startsWith('startup-') && currentPage !== 'startup-page') {
             return <StartupDetailPage startupId={currentPage.replace('startup-', '')} navigate={navigate} />;
+          }
+          if (currentPage.startsWith('announcement-')) {
+            return <AnnouncementDetailPage announcementId={currentPage.replace('announcement-', '')} navigate={navigate} />;
           }
           return <DashboardHome role={role} navigate={navigate} />;
       }

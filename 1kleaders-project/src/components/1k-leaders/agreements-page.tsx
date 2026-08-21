@@ -37,7 +37,21 @@ export default function AgreementsPage({ role }: Props) {
   const isAdmin = role === 'admin' || role === 'super-admin' || role === 'developer';
 
   const [envelopes, setEnvelopes] = useState<Envelope[]>([]);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState('');
   const [loading,   setLoading]   = useState(true);
+
+  async function syncDocuSign() {
+    setSyncing(true); setSyncMsg('');
+    try {
+      const res = await fetch('/api/docusign/sync', { method: 'POST' });
+      const data = await res.json();
+      if (data.error) setSyncMsg(`❌ ${data.error}`);
+      else { setSyncMsg(`✓ Synced ${data.synced} envelope${data.synced !== 1 ? 's' : ''}`); fetchEnvelopes(); }
+    } catch { setSyncMsg('❌ Sync failed'); }
+    setSyncing(false);
+    setTimeout(() => setSyncMsg(''), 5000);
+  }
 
   async function fetchEnvelopes() {
     if (!profile) return;
@@ -74,6 +88,7 @@ export default function AgreementsPage({ role }: Props) {
         <div>
           <h1 className="text-2xl font-bold text-[#222]">Agreements</h1>
           <p className="text-[#7e7e7e]">Track DocuSign partnership agreements</p>
+          {syncMsg && <p className="text-xs font-medium mt-1 text-emerald-600">{syncMsg}</p>}
         </div>
         <Button size="sm" variant="outline" onClick={fetchEnvelopes} disabled={loading}>
           <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh

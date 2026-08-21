@@ -30,6 +30,8 @@ export type Page =
   | 'idea-status'
   | 'announcements'
   | 'startups'
+  | 'admin-users'
+  | 'admin-settings'
   | 'fellowship-applications'
   | 'recommendations';
 

@@ -1,4 +1,5 @@
 'use client';
+import AnnouncementEditor from './announcement-editor';
 import { useState, useEffect, useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -40,7 +41,7 @@ const EMPTY_ANN: NewAnn = {
   content: '', meta: '', cta: 'Read →', media_url: null, attachments: null, is_published: false,
 };
 
-export default function AnnouncementsPage({ role }: Props) {
+export default function AnnouncementsPage({ role, navigate }: Props & { navigate?: (p: string) => void }) {
   const { profile } = useAuth();
   const isAdmin = ['admin', 'super-admin', 'developer'].includes(role ?? '');
 
@@ -211,10 +212,12 @@ export default function AnnouncementsPage({ role }: Props) {
               value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
           </div>
           <div>
-            <label className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider block mb-1">Full Content</label>
-            <textarea className="w-full border border-[#e8e8e8] rounded-lg px-3 py-2 text-sm resize-none font-mono text-xs" rows={8}
-              placeholder="Markdown or plain text body of the announcement..."
-              value={form.content ?? ''} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} />
+            <label className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider block mb-1">Content</label>
+            <AnnouncementEditor
+              value={form.content ?? ''}
+              onChange={html => setForm(f => ({ ...f, content: html }))}
+              placeholder="Write your announcement here — use the toolbar to add images, videos, headings, and more..."
+            />
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
@@ -292,7 +295,7 @@ export default function AnnouncementsPage({ role }: Props) {
           {/* Featured card */}
           {featured && (
             <div className="border border-[#e8e8e8] rounded-2xl overflow-hidden grid grid-cols-1 sm:grid-cols-[380px_1fr] cursor-pointer hover:border-[#e33b5f]/30 transition"
-              onClick={() => setOpenId(openId === featured.id ? null : featured.id)}>
+              onClick={() => navigate ? navigate(`announcement-${featured.id}`) : setOpenId(openId === featured.id ? null : featured.id)}>
               {/* Media/icon panel */}
               <div className="bg-[#141414] flex items-center justify-center min-h-[200px] relative">
                 <p className="absolute top-4 left-5 text-xs font-bold tracking-widest text-white/40 uppercase">{featured.category}</p>
@@ -313,7 +316,7 @@ export default function AnnouncementsPage({ role }: Props) {
 <p className="text-sm text-[#7e7e7e] flex-1 line-clamp-3">{featured.content?.slice(0, 200)?.replace(/#+\s/g, '').replace(/\*\*/g, '')}</p>
                 <div className="flex items-center gap-3 mt-5 flex-wrap">
                   <Button className="bg-[#e33b5f] text-white text-sm"
-                    onClick={e => { e.stopPropagation(); setOpenId(openId === featured.id ? null : featured.id); }}>
+                    onClick={e => { e.stopPropagation(); navigate ? navigate(`announcement-${featured.id}`) : setOpenId(openId === featured.id ? null : featured.id); }}>
                     {featured.cta ?? 'Read →'}
                   </Button>
                   {featured.visibility === 'external_use' && (

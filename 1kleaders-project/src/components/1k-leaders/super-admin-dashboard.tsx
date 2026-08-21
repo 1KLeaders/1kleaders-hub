@@ -530,9 +530,9 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
       {/* Quick Access Cards */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { title: 'User Management', icon: Users, desc: 'Manage roles & access', color: 'emerald', page: 'partners' },
-          { title: 'System Settings', icon: Settings, desc: 'Configure platform', color: 'stone', page: 'settings' },
-          { title: 'Financial Overview', icon: DollarSign, desc: 'Revenue & reports', color: 'amber', page: 'agreements' },
+          { title: 'User Management', icon: Users, desc: 'Manage roles & access', color: 'emerald', page: 'admin-users' },
+          { title: 'System Settings', icon: Settings, desc: 'Configure platform', color: 'stone', page: 'admin-settings' },
+          { title: 'Financial Overview', icon: DollarSign, desc: 'Revenue & reports', color: 'amber', page: 'contributions' },
           { title: 'Idea Pipeline', icon: Lightbulb, desc: 'Review submissions', color: 'emerald', page: 'idea-ranking' },
         ].map((item, idx) => (
           <Card key={idx} className="border-stone-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => onNavigate(item.page)}>
@@ -557,13 +557,11 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg text-stone-900">User Management</CardTitle>
-              <Button variant="outline" size="sm" onClick={() => onNavigate('partners')}>View All</Button>
+              <Button variant="outline" size="sm" onClick={() => onNavigate('admin-users')}>View All Users</Button>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center py-10 text-[#7e7e7e] text-sm">
-              User management will display live data from Supabase once auth is connected.
-            </div>
+          <CardContent className="p-0">
+            <AdminUserList onNavigate={onNavigate} />
           </CardContent>
         </Card>
 
@@ -572,10 +570,8 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
           <CardHeader className="pb-3">
             <CardTitle className="text-lg text-stone-900">Admin Action Log</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center py-8 text-stone-400 text-sm">
-              Action log coming soon — will show real admin activity from Supabase.
-            </div>
+          <CardContent className="p-0">
+            <AdminActionLog />
           </CardContent>
         </Card>
       </div>
@@ -672,4 +668,100 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
 
     </div>
   )
+
+
+// ── Admin User List (inline in dashboard) ─────────────────────
+function AdminUserList({ onNavigate }: { onNavigate: (p: string) => void }) {
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.from('profiles')
+      .select('id, first_name, last_name, email, role, created_at, onboarding_status')
+      .order('created_at', { ascending: false })
+      .limit(8)
+      .then(({ data }) => { setUsers(data ?? []); setLoading(false); });
+  }, []);
+
+  if (loading) return <div className="flex items-center justify-center py-8 gap-2 text-[#9e9e9e]"><Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Loading...</span></div>;
+  if (!users.length) return <div className="py-8 text-center text-sm text-[#9e9e9e]">No users found</div>;
+
+  const roleColor: Record<string, string> = {
+    'super-admin': 'bg-red-100 text-red-700',
+    'admin':       'bg-amber-100 text-amber-700',
+    'developer':   'bg-purple-100 text-purple-700',
+    'vep':         'bg-blue-100 text-blue-700',
+    'mab':         'bg-indigo-100 text-indigo-700',
+    'shareholder': 'bg-emerald-100 text-emerald-700',
+    'user':        'bg-stone-100 text-stone-600',
+  };
+
+  return (
+    <div>
+      {users.map((u, i) => (
+        <div key={u.id} className={`flex items-center gap-3 px-4 py-2.5 ${i < users.length - 1 ? 'border-b border-[#f0f0f0]' : ''}`}>
+          <div className="w-7 h-7 rounded-full bg-[#e33b5f]/10 flex items-center justify-center text-xs font-bold text-[#e33b5f] flex-shrink-0">
+            {(u.first_name?.[0] ?? '') + (u.last_name?.[0] ?? '') || '?'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-[#222] truncate">{u.first_name} {u.last_name}</p>
+            <p className="text-xs text-[#9e9e9e] truncate">{u.email}</p>
+          </div>
+          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${roleColor[u.role] ?? roleColor.user}`}>{u.role}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Admin Action Log ───────────────────────────────────────────
+function AdminActionLog() {
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Pull recent activity from multiple tables as a unified log
+    Promise.all([
+      supabase.from('profiles').select('id, first_name, last_name, email, created_at, role').order('created_at', { ascending: false }).limit(5),
+      supabase.from('ideas').select('id, title, submitted_by, created_at, status').order('created_at', { ascending: false }).limit(5),
+      supabase.from('waitlist_submissions').select('id, first_name, last_name, email, created_at, status').order('created_at', { ascending: false }).limit(5),
+    ]).then(([profiles, ideas, waitlist]) => {
+      const entries = [
+        ...(profiles.data ?? []).map((p: any) => ({
+          icon: '👤', time: p.created_at,
+          text: `${p.first_name} ${p.last_name} joined as ${p.role}`,
+        })),
+        ...(ideas.data ?? []).map((i: any) => ({
+          icon: '💡', time: i.created_at,
+          text: `New idea submitted: "${i.title}"`,
+        })),
+        ...(waitlist.data ?? []).map((w: any) => ({
+          icon: '📋', time: w.created_at,
+          text: `${w.first_name} ${w.last_name} applied (${w.status})`,
+        })),
+      ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 8);
+
+      setLogs(entries);
+      setLoading(false);
+    });
+  }, []);
+
+  if (loading) return <div className="flex items-center justify-center py-8 gap-2 text-[#9e9e9e]"><Loader2 className="w-4 h-4 animate-spin" /></div>;
+  if (!logs.length) return <div className="py-8 text-center text-sm text-[#9e9e9e]">No activity yet</div>;
+
+  return (
+    <div>
+      {logs.map((log, i) => (
+        <div key={i} className={`flex items-start gap-3 px-4 py-2.5 ${i < logs.length - 1 ? 'border-b border-[#f0f0f0]' : ''}`}>
+          <span className="text-base flex-shrink-0 mt-0.5">{log.icon}</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-[#333] leading-relaxed">{log.text}</p>
+            <p className="text-[10px] text-[#9e9e9e] mt-0.5">{new Date(log.time).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 }
