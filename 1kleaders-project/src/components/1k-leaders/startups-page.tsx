@@ -251,7 +251,6 @@ export default function StartupsPage({ role, navigate }: Props) {
                   </div>
                 </div>
               )}
-              )}
             </div>
           );
         })}
