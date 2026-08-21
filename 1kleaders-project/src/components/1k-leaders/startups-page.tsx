@@ -251,7 +251,15 @@ export default function StartupsPage({ role, navigate }: Props) {
                   </div>
                 </div>
               )}
+              )}
+            </div>
+          );
+        })}
+      </div>
 
+      {startups.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <Rocket className="w-10 h-10 text-[#9e9e9e]" />
           <p className="text-sm text-[#9e9e9e]">No startups yet.</p>
         </div>
       )}
