@@ -47,7 +47,6 @@ export default function StartupsPage({ role, navigate }: Props) {
   const isAdmin = ['admin', 'super-admin', 'developer'].includes(role ?? '');
   const [startups, setStartups]   = useState<Startup[]>([]);
   const [loading,  setLoading]    = useState(true);
-  const [openId,   setOpenId]     = useState<string | null>(null);
   const [editId,   setEditId]     = useState<string | null>(null);
   const [form,     setForm]       = useState<Partial<Startup>>({});
   const [saving,   setSaving]     = useState(false);
@@ -88,8 +87,6 @@ export default function StartupsPage({ role, navigate }: Props) {
       <Loader2 className="w-5 h-5 animate-spin" />Loading startups...
     </div>
   );
-
-  const open = startups.find(s => s.id === openId);
 
   return (
     <div className="space-y-8 max-w-5xl">
@@ -157,7 +154,6 @@ export default function StartupsPage({ role, navigate }: Props) {
       {/* Startup cards */}
       <div className="space-y-4">
         {startups.map(s => {
-          const isOpen = openId === s.id;
           const isEditing = editId === s.id;
           const primary = s.primary_color ?? '#222222';
           const accent  = s.accent_color  ?? '#e33b5f';
@@ -165,7 +161,7 @@ export default function StartupsPage({ role, navigate }: Props) {
           return (
             <div key={s.id} className="border border-[#f0f0f0] rounded-2xl overflow-hidden">
               {/* Card header */}
-              <div className="flex items-center gap-0 cursor-pointer" onClick={() => !isEditing && setOpenId(isOpen ? null : s.id)}>
+              <div className="flex items-center gap-0 cursor-pointer" onClick={() => !isEditing && navigate?.(`startup-${s.id}`)}>
                 {/* Color stripe */}
                 <div className="w-2 self-stretch flex-shrink-0" style={{ backgroundColor: primary }} />
                 {/* Logo / initial */}
@@ -210,11 +206,11 @@ export default function StartupsPage({ role, navigate }: Props) {
                       </button>
                     </>
                   )}
-                  {isOpen ? <ChevronDown className="w-4 h-4 text-[#9e9e9e]" /> : <ChevronRight className="w-4 h-4 text-[#9e9e9e]" />}
+                  <ChevronRight className="w-4 h-4 text-[#9e9e9e]" />
                 </div>
               </div>
 
-              {/* Inline edit form */}
+              {/* Inline edit form — only shows when editing, not on card click */}
               {isEditing && editId !== 'new' && (
                 <div className="border-t border-[#f0f0f0] p-6 space-y-4 bg-[#f6f6f6]">
                   <div className="grid sm:grid-cols-2 gap-4">
@@ -256,117 +252,6 @@ export default function StartupsPage({ role, navigate }: Props) {
                 </div>
               )}
 
-              {/* Expanded detail */}
-              {isOpen && !isEditing && (
-                <div className="border-t border-[#f0f0f0]">
-                  {/* Colored top bar */}
-                  <div className="h-1" style={{ background: `linear-gradient(90deg, ${primary}, ${accent})` }} />
-
-                  <div className="p-6 space-y-6">
-                    {s.description && (
-                      <p className="text-sm text-[#555353] leading-relaxed max-w-3xl">{s.description}</p>
-                    )}
-
-                    <div className="grid sm:grid-cols-2 gap-6">
-                      {s.problem && (
-                        <div className="bg-[#f6f6f6] rounded-xl p-5">
-                          <p className="text-xs font-bold tracking-widest text-[#9e9e9e] uppercase mb-3">The Problem</p>
-                          <p className="text-sm text-[#555353] leading-relaxed">{s.problem}</p>
-                        </div>
-                      )}
-                      {s.solution && (
-                        <div className="rounded-xl p-5 text-white" style={{ backgroundColor: primary }}>
-                          <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: accent }}>The Solution</p>
-                          <p className="text-sm leading-relaxed opacity-90">{s.solution}</p>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="grid sm:grid-cols-2 gap-6">
-                      {s.market_size && (
-                        <div>
-                          <p className="text-xs font-bold tracking-widest text-[#9e9e9e] uppercase mb-2">Market Opportunity</p>
-                          <p className="text-sm text-[#555353] leading-relaxed">{s.market_size}</p>
-                        </div>
-                      )}
-                      {s.traction && (
-                        <div>
-                          <p className="text-xs font-bold tracking-widest text-[#9e9e9e] uppercase mb-2">Traction</p>
-                          <p className="text-sm text-[#555353] leading-relaxed">{s.traction}</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Team */}
-                    {s.team && s.team.length > 0 && (
-                      <div>
-                        <p className="text-xs font-bold tracking-widest text-[#9e9e9e] uppercase mb-3">Team</p>
-                        <div className="flex flex-wrap gap-3">
-                          {s.team.map((m, i) => (
-                            <div key={i} className="flex items-start gap-3 bg-[#f6f6f6] rounded-xl p-4 flex-1 min-w-48">
-                              <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-                                style={{ backgroundColor: primary }}>
-                                {m.name[0]}
-                              </div>
-                              <div>
-                                <p className="font-semibold text-sm text-[#222]">{m.name}</p>
-                                <p className="text-xs font-medium mb-1" style={{ color: accent }}>{m.role}</p>
-                                {m.bio && <p className="text-xs text-[#7e7e7e] leading-relaxed">{m.bio}</p>}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Financials */}
-                    {s.financials && (
-                      <div className="border-t border-[#f0f0f0] pt-4 flex items-center gap-6 flex-wrap">
-                        {s.financials.raise_target && (
-                          <div>
-                            <p className="text-xs text-[#9e9e9e]">Raising</p>
-                            <p className="text-lg font-bold text-[#222]">{s.financials.raise_currency ?? '$'}{s.financials.raise_target}</p>
-                          </div>
-                        )}
-                        {s.financials.stage && (
-                          <div>
-                            <p className="text-xs text-[#9e9e9e]">Stage</p>
-                            <p className="font-semibold text-[#222]">{s.financials.stage}</p>
-                          </div>
-                        )}
-                        {s.financials.arr_target && (
-                          <div>
-                            <p className="text-xs text-[#9e9e9e]">ARR Target</p>
-                            <p className="font-semibold text-[#222]">${s.financials.arr_target} by {s.financials.arr_year}</p>
-                          </div>
-                        )}
-                        {navigate && (
-                          <button onClick={() => navigate(`startup-${s.id}`)}
-                            className="flex items-center gap-1.5 text-sm font-semibold hover:underline"
-                            style={{ color: accent }}>
-                            Full Profile <ChevronRight className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                        {s.website && (
-                          <a href={s.website} target="_blank" rel="noopener noreferrer"
-                            className="ml-auto flex items-center gap-1.5 text-sm font-semibold hover:underline"
-                            style={{ color: primary }}>
-                            Visit Website <ExternalLink className="w-3.5 h-3.5" />
-                          </a>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {startups.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <Rocket className="w-10 h-10 text-[#9e9e9e]" />
           <p className="text-sm text-[#9e9e9e]">No startups yet.</p>
         </div>
       )}

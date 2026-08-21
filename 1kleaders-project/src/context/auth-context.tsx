@@ -9,9 +9,6 @@ interface AuthContextValue {
   user:           User | null;
   profile:        DbProfile | null;
   role:           DashboardRole;        // real role from DB
-  devViewRole:    DashboardRole;        // developer role-switcher override
-  setDevViewRole: (r: DashboardRole) => void;
-  isDeveloper:    boolean;
   loading:        boolean;
   signIn:         (email: string, password: string) => Promise<{ error: string | null }>;
   signOut:        () => Promise<void>;
@@ -79,8 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      session, user, profile, role, devViewRole, setDevViewRole,
-      isDeveloper, loading, signIn, signOut, refreshProfile,
+      session, user, profile, role,
+      loading, signIn, signOut, refreshProfile,
     }}>
       {children}
     </AuthContext.Provider>

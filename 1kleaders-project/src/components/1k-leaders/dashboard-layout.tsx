@@ -19,9 +19,6 @@ interface Props {
   navigate:       (page: Page) => void;
   role:           DashboardRole;
   // Developer-only role switcher
-  devViewRole?:   DashboardRole;
-  setDevViewRole?:(role: DashboardRole) => void;
-  isDeveloper?:   boolean;
   currentPage:    Page;
   onSignOut?:     () => Promise<void>;
   children:       React.ReactNode;
@@ -64,7 +61,7 @@ function getNavItems(role: DashboardRole): NavItem[] {
   });
 }
 
-export default function DashboardLayout({ navigate, role, devViewRole, setDevViewRole, isDeveloper, currentPage, onSignOut, children }: Props) {
+export default function DashboardLayout({ navigate, role, currentPage, onSignOut, children }: Props) {
   const { profile } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);

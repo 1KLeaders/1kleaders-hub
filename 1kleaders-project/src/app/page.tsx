@@ -60,7 +60,7 @@ const dashboardPages: Page[] = [
 ];
 
 export default function Home() {
-  const { session, profile, role, devViewRole, setDevViewRole, isDeveloper, loading, signOut } = useAuth();
+  const { session, profile, role, loading, signOut } = useAuth();
   const [currentPage, setCurrentPage] = useState<Page>('landing');
 
   const navigate = (page: Page) => setCurrentPage(page);
@@ -132,10 +132,7 @@ export default function Home() {
       <DashboardLayout
         navigate={navigate}
         role={role}
-        // Developer role switcher — only passed when isDeveloper
-        devViewRole={isDeveloper ? devViewRole : undefined}
-        setDevViewRole={isDeveloper ? setDevViewRole : undefined}
-        isDeveloper={isDeveloper}
+
         currentPage={currentPage}
         onSignOut={signOut}
       >
