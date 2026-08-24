@@ -80,5 +80,15 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ synced, total: events.length, errors });
+  return NextResponse.json({
+    synced,
+    total: events.length,
+    errors,
+    sample_events: events.slice(0, 3).map((e: any) => ({
+      subject: e.subject,
+      start: e.start?.dateTime,
+      id: e.id?.slice(0, 20) + '...',
+    })),
+    token_user: tokenData.user_id,
+  });
 }
