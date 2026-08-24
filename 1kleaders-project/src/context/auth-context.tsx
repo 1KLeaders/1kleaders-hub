@@ -70,8 +70,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signOut() {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (e) {
+      console.warn('signOut error:', e);
+    }
     setProfile(null);
+    setSession(null);
+    // Hard redirect to clear any cached state
+    window.location.href = '/';
   }
 
   return (

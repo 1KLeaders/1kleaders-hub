@@ -25,7 +25,7 @@ const dashboardConfigs: Record<string, { title: string; subtitle: string }> = {
   'super-admin': { title: 'Super Admin Panel',        subtitle: 'Full platform control and monitoring' },
   admin:         { title: 'Admin Operations',         subtitle: 'Manage daily operations and approvals' },
   user:          { title: 'Welcome to 1K Leaders',    subtitle: 'Explore the platform and get started' },
-  developer:     { title: '🛠 Developer View',        subtitle: 'Full platform access — use the role switcher to preview any view' },
+  developer:     { title: '🛠 Developer View',        subtitle: 'Full platform access across all platform features' },
 };
 
 const activities: Record<DashboardRole, { text: string; time: string; type: string }[]> = {
@@ -55,8 +55,7 @@ const activities: Record<DashboardRole, { text: string; time: string; type: stri
   ],
   developer: [
     { text: 'Auth context loaded — session active', time: 'Just now', type: 'success' },
-    { text: 'JWT app_role claim: developer ✓', time: 'Just now', type: 'success' },
-    { text: 'Use the role switcher in the sidebar to preview any view', time: 'Just now', type: 'info' },
+    { text: 'Full platform access enabled', time: 'Just now', type: 'success' },
   ],
 };
 
