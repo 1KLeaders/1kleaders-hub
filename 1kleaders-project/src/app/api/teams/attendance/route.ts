@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
+import { getValidTeamsToken } from '../token-refresh';
 
 async function getAppToken(): Promise<string | null> {
   const tenantId = process.env.TEAMS_TENANT_ID;

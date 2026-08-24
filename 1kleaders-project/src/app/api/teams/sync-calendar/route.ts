@@ -1,24 +1,13 @@
 // GET /api/teams/sync-calendar
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
+import { getValidTeamsToken } from './token-refresh';
 import { createClient } from '@supabase/supabase-js';
 
 export async function GET(req: NextRequest) {
-  // No user auth needed - use the org-level Teams connection
-  const { data: conn } = await supabaseAdmin
-    .from('teams_connections')
-    .select('access_token, expires_at')
-    .eq('connected', true)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (!conn?.access_token) {
-    return NextResponse.json({ error: 'Teams not connected. Go to Calendar and click Connect Teams.' }, { status: 503 });
-  }
-
-  if (conn.expires_at && new Date(conn.expires_at) < new Date()) {
-    return NextResponse.json({ error: 'Teams token expired', expired: true }, { status: 401 });
+  const tokenData = await getValidTeamsToken();
+  if (!tokenData) {
+    return NextResponse.json({ error: 'Teams not connected or token could not be refreshed. Click Connect Teams.', expired: true }, { status: 401 });
   }
 
   // Also check if Graph API returns 401 (token invalid even if not expired in DB)
