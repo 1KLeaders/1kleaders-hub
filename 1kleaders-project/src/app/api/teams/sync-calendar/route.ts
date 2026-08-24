@@ -1,7 +1,7 @@
 // GET /api/teams/sync-calendar
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { getValidTeamsToken } from '../token-refresh';
+import { getValidTeamsToken } from '@/lib/teams-token';
 import { createClient } from '@supabase/supabase-js';
 
 export async function GET(req: NextRequest) {
