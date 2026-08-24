@@ -224,7 +224,7 @@ export default function FellowshipPage() {
               <img src="/logos/logos_1KL-Hub_Horizontal_Accent.svg" alt="1KL Hub" className="h-4 object-contain" />
               <span className="text-sm font-bold text-[#222]">AI Venture Builder Fellowship</span>
             </div>
-            <span className="font-mono text-xs font-bold text-[#e33b5f] bg-[#fff5f7] px-2 py-1 rounded">DEADLINE · JUL 31</span>
+            <span className="font-mono text-xs font-bold text-[#e33b5f] bg-[#fff5f7] px-2 py-1 rounded">DEADLINE · AUG 31</span>
           </div>
           <div className="flex gap-1.5">
             {STEPS.map((label, i) => {
