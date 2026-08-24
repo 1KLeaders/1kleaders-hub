@@ -1,94 +1,109 @@
-// GET /api/teams/sync-calendar
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { getValidTeamsToken } from '@/lib/teams-token';
-import { createClient } from '@supabase/supabase-js';
 
 export async function GET(req: NextRequest) {
-  const tokenData = await getValidTeamsToken();
-  if (!tokenData) {
-    return NextResponse.json({ error: 'Teams not connected or token could not be refreshed. Click Connect Teams.', expired: true }, { status: 401 });
-  }
+  try {
+    // Step 1: get token directly from DB — no helper function
+    const { data: conn, error: connErr } = await supabaseAdmin
+      .from('teams_connections')
+      .select('access_token, refresh_token, expires_at, ms_user_id')
+      .eq('connected', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-  // Also check if Graph API returns 401 (token invalid even if not expired in DB)
-  // This is handled by the event loop below which returns errors per event
+    if (connErr) return NextResponse.json({ error: 'DB error', detail: connErr.message }, { status: 500 });
+    if (!conn) return NextResponse.json({ error: 'No Teams connection found' }, { status: 503 });
 
-  const now = new Date();
-  // Pull 90 days back and 30 days forward
-  const start = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-  const end   = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    // Step 2: check if token needs refresh
+    let accessToken = conn.access_token;
+    const expiresAt = conn.expires_at ? new Date(conn.expires_at) : null;
+    const tenMins = new Date(Date.now() + 10 * 60 * 1000);
 
-  const eventsRes = await fetch(
-    `https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=${start.toISOString()}&endDateTime=${end.toISOString()}&$select=id,subject,start,end,location,bodyPreview,isOnlineMeeting,onlineMeeting&$top=200`,
-    { headers: { 'Authorization': `Bearer ${conn.access_token}` } }
-  );
-
-  const eventsBody = await eventsRes.json();
-
-  if (!eventsRes.ok) {
-    const errMsg = eventsBody?.error?.message ?? eventsBody?.error?.code ?? JSON.stringify(eventsBody);
-    console.error('Teams calendar sync failed:', eventsRes.status, errMsg);
-    // Return 401 so the client knows to re-auth
-    const status = eventsRes.status === 401 ? 401 : 500;
-    return NextResponse.json({
-      error: eventsRes.status === 401 ? 'Teams token expired' : `Teams API error (${eventsRes.status}): ${errMsg}`,
-      expired: eventsRes.status === 401,
-      details: eventsBody,
-    }, { status });
-  }
-
-  const events = eventsBody.value ?? [];
-  let synced = 0;
-  const errors: string[] = [];
-
-  // Get a valid user_id to use as created_by — use the teams connection owner or first admin
-  const { data: adminProfile } = await supabaseAdmin
-    .from('profiles')
-    .select('id')
-    .in('role', ['admin', 'super-admin', 'developer'])
-    .limit(1)
-    .maybeSingle();
-  const createdBy = adminProfile?.id ?? null;
-
-  for (const event of events) {
-    // Parse date directly from the string to avoid UTC timezone shifting
-    // Teams returns dates like "2026-08-09T13:00:00.0000000" (local time, no Z)
-    const dateTimeStr = event.start?.dateTime ?? event.start?.date ?? '';
-    const date = dateTimeStr.slice(0, 10); // "2026-08-09"
-    const timePart = dateTimeStr.slice(11, 16); // "13:00"
-    const time = timePart || 'All Day';
-    const joinUrl  = event.onlineMeeting?.joinUrl ?? null;
-    const location = event.location?.displayName || (joinUrl ? 'Microsoft Teams' : 'TBD');
-
-    const { error: upsertErr } = await supabaseAdmin.from('calendar_events').upsert({
-      title:          event.subject ?? 'Teams Meeting',
-      date,
-      time,
-      type:           'meeting',
-      location,
-      description:    [event.bodyPreview?.slice(0, 200), joinUrl ? `Teams link: ${joinUrl}` : null].filter(Boolean).join('\n') || null,
-      created_by:     createdBy,
-      teams_event_id: event.id,
-      teams_join_url: joinUrl,
-    }, { onConflict: 'teams_event_id', ignoreDuplicates: false });
-
-    if (upsertErr) {
-      console.error('Event upsert error:', upsertErr);
-      errors.push(`${event.subject}: ${upsertErr.message}`);
-    } else {
-      synced++;
+    if (expiresAt && expiresAt < tenMins && conn.refresh_token) {
+      const refreshRes = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type:    'refresh_token',
+          refresh_token: conn.refresh_token,
+          client_id:     process.env.TEAMS_CLIENT_ID!,
+          client_secret: process.env.TEAMS_CLIENT_SECRET!,
+          scope:         'https://graph.microsoft.com/Calendars.ReadWrite https://graph.microsoft.com/OnlineMeetings.ReadWrite offline_access',
+        }),
+      });
+      const refreshData = await refreshRes.json();
+      if (refreshData.access_token) {
+        accessToken = refreshData.access_token;
+        await supabaseAdmin.from('teams_connections').update({
+          access_token:  refreshData.access_token,
+          refresh_token: refreshData.refresh_token ?? conn.refresh_token,
+          expires_at:    new Date(Date.now() + (refreshData.expires_in ?? 3600) * 1000).toISOString(),
+        }).eq('ms_user_id', conn.ms_user_id);
+      }
     }
-  }
 
-  return NextResponse.json({
-    synced,
-    total: events.length,
-    errors,
-    sample_events: events.slice(0, 3).map((e: any) => ({
-      subject: e.subject,
-      start: e.start?.dateTime,
-      id: e.id?.slice(0, 20) + '...',
-    })),
-    token_user: tokenData.user_id,
-  });
+    // Step 3: fetch calendar events
+    const now   = new Date();
+    const start = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    const end   = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    const eventsRes = await fetch(
+      `https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=${start.toISOString()}&endDateTime=${end.toISOString()}&$select=id,subject,start,end,location,bodyPreview,isOnlineMeeting,onlineMeeting&$top=200`,
+      { headers: { 'Authorization': `Bearer ${accessToken}` } }
+    );
+    const eventsBody = await eventsRes.json();
+
+    if (!eventsRes.ok) {
+      return NextResponse.json({
+        error: `Graph API error (${eventsRes.status}): ${eventsBody?.error?.message}`,
+        expired: eventsRes.status === 401,
+      }, { status: eventsRes.status === 401 ? 401 : 500 });
+    }
+
+    const events = eventsBody.value ?? [];
+    let synced = 0;
+    const errors: string[] = [];
+
+    // Get admin profile for created_by
+    const { data: admin } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .in('role', ['admin', 'super-admin', 'developer'])
+      .limit(1)
+      .maybeSingle();
+
+    for (const event of events) {
+      const dateTimeStr = event.start?.dateTime ?? event.start?.date ?? '';
+      const date = dateTimeStr.slice(0, 10);
+      const time = dateTimeStr.slice(11, 16) || 'All Day';
+      const joinUrl = event.onlineMeeting?.joinUrl ?? null;
+      const location = event.location?.displayName || (joinUrl ? 'Microsoft Teams' : 'TBD');
+
+      const { error: upsertErr } = await supabaseAdmin.from('calendar_events').upsert({
+        title:          event.subject ?? 'Teams Meeting',
+        date,
+        time,
+        type:           'meeting',
+        location,
+        description:    event.bodyPreview?.slice(0, 200) || null,
+        created_by:     admin?.id ?? null,
+        teams_event_id: event.id,
+        teams_join_url: joinUrl,
+      }, { onConflict: 'teams_event_id', ignoreDuplicates: false });
+
+      if (upsertErr) errors.push(`${event.subject}: ${upsertErr.message}`);
+      else synced++;
+    }
+
+    return NextResponse.json({
+      synced,
+      total: events.length,
+      errors,
+      sample: events.slice(0, 3).map((e: any) => ({ subject: e.subject, start: e.start?.dateTime })),
+    });
+
+  } catch (err: any) {
+    return NextResponse.json({ error: 'Unexpected error', detail: err.message, stack: err.stack?.slice(0, 300) }, { status: 500 });
+  }
 }
