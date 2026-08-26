@@ -238,7 +238,7 @@ export default function DashboardLayout({ navigate, role, currentPage, onSignOut
                       ⚙️ Settings
                     </button>
                     <div className="border-t border-[#f0f0f0] dark:border-white/10">
-                      <button onClick={() => { signOut(); setProfileOpen(false); }}
+                      <button onClick={() => { setProfileOpen(false); onSignOut ? onSignOut() : navigate('landing'); }}
                         className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition text-left">
                         🚪 Sign Out
                       </button>
