@@ -2,7 +2,10 @@
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "installCommand": "npm install",
-  "env": {
-    "DATABASE_URL": "file:./dev.db"
-  }
+  "crons": [
+    {
+      "path": "/api/cron/teams-sync",
+      "schedule": "0 * * * *"
+    }
+  ]
 }
