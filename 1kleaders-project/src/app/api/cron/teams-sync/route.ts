@@ -4,9 +4,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 
 export async function GET(req: NextRequest) {
-  // Verify this is called by Vercel Cron (not a random request)
+  // Verify via Authorization header OR secret query param
   const authHeader = req.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const querySecret = req.nextUrl.searchParams.get('secret');
+  const validHeader = authHeader === `Bearer ${process.env.CRON_SECRET}`;
+  const validQuery  = querySecret === process.env.CRON_SECRET;
+  if (!validHeader && !validQuery) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
