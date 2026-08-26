@@ -41,6 +41,35 @@ export default function AgreementsPage({ role }: Props) {
   const [syncMsg, setSyncMsg] = useState('');
   const [loading,   setLoading]   = useState(true);
 
+  async function viewDocument(envelopeId: string, status: string) {
+    setViewing(envelopeId);
+    try {
+      const res = await fetch(`/api/docusign/view?envelope_id=${envelopeId}`);
+      const data = await res.json();
+      if (!res.ok) { alert(data.error ?? 'Could not open document'); return; }
+
+      if (data.type === 'download') {
+        // Fetch the PDF using the token and download it
+        const pdfRes = await fetch(data.url, {
+          headers: { 'Authorization': `Bearer ${data.token}`, 'Accept': 'application/pdf' }
+        });
+        const blob = await pdfRes.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${data.doc_name ?? 'agreement'}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else if (data.type === 'view') {
+        // Open embedded signing in new tab
+        window.open(data.url, '_blank');
+      }
+    } catch (e) {
+      alert('Failed to open document');
+    }
+    setViewing(null);
+  }
+
   async function syncDocuSign() {
     setSyncing(true); setSyncMsg('');
     try {
