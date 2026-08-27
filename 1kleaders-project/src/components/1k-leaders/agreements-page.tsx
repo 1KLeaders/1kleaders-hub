@@ -105,7 +105,14 @@ export default function AgreementsPage({ role }: Props) {
     setLoading(false);
   }
 
-  useEffect(() => { fetchEnvelopes(); }, [profile]);
+  useEffect(() => {
+    fetchEnvelopes().then(() => {
+      // Auto-sync status from DocuSign on load for admins
+      if (['admin','super-admin','developer'].includes(role ?? '')) {
+        syncDocuSign();
+      }
+    });
+  }, [profile]);
 
   const signed   = envelopes.filter(e => e.status === 'completed').length;
   const pending  = envelopes.filter(e => ['sent','delivered'].includes(e.status)).length;

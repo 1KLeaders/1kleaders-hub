@@ -76,9 +76,6 @@ export default function CalendarPage({ role }: Props) {
   const [syncMsg,        setSyncMsg]        = useState('');
   const [attendanceData,   setAttendanceData]   = useState<any>(null);
   const [openAttendId,    setOpenAttendId]     = useState<string | null>(null);
-  const [leaderboard,      setLeaderboard]      = useState<{name: string; email: string; minutes: number; meetings: number}[]>([]);
-  const [loadingBoard,     setLoadingBoard]      = useState(false);
-  const [boardLoaded,      setBoardLoaded]       = useState(false);
   const [loadingAttendance, setLoadingAttendance] = useState(false);
   const [partners,       setPartners]       = useState<{id: string; name: string; email: string}[]>([]);
   const [invitees,       setInvitees]       = useState<string[]>([]);
@@ -244,41 +241,7 @@ export default function CalendarPage({ role }: Props) {
     setTimeout(() => setSyncMsg(''), 8000);
   };
 
-  const buildLeaderboard = async () => {
-    setLoadingBoard(true);
-    const pastMeetings = events.filter(e => {
-      const [ey, em, ed] = e.date.split('-').map(Number);
-      const timeParts = (e.time || '').match(/(\d+):(\d+)/);
-      const dt = timeParts ? new Date(ey, em - 1, ed, parseInt(timeParts[1]), parseInt(timeParts[2])) : new Date(ey, em - 1, ed);
-      return dt < new Date() && e.type === 'meeting' && (e as any).teams_event_id;
-    });
-
-    const totals: Record<string, { name: string; email: string; minutes: number; meetings: number }> = {};
-
-    for (const e of pastMeetings) {
-      try {
-        const res = await fetch('/api/teams/attendance?meetingId=' + encodeURIComponent((e as any).teams_event_id));
-        const data = await res.json();
-        if (data.attendees?.length) {
-          for (const a of data.attendees) {
-            const key = a.email || a.name;
-            if (!totals[key]) totals[key] = { name: a.name, email: a.email, minutes: 0, meetings: 0 };
-            totals[key].minutes  += Math.round((a.duration ?? 0) / 60);
-            totals[key].meetings += 1;
-          }
-        }
-      } catch { /* skip failed meetings */ }
-    }
-
-    const board = Object.values(totals)
-      .filter(p => p.minutes > 0)
-      .sort((a, b) => b.minutes - a.minutes)
-      .slice(0, 10);
-
-    setLeaderboard(board);
-    setBoardLoaded(true);
-    setLoadingBoard(false);
-  };
+;
 
   const fetchAttendance = async (teamsEventId: string) => {
     setLoadingAttendance(true);
@@ -728,49 +691,6 @@ export default function CalendarPage({ role }: Props) {
             </CardContent>
           </Card>
 
-          {/* Attendance Leaderboard */}
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm">🏆 Attendance Leaderboard</CardTitle>
-                {!boardLoaded && (
-                  <button onClick={buildLeaderboard} disabled={loadingBoard}
-                    className="text-[10px] text-[#e33b5f] hover:underline font-medium">
-                    {loadingBoard ? 'Loading...' : 'Load'}
-                  </button>
-                )}
-                {boardLoaded && (
-                  <button onClick={buildLeaderboard} disabled={loadingBoard}
-                    className="text-[10px] text-[#9e9e9e] hover:text-[#e33b5f]">
-                    {loadingBoard ? '...' : '↻'}
-                  </button>
-                )}
-              </div>
-              <p className="text-[10px] text-[#9e9e9e]">Total minutes across all meetings</p>
-            </CardHeader>
-            <CardContent className="space-y-1">
-              {!boardLoaded ? (
-                <p className="text-xs text-[#9e9e9e] text-center py-3">Click Load to build leaderboard</p>
-              ) : loadingBoard ? (
-                <div className="flex items-center justify-center py-4 gap-2 text-[#9e9e9e]">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" /><span className="text-xs">Fetching attendance...</span>
-                </div>
-              ) : leaderboard.length === 0 ? (
-                <p className="text-xs text-[#9e9e9e] text-center py-3">No attendance data yet</p>
-              ) : leaderboard.map((p, i) => (
-                <div key={p.email || p.name} className="flex items-center gap-2 py-1.5 border-b border-[#f0f0f0] last:border-0">
-                  <span className={`text-xs font-black w-5 text-center ${i === 0 ? 'text-amber-400' : i === 1 ? 'text-stone-400' : i === 2 ? 'text-orange-400' : 'text-[#9e9e9e]'}`}>
-                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-[#222] truncate">{p.name}</p>
-                    <p className="text-[10px] text-[#9e9e9e]">{p.meetings} meeting{p.meetings !== 1 ? 's' : ''}</p>
-                  </div>
-                  <span className="text-xs font-bold text-[#e33b5f] flex-shrink-0">{p.minutes} min</span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

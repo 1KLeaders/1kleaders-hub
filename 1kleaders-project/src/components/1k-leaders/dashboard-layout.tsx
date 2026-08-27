@@ -46,6 +46,7 @@ const navItems: NavItem[] = [
   { icon: Lightbulb,       label: 'Idea Submission',  page: 'idea-submission' },
   { icon: BarChart3,       label: 'My Idea Status',   page: 'idea-status',       roles: ['user', 'shareholder'] },
   { icon: Calendar,        label: 'Calendar',         page: 'calendar' },
+  { icon: Trophy,          label: 'Leaderboard',      page: 'attendance-leaderboard' },
   { icon: MessageSquare,   label: 'Discussion Rooms', page: 'discussion-rooms', roles: ['shareholder', 'admin', 'super-admin', 'developer'] },
   { icon: FolderOpen,      label: 'Documents',        page: 'documents' },
   { icon: Handshake,       label: 'Shareholders',     page: 'partners',          roles: ['shareholder', 'admin', 'super-admin', 'developer'] },

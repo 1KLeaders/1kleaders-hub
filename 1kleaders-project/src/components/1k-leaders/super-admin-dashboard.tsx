@@ -265,6 +265,9 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
     setUsersLoading(false);
   }
 
+  // Auto-load users on mount
+  useEffect(() => { fetchUsers(); }, []);
+
   async function changeRole(userId: string, newRole: string) {
     setRoleChanging(userId);
     await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
@@ -272,7 +275,7 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
     setRoleChanging(null);
   }
 
-  const ROLES = ['user', 'shareholder', 'vep', 'mab', 'admin', 'super-admin'];
+  const ROLES = ['user', 'shareholder', 'vep', 'mab', 'admin', 'super-admin', 'developer'];
 
   const filteredUsers = users.filter(u =>
     !userSearch ||
@@ -530,7 +533,7 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
       {/* Quick Access Cards */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { title: 'User Management', icon: Users, desc: 'Manage roles & access', color: 'emerald', page: 'admin-users' },
+          { title: 'User Management', icon: Users, desc: 'Manage roles & access', color: 'emerald', page: 'admin-dashboard' },
           { title: 'System Settings', icon: Settings, desc: 'Configure platform', color: 'stone', page: 'admin-settings' },
           { title: 'Financial Overview', icon: DollarSign, desc: 'Revenue & reports', color: 'amber', page: 'contributions' },
           { title: 'Idea Pipeline', icon: Lightbulb, desc: 'Review submissions', color: 'emerald', page: 'idea-ranking' },
@@ -555,13 +558,10 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
         {/* User Management Table — will be wired to Supabase profiles table */}
         <Card className="lg:col-span-2 border-stone-200">
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg text-stone-900">User Management</CardTitle>
-              <Button variant="outline" size="sm" onClick={() => onNavigate('admin-users')}>View All Users</Button>
-            </div>
+            <CardTitle className="text-lg text-stone-900">Recent Users</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <AdminUserList onNavigate={onNavigate} />
+            <AdminUserList />
           </CardContent>
         </Card>
 
@@ -615,7 +615,7 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
               <p className="text-sm text-[#7e7e7e] mt-0.5">Change roles for any platform user</p>
             </div>
             <Button size="sm" variant="outline" onClick={fetchUsers} disabled={usersLoading}>
-              {usersLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Load Users'}
+              <RefreshCw className={`w-4 h-4 ${usersLoading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </CardHeader>
@@ -671,7 +671,7 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
 
 
 // ── Admin User List (inline in dashboard) ─────────────────────
-function AdminUserList({ onNavigate }: { onNavigate: (p: string) => void }) {
+function AdminUserList() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 

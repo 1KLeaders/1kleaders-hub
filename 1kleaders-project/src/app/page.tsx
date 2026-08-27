@@ -31,6 +31,7 @@ import ContributionTracking from '@/components/1k-leaders/contribution-tracking'
 import StartupsPage from '@/components/1k-leaders/startups-page';
 import StartupDetailPage from '@/components/1k-leaders/startup-detail-page';
 import AnnouncementsPage from '@/components/1k-leaders/announcements-page';
+import AttendanceLeaderboardPage from '@/components/1k-leaders/attendance-leaderboard-page';
 import AnnouncementDetailPage from '@/components/1k-leaders/announcement-detail-page';
 import IdeaStatusTracker from '@/components/1k-leaders/idea-status-tracker';
 import FellowshipApplications from '@/components/1k-leaders/fellowship-applications';
@@ -108,7 +109,8 @@ export default function Home() {
         case 'vep-dashboard':     return <VEPDashboard />;
         case 'mab-dashboard':     return <MABEvaluation />;
         case 'admin-dashboard':   return <SuperAdminDashboard onNavigate={navigate} />;
-        case 'admin-users':       return <SuperAdminDashboard onNavigate={navigate} />;
+        case 'admin-users':            return <SuperAdminDashboard onNavigate={navigate} />;
+        case 'attendance-leaderboard': return <AttendanceLeaderboardPage />;
         case 'admin-settings':    return <SettingsPage />;
         case 'onboarding-tracker': return <OnboardingTracker />;
         case 'cohort-management':   return <CohortManagement />;
