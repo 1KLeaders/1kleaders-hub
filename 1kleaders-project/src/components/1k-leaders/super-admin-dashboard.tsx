@@ -343,7 +343,7 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
           email:       row.email,
           first_name:  row.first_name,
           last_name:   row.last_name,
-          role:        'user',
+          role:        approvalRoles[row.id] ?? 'shareholder',
           waitlist_id: row.id,
         }),
       });
@@ -486,6 +486,16 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
                     {/* STEP 2: Meeting Scheduled → Approve / Reject / Park */}
                     {row.status === 'meeting-scheduled' && (
                       <div className="flex gap-2 flex-shrink-0 flex-wrap">
+                        <select
+                          value={approvalRoles[row.id] ?? 'shareholder'}
+                          onChange={e => setApprovalRoles(prev => ({ ...prev, [row.id]: e.target.value }))}
+                          className="text-xs border border-[#e8e8e8] rounded-lg px-2 py-1.5 bg-white h-8 focus:outline-none focus:border-emerald-400">
+                          <option value="user">User</option>
+                          <option value="shareholder">Shareholder</option>
+                          <option value="vep">VEP</option>
+                          <option value="mab">MAB</option>
+                          <option value="admin">Admin</option>
+                        </select>
                         <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-8"
                           disabled={updating === row.id || inviting === row.id}
                           onClick={() => approveAndInvite(row)}>
