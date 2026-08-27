@@ -32,6 +32,7 @@ export type Page =
   | 'startups'
   | 'admin-users'
   | 'attendance-leaderboard'
+  | 'user-import'
   | 'admin-settings'
   | 'fellowship-applications'
   | 'recommendations';

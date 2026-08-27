@@ -31,6 +31,7 @@ import ContributionTracking from '@/components/1k-leaders/contribution-tracking'
 import StartupsPage from '@/components/1k-leaders/startups-page';
 import StartupDetailPage from '@/components/1k-leaders/startup-detail-page';
 import AnnouncementsPage from '@/components/1k-leaders/announcements-page';
+import UserImportPage from '@/components/1k-leaders/user-import-page';
 import AttendanceLeaderboardPage from '@/components/1k-leaders/attendance-leaderboard-page';
 import AnnouncementDetailPage from '@/components/1k-leaders/announcement-detail-page';
 import IdeaStatusTracker from '@/components/1k-leaders/idea-status-tracker';
@@ -58,7 +59,7 @@ const dashboardPages: Page[] = [
   'partners', 'settings', 'notifications', 'profile', 'calendar',
   'discussion-rooms', 'ai-assistant', 'newsletter-tracking',
   'vep-dashboard', 'mab-dashboard', 'recommendations', 'admin-dashboard',
-  'startup-page', 'bug-report', 'onboarding-tracker', 'cohort-management', 'onboarding', 'quality-review', 'contributions', 'idea-status', 'fellowship-applications', 'announcements', 'startups', 'attendance-leaderboard',
+  'startup-page', 'bug-report', 'onboarding-tracker', 'cohort-management', 'onboarding', 'quality-review', 'contributions', 'idea-status', 'fellowship-applications', 'announcements', 'startups', 'attendance-leaderboard', 'user-import',
 ];
 
 export default function Home() {
@@ -111,6 +112,7 @@ export default function Home() {
         case 'admin-dashboard':   return <SuperAdminDashboard onNavigate={navigate} />;
         case 'admin-users':            return <SuperAdminDashboard onNavigate={navigate} />;
         case 'attendance-leaderboard': return <AttendanceLeaderboardPage />;
+        case 'user-import':           return <UserImportPage />;
         case 'admin-settings':    return <SettingsPage />;
         case 'onboarding-tracker': return <OnboardingTracker />;
         case 'cohort-management':   return <CohortManagement />;
