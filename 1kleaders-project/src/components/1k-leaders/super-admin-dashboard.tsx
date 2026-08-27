@@ -28,6 +28,8 @@ import {
   Plus,
   X,
   Search,
+  GraduationCap,
+  Award,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -533,10 +535,10 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
       {/* Quick Access Cards */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { title: 'User Management', icon: Users, desc: 'Manage roles & access', color: 'emerald', page: 'admin-dashboard' },
-          { title: 'System Settings', icon: Settings, desc: 'Configure platform', color: 'stone', page: 'admin-settings' },
-          { title: 'Financial Overview', icon: DollarSign, desc: 'Revenue & reports', color: 'amber', page: 'contributions' },
-          { title: 'Idea Pipeline', icon: Lightbulb, desc: 'Review submissions', color: 'emerald', page: 'idea-ranking' },
+          { title: 'Onboarding Tracker',  icon: Users,      desc: 'Track partner onboarding',  color: 'emerald', page: 'onboarding-tracker' },
+          { title: 'Fellowship Apps',      icon: GraduationCap, desc: 'Review applications',    color: 'stone',   page: 'fellowship-applications' },
+          { title: 'Contribution Tracker', icon: Award,      desc: 'Partner contributions',      color: 'amber',   page: 'contributions' },
+          { title: 'Idea Pipeline',        icon: Lightbulb,  desc: 'Review submissions',         color: 'emerald', page: 'idea-ranking' },
         ].map((item, idx) => (
           <Card key={idx} className="border-stone-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => onNavigate(item.page)}>
             <CardContent className="p-4">
