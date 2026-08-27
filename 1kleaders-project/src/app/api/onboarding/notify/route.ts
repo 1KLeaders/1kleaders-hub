@@ -1,6 +1,6 @@
 // POST /api/onboarding/notify
 // Called when admin updates a partner's onboarding status
-// Sends appropriate SendGrid email for key status transitions
+// Sends appropriate email via Resend for key status transitions
 // Body: { user_id, new_status, meeting_date? }
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
@@ -10,7 +10,7 @@ import {
   sendPaymentConfirmedEmail,
   sendMeetingScheduledEmail,
   sendAdminNotificationEmail,
-} from '@/lib/sendgrid-emails';
+} from '@/lib/resend-emails';
 
 // Which statuses trigger an email
 const STATUS_EMAILS: Record<string, (email: string, firstName: string, extra?: any) => Promise<any>> = {
