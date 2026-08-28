@@ -1,15 +1,15 @@
-// POST /api/sendgrid/send
+// POST /api/email/send
 // Send a transactional email via SendGrid
 // Body: { to, toName, subject, html, templateId?, templateData? }
 import { NextRequest, NextResponse } from 'next/server';
 
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-const FROM_EMAIL       = process.env.SENDGRID_FROM_EMAIL ?? 'noreply@1kleaders.com';
-const FROM_NAME        = process.env.SENDGRID_FROM_NAME  ?? '1K Leaders';
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const FROM_EMAIL       = process.env.RESEND_FROM_EMAIL ?? 'noreply@1kleaders.com';
+const FROM_NAME        = process.env.RESEND_FROM_NAME  ?? '1K Leaders';
 
 export async function POST(req: NextRequest) {
-  if (!SENDGRID_API_KEY) {
-    return NextResponse.json({ error: 'SendGrid not configured — add SENDGRID_API_KEY to environment variables' }, { status: 503 });
+  if (!RESEND_API_KEY) {
+    return NextResponse.json({ error: 'SendGrid not configured — add RESEND_API_KEY to environment variables' }, { status: 503 });
   }
 
   const { to, toName, subject, html, text, templateId, templateData } = await req.json();
@@ -34,10 +34,10 @@ export async function POST(req: NextRequest) {
     ];
   }
 
-  const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+  const res = await fetch('https://api.resend.com/emails', {
     method:  'POST',
     headers: {
-      'Authorization': `Bearer ${SENDGRID_API_KEY}`,
+      'Authorization': `Bearer ${RESEND_API_KEY}`,
       'Content-Type':  'application/json',
     },
     body: JSON.stringify(body),
