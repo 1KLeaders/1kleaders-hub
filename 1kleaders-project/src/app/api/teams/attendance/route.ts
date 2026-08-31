@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { getValidTeamsToken } from '@/lib/teams-token';
 
+
 async function getAppToken(): Promise<string | null> {
   const tenantId = process.env.TEAMS_TENANT_ID;
   const clientId = process.env.TEAMS_CLIENT_ID;
@@ -41,18 +42,11 @@ export async function GET(req: NextRequest) {
   const calendarEventId = new URL(req.url).searchParams.get('meetingId');
   if (!calendarEventId) return NextResponse.json({ error: 'meetingId required' }, { status: 400 });
 
-  // Get delegated token for steps 1 & 2 (calendar event + join URL)
-  const { data: conn } = await supabaseAdmin
-    .from('teams_connections')
-    .select('access_token, expires_at, email')
-    .eq('connected', true)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // Get token with auto-refresh
+  const tokenData = await getValidTeamsToken();
+  if (!tokenData) return NextResponse.json({ attendees: [], message: 'Teams not connected or token could not be refreshed — click Connect Teams.' });
 
-  if (!conn?.access_token) return NextResponse.json({ attendees: [], message: 'Teams not connected.' });
-
-  const delegatedH = { 'Authorization': `Bearer ${conn.access_token}` };
+  const delegatedH = { 'Authorization': `Bearer ${tokenData.access_token}` };
 
   // Step 1: get join URL from calendar event (delegated)
   const evRes = await fetch(
