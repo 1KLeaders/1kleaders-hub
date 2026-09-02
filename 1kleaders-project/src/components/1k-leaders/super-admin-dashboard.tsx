@@ -243,7 +243,7 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
           supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'shareholder'),
         ]);
         // ideas table may not exist yet — fetch separately and swallow error
-        const { count: ideas } = await supabase.from('ideas').select('*', { count: 'exact', head: true }).then(r => r).catch(() => ({ count: 0 }));
+        const { count: ideas } = await supabase.from('ideas').select('*', { count: 'exact', head: true }).then(r => r).catch(() => ({ count: 0, data: null, error: null }));
         setMetrics({ total: total ?? 0, shareholders: shareholders ?? 0, ideas: ideas ?? 0 });
       } catch (e) {
         console.warn('Metrics fetch failed:', e);
@@ -733,24 +733,19 @@ function AdminActionLog() {
 
   useEffect(() => {
     // Pull recent activity from multiple tables as a unified log
-    Promise.all([
+    Promise.allSettled([
       supabase.from('profiles').select('id, first_name, last_name, email, created_at, role').order('created_at', { ascending: false }).limit(5),
       supabase.from('ideas').select('id, title, submitted_by, created_at, status').order('created_at', { ascending: false }).limit(5),
       supabase.from('waitlist_submissions').select('id, first_name, last_name, email, created_at, status').order('created_at', { ascending: false }).limit(5),
-    ]).then(([profiles, ideas, waitlist]) => {
+    ]).then(([profilesRes, ideasRes, waitlistRes]) => {
+      const profiles = profilesRes.status === 'fulfilled' ? profilesRes.value.data ?? [] : [];
+      const ideas    = ideasRes.status    === 'fulfilled' ? ideasRes.value.data    ?? [] : [];
+      const waitlist = waitlistRes.status === 'fulfilled' ? waitlistRes.value.data ?? [] : [];
+
       const entries = [
-        ...(profiles.data ?? []).map((p: any) => ({
-          icon: '👤', time: p.created_at,
-          text: `${p.first_name} ${p.last_name} joined as ${p.role}`,
-        })),
-        ...(ideas.data ?? []).map((i: any) => ({
-          icon: '💡', time: i.created_at,
-          text: `New idea submitted: "${i.title}"`,
-        })),
-        ...(waitlist.data ?? []).map((w: any) => ({
-          icon: '📋', time: w.created_at,
-          text: `${w.first_name} ${w.last_name} applied (${w.status})`,
-        })),
+        ...profiles.map((p: any) => ({ icon: '👤', time: p.created_at, text: `${p.first_name} ${p.last_name} joined as ${p.role}` })),
+        ...ideas.map((i: any)    => ({ icon: '💡', time: i.created_at, text: `New idea submitted: "${i.title}"` })),
+        ...waitlist.map((w: any) => ({ icon: '📋', time: w.created_at, text: `${w.first_name} ${w.last_name} applied (${w.status})` })),
       ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 8);
 
       setLogs(entries);

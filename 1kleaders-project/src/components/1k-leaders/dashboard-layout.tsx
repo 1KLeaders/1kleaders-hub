@@ -41,8 +41,8 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard',        page: 'dashboard' },
-  { icon: Megaphone,       label: 'Announcements',    page: 'announcements' },
-  { icon: Rocket,          label: 'Startups',         page: 'startups' },
+  { icon: Megaphone,       label: 'Announcements',    page: 'announcements', roles: ['shareholder', 'vep', 'mab', 'admin', 'super-admin', 'developer'] },
+  { icon: Rocket,          label: 'Startups',         page: 'startups', roles: ['shareholder', 'vep', 'mab', 'admin', 'super-admin', 'developer'] },
   { icon: Lightbulb,       label: 'Idea Submission',  page: 'idea-submission' },
   { icon: BarChart3,       label: 'My Idea Status',   page: 'idea-status',       roles: ['user', 'shareholder'] },
   { icon: Calendar,        label: 'Calendar',         page: 'calendar' },
