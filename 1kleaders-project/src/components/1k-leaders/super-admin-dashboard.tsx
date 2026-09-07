@@ -242,12 +242,10 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
           supabase.from('profiles').select('*', { count: 'exact', head: true }),
           supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'shareholder'),
         ]);
-        // ideas table may not exist yet — fetch separately and swallow error
-        const { count: ideas } = await supabase.from('ideas').select('*', { count: 'exact', head: true }).then(r => r).catch(() => ({ count: 0, data: null, error: null }));
+        let ideas = 0;
+        try { const r = await supabase.from('ideas').select('*', { count: 'exact', head: true }); ideas = r.count ?? 0; } catch (ignore) {}
         setMetrics({ total: total ?? 0, shareholders: shareholders ?? 0, ideas: ideas ?? 0 });
-      } catch (e) {
-        console.warn('Metrics fetch failed:', e);
-      }
+      } catch (e) { console.warn('Dashboard metrics fetch failed', e); }
     }
     fetchMetrics();
   }, []);
