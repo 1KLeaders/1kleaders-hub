@@ -326,6 +326,7 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
   }
 
   const [inviting, setInviting] = useState<string | null>(null)
+  const [approvalRoles, setApprovalRoles] = useState<Record<string, string>>({})
 
   const approveAndInvite = async (row: WaitlistRow) => {
     if (row.status === 'approved') {
