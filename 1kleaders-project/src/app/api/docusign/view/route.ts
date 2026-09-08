@@ -2,7 +2,7 @@
 // Downloads signed PDF directly — no DocuSign account needed
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { getAccessToken } from '@/lib/docusign';
+import { getJWTAccessToken as getAccessToken } from '@/lib/docusign';
 import { createClient } from '@supabase/supabase-js';
 
 export async function GET(req: NextRequest) {
