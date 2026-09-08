@@ -76,7 +76,7 @@ export default function AgreementsPage({ role }: Props) {
       const res = await fetch('/api/docusign/sync', { method: 'POST' });
       const data = await res.json();
       if (data.error) setSyncMsg(`❌ ${data.error}`);
-      else { setSyncMsg(`✓ Synced ${data.synced} envelope${data.synced !== 1 ? 's' : ''}`); fetchEnvelopes(); }
+      else setSyncMsg(`✓ Synced ${data.synced} of ${data.total} envelopes`);
     } catch { setSyncMsg('❌ Sync failed'); }
     setSyncing(false);
     setTimeout(() => setSyncMsg(''), 5000);
@@ -93,7 +93,8 @@ export default function AgreementsPage({ role }: Props) {
         .order('created_at', { ascending: false });
 
       if (!isAdmin) {
-        query = query.or(`user_id.eq.${profile.id},recipient_email.eq.${profile.email}`);
+        // Match by user_id OR email (for older envelopes where user_id wasn't set)
+        query = query.or(`user_id.eq.${profile.id},recipient_email.eq.${profile.email},recipient_email.ilike.${profile.email}`);
       }
 
       const { data, error } = await query;
@@ -106,12 +107,12 @@ export default function AgreementsPage({ role }: Props) {
   }
 
   useEffect(() => {
-    fetchEnvelopes().then(() => {
-      // Auto-sync status from DocuSign on load for admins
-      if (['admin','super-admin','developer'].includes(role ?? '')) {
-        syncDocuSign();
-      }
-    });
+    // Sync first to get latest statuses, then fetch from DB
+    if (['admin','super-admin','developer'].includes(role ?? '')) {
+      syncDocuSign().then(() => fetchEnvelopes());
+    } else {
+      fetchEnvelopes();
+    }
   }, [profile]);
 
   const signed   = envelopes.filter(e => e.status === 'completed').length;
