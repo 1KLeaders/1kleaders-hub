@@ -2,11 +2,11 @@
 // Pulls ALL envelopes from DocuSign and upserts them into our DB
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { getAccessToken } from '@/lib/docusign';
+import { getDocuSignToken } from '@/lib/docusign';
 
 export async function POST(req: NextRequest) {
   try {
-    const token = await getAccessToken();
+    const token = await getDocuSignToken();
     const baseUrl   = process.env.DOCUSIGN_BASE_URL;
     const accountId = process.env.DOCUSIGN_ACCOUNT_ID;
 
