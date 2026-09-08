@@ -2,7 +2,7 @@
 // Generates a view URL for a signed document — no DocuSign account needed
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { getDocuSignToken } from '@/lib/docusign';
+import { getAccessToken } from '@/lib/docusign';
 import { createClient } from '@supabase/supabase-js';
 
 export async function GET(req: NextRequest) {
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   if (!isOwner) return NextResponse.json({ error: 'Access denied' }, { status: 403 });
 
   try {
-    const token = await getDocuSignToken();
+    const token = await getAccessToken();
     const baseUrl = process.env.DOCUSIGN_BASE_URL;
     const accountId = process.env.DOCUSIGN_ACCOUNT_ID;
 
