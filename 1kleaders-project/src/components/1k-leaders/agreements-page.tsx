@@ -124,11 +124,19 @@ export default function AgreementsPage({ role }: Props) {
         <div>
           <h1 className="text-2xl font-bold text-[#222]">Agreements</h1>
           <p className="text-[#7e7e7e]">Track DocuSign partnership agreements</p>
-          {syncMsg && <p className="text-xs font-medium mt-1 text-emerald-600">{syncMsg}</p>}
+          {syncMsg && <p className={`text-xs font-medium mt-1 ${syncMsg.startsWith('✓') ? 'text-emerald-600' : 'text-red-500'}`}>{syncMsg}</p>}
         </div>
-        <Button size="sm" variant="outline" onClick={fetchEnvelopes} disabled={loading}>
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
-        </Button>
+        <div className="flex gap-2">
+          {isAdmin && (
+            <Button size="sm" variant="outline" onClick={syncDocuSign} disabled={syncing}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Syncing...' : 'Sync DocuSign'}
+            </Button>
+          )}
+          <Button size="sm" variant="outline" onClick={fetchEnvelopes} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
