@@ -42,7 +42,8 @@ const EMAIL_HTML = (firstName: string, email: string, setupLink: string) => `<!D
 </html>`;
 
 export async function POST(req: NextRequest) {
-  const { users } = await req.json();
+  const { users, test_email } = await req.json();
+  // If test_email is provided, send everything to that address only (for testing)
   if (!users?.length) return NextResponse.json({ error: 'No users provided' }, { status: 400 });
 
   const apiKey = process.env.RESEND_API_KEY;
@@ -86,8 +87,8 @@ export async function POST(req: NextRequest) {
         headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           from:    'info@1kleaders.com',
-          to:      user.email,
-          subject: 'Welcome to 1KL Hub — Set Up Your Account',
+          to:      test_email ?? user.email,
+          subject: test_email ? `[TEST — ${user.email}] Welcome to 1KL Hub` : 'Welcome to 1KL Hub — Set Up Your Account',
           html:    EMAIL_HTML(user.first_name ?? 'Partner', user.email, setupLink),
         }),
       });
