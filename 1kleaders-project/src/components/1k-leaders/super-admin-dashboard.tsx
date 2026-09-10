@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import ModerationPanel from './moderation-panel'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -674,6 +675,9 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
         </CardContent>
       </Card>
 
+      {/* Content Moderation */}
+      <ModerationPanel />
+
       {/* New Badge Creator — Super Admin only */}
       <NewBadgeCreator isSuperAdmin={true} />
 
@@ -688,8 +692,8 @@ function AdminUserList() {
 
   useEffect(() => {
     supabase.from('profiles')
-      .select('id, first_name, last_name, email, role, created_at, onboarding_status')
-      .order('created_at', { ascending: false })
+      .select('id, first_name, last_name, email, role, created_at, onboarding_status, last_seen')
+      .order('last_seen', { ascending: false, nullsFirst: false })
       .limit(8)
       .then(({ data }) => { setUsers(data ?? []); setLoading(false); });
   }, []);

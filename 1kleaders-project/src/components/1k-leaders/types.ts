@@ -33,6 +33,7 @@ export type Page =
   | 'admin-users'
   | 'attendance-leaderboard'
   | 'user-import'
+  | 'forms'
   | 'admin-settings'
   | 'fellowship-applications'
   | 'recommendations';

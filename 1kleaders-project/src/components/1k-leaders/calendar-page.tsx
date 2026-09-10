@@ -211,6 +211,12 @@ export default function CalendarPage({ role }: Props) {
     setShowNewVoteDialog(false);
   };
 
+  const deleteEvent = async (eventId: string) => {
+    if (!confirm('Delete this event?')) return;
+    await supabase.from('calendar_events').delete().eq('id', eventId);
+    setEvents(prev => prev.filter(e => e.id !== eventId));
+  };
+
   const syncTeams = async () => {
     setSyncing(true); setSyncMsg('');
     try {
@@ -541,7 +547,7 @@ export default function CalendarPage({ role }: Props) {
                       const joinUrl = e.teams_join_url ?? (e.description?.match(/Teams link: (https:\/\/\S+)/)?.[1]);
                       return (
                         <div key={e.id}
-                          className={`flex items-start gap-3 p-3 ${c.light} rounded-xl ${joinUrl && !isPast ? 'cursor-pointer hover:opacity-90 transition' : ''}`}
+                          className={`flex items-start gap-3 p-3 ${c.light} rounded-xl ${joinUrl && !isPast ? 'cursor-pointer hover:opacity-90 transition' : ''} relative group`}
                           onClick={() => joinUrl && !isPast && window.open(joinUrl, '_blank')}>
                           <div className={`w-8 h-8 rounded-lg ${c.bg} flex items-center justify-center flex-shrink-0`}>
                             <Icon className="w-4 h-4 text-white" />

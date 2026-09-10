@@ -32,6 +32,8 @@ import StartupsPage from '@/components/1k-leaders/startups-page';
 import StartupDetailPage from '@/components/1k-leaders/startup-detail-page';
 import AnnouncementsPage from '@/components/1k-leaders/announcements-page';
 import UserImportPage from '@/components/1k-leaders/user-import-page';
+import FormBuilderPage from '@/components/1k-leaders/form-builder-page';
+import FormViewerPage from '@/components/1k-leaders/form-viewer-page';
 import AttendanceLeaderboardPage from '@/components/1k-leaders/attendance-leaderboard-page';
 import AnnouncementDetailPage from '@/components/1k-leaders/announcement-detail-page';
 import IdeaStatusTracker from '@/components/1k-leaders/idea-status-tracker';
@@ -59,7 +61,7 @@ const dashboardPages: Page[] = [
   'partners', 'settings', 'notifications', 'profile', 'calendar',
   'discussion-rooms', 'ai-assistant', 'newsletter-tracking',
   'vep-dashboard', 'mab-dashboard', 'recommendations', 'admin-dashboard',
-  'startup-page', 'bug-report', 'onboarding-tracker', 'cohort-management', 'onboarding', 'quality-review', 'contributions', 'idea-status', 'fellowship-applications', 'announcements', 'startups', 'attendance-leaderboard', 'user-import',
+  'startup-page', 'bug-report', 'onboarding-tracker', 'cohort-management', 'onboarding', 'quality-review', 'contributions', 'idea-status', 'fellowship-applications', 'announcements', 'startups', 'attendance-leaderboard', 'user-import', 'forms',
 ];
 
 export default function Home() {
@@ -112,6 +114,7 @@ export default function Home() {
         case 'admin-dashboard':   return <SuperAdminDashboard onNavigate={navigate} />;
         case 'admin-users':            return <SuperAdminDashboard onNavigate={navigate} />;
         case 'attendance-leaderboard': return <AttendanceLeaderboardPage />;
+        case 'forms':                  return <FormBuilderPage role={role} navigate={navigate} />;
         case 'user-import':           return <UserImportPage />;
         case 'admin-settings':    return <SettingsPage />;
         case 'onboarding-tracker': return <OnboardingTracker />;
@@ -133,6 +136,9 @@ export default function Home() {
           }
           if (currentPage.startsWith('announcement-')) {
             return <AnnouncementDetailPage announcementId={currentPage.replace('announcement-', '')} navigate={navigate} />;
+          }
+          if (currentPage.startsWith('form-')) {
+            return <FormViewerPage formId={currentPage.replace('form-', '')} navigate={navigate} />;
           }
           return <DashboardHome role={role} navigate={navigate} />;
       }

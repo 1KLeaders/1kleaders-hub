@@ -77,6 +77,7 @@ export default function ShareholdersPage({ navigate, role }: Props) {
   const [partners,      setPartners]      = useState<DbPartner[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [filter,        setFilter]        = useState('All');
+  const [sort,          setSort]          = useState<'name'|'role'|'recent'>('name');
   const [search,        setSearch]        = useState('');
   const [selected,      setSelected]      = useState<DbPartner | null>(null);
   const [partnerIdeas,  setPartnerIdeas]  = useState<PartnerIdea[]>([]);
@@ -132,6 +133,10 @@ export default function ShareholdersPage({ navigate, role }: Props) {
       (filter === 'VEP' && p.subroles?.includes('vep-builder')) ||
       (filter === 'MAB' && p.subroles?.includes('mab-builder'));
     return matchSearch && matchFilter;
+  }).sort((a, b) => {
+    if (sort === 'name') return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
+    if (sort === 'role') return (a.role ?? '').localeCompare(b.role ?? '');
+    return new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime();
   });
 
   // Profile detail view
@@ -431,49 +436,31 @@ export default function ShareholdersPage({ navigate, role }: Props) {
         </Card>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(p => {
+          {filtered.map((p, i) => {
             const name = `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim() || p.email;
             const initials = `${p.first_name?.[0] ?? ''}${p.last_name?.[0] ?? ''}`.toUpperCase() || '?';
             const isRegistered = p.onboarding_status === 'Officially Registered Partner';
             return (
-              <Card key={p.id} className="border-[#f0f0f0] hover:shadow-md transition cursor-pointer"
+              <div key={p.id}
+                className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-[#fafafa] transition ${i < filtered.length - 1 ? 'border-b border-[#f0f0f0]' : ''}`}
                 onClick={() => openProfile(p)}>
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3 mb-3">
-                    <Avatar className="w-10 h-10 flex-shrink-0">
-                      {p.profile_photo_url && <AvatarImage src={p.profile_photo_url} alt={name} />}
-                      <AvatarFallback className="bg-[#e33b5f]/10 text-[#c02d4f] text-sm font-bold">{initials}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 justify-between">
-                        <p className="font-semibold text-sm text-[#222] truncate">{name}</p>
-                        {isRegistered && <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />}
-                      </div>
-                      <p className="text-xs text-[#7e7e7e] truncate">{p.email}</p>
-                      {p.org_name && (
-                        <p className="text-xs text-[#9e9e9e] flex items-center gap-1 mt-0.5">
-                          <Building2 className="w-3 h-3" />{p.org_name}
-                        </p>
-                      )}
-                    </div>
+                <Avatar className="w-8 h-8 flex-shrink-0">
+                  {p.profile_photo_url && <AvatarImage src={p.profile_photo_url} alt={name} />}
+                  <AvatarFallback className="bg-[#e33b5f]/10 text-[#c02d4f] text-xs font-bold">{initials}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-sm text-[#222] truncate">{name}</p>
+                    {isRegistered && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />}
                   </div>
-
-                  <div className="flex flex-wrap gap-1">
-                    <Badge className="text-xs bg-[#f0f0f0] text-[#555353]">{p.role}</Badge>
-                    {(p.subroles ?? []).map(sr => <DigitalBadge key={sr} role={sr} />)}
-                    {p.partner_level && (
-                      <Badge className={`text-xs border ${levelColors[p.partner_level] ?? ''}`}>
-                        <Star className="w-2.5 h-2.5 mr-0.5" />{p.partner_level}
-                      </Badge>
-                    )}
-                  </div>
-
-                  <div className="mt-3 flex items-center justify-between">
-                    <p className="text-[10px] text-[#9e9e9e]">{p.onboarding_status}</p>
-                    <ChevronRight className="w-4 h-4 text-[#9e9e9e]" />
-                  </div>
-                </CardContent>
-              </Card>
+                  <p className="text-xs text-[#9e9e9e] truncate">{p.org_name || p.email}</p>
+                </div>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <Badge className="text-[10px] bg-[#f0f0f0] text-[#555353] py-0">{p.role}</Badge>
+                  {(p.subroles ?? []).slice(0, 1).map(sr => <DigitalBadge key={sr} role={sr} />)}
+                </div>
+                <ChevronRight className="w-4 h-4 text-[#9e9e9e] flex-shrink-0" />
+              </div>
             );
           })}
         </div>
