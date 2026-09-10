@@ -17,12 +17,37 @@ export default function UserImportPage() {
   const [sendAllMsg, setSendAllMsg] = useState('');
   const [testEmail,  setTestEmail]  = useState('');
   const [testMode,   setTestMode]   = useState(true);
+  const [searchEmail, setSearchEmail] = useState('');
+  const [sendingOne,  setSendingOne]  = useState(false);
+  const [sendOneMsg,  setSendOneMsg]  = useState('');
   const [mode,     setMode]     = useState<'import'|'email-only'>('import');
   const [users,    setUsers]    = useState<ImportUser[]>([]);
   const [results,  setResults]  = useState<{ imported: number; skipped: number; emailsSent: number; errors: string[] } | null>(null);
   const [log,      setLog]      = useState<string[]>([]);
 
   function addLog(msg: string) { setLog(prev => [...prev, msg]); }
+
+  async function sendToOne() {
+    if (!searchEmail.trim()) return;
+    setSendingOne(true); setSendOneMsg('');
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('email, first_name, last_name')
+      .eq('email', searchEmail.trim().toLowerCase())
+      .maybeSingle();
+
+    if (!profile) { setSendOneMsg('❌ User not found in database'); setSendingOne(false); return; }
+
+    const res = await fetch('/api/admin/send-welcome-emails', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ users: [{ email: profile.email, first_name: profile.first_name }] }),
+    });
+    const data = await res.json();
+    setSendOneMsg(data.sent === 1 ? `✓ Email sent to ${profile.email}` : `❌ Failed: ${data.errors?.[0] ?? 'Unknown error'}`);
+    setSendingOne(false);
+    setTimeout(() => setSendOneMsg(''), 8000);
+  }
 
   async function sendToAllUsers() {
     setSendingAll(true); setSendAllMsg('');
@@ -215,6 +240,26 @@ export default function UserImportPage() {
               {sendingAll ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" />Sending...</>
                 : testMode ? <><Mail className="w-4 h-4 mr-1" />Send Test ({testEmail ? '1 recipient' : 'enter email'})</>
                 : <><Mail className="w-4 h-4 mr-1" />Send to All</>}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Send to individual user */}
+      <Card className="border-[#f0f0f0]">
+        <CardContent className="p-5 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex-1">
+            <p className="font-semibold text-[#222] text-sm">📨 Send to Specific User</p>
+            <p className="text-xs text-[#9e9e9e] mt-0.5">Send a welcome email to one person by email address</p>
+            {sendOneMsg && <p className={`text-xs mt-1 font-medium ${sendOneMsg.startsWith('✓') ? 'text-emerald-600' : 'text-red-500'}`}>{sendOneMsg}</p>}
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <input type="email" placeholder="email@example.com" value={searchEmail}
+              onChange={e => setSearchEmail(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && sendToOne()}
+              className="border border-[#f0f0f0] rounded-lg px-3 py-2 text-sm w-56 focus:outline-none focus:border-[#e33b5f]/50" />
+            <Button onClick={sendToOne} disabled={sendingOne || !searchEmail.trim()} variant="outline">
+              {sendingOne ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
             </Button>
           </div>
         </CardContent>

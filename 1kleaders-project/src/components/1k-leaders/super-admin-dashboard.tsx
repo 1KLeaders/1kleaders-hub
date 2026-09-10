@@ -254,6 +254,8 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
   const [usersLoading, setUsersLoading] = useState(false);
   const [roleChanging, setRoleChanging] = useState<string | null>(null);
   const [userSearch,   setUserSearch]   = useState('');
+  const [pageSize,     setPageSize]     = useState(10);
+  const [userPage,     setUserPage]     = useState(0);
 
   async function fetchUsers() {
     setUsersLoading(true);
@@ -281,6 +283,8 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
     !userSearch ||
     `${u.first_name} ${u.last_name} ${u.email}`.toLowerCase().includes(userSearch.toLowerCase())
   );
+  const pagedUsers = filteredUsers.slice(userPage * pageSize, (userPage + 1) * pageSize);
+  const totalPages = Math.ceil(filteredUsers.length / pageSize);
 
   const [waitlist, setWaitlist] = useState<WaitlistRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -713,7 +717,7 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
             <div className="relative">
               <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#9e9e9e]" />
               <Input placeholder="Search by name or email..." className="pl-9 border-[#f0f0f0]"
-                value={userSearch} onChange={e => setUserSearch(e.target.value)} />
+                value={userSearch} onChange={e => { setUserSearch(e.target.value); setUserPage(0); }} />
             </div>
           )}
           {usersLoading ? (
@@ -721,12 +725,14 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
               <Loader2 className="w-4 h-4 animate-spin" /> Loading users...
             </div>
           ) : users.length === 0 ? (
-            <p className="text-sm text-[#9e9e9e] text-center py-6">Click "Load Users" to manage roles</p>
+            <div className="flex items-center justify-center py-6 gap-2 text-[#9e9e9e]">
+              <Loader2 className="w-4 h-4 animate-spin" />
+            </div>
           ) : filteredUsers.length === 0 ? (
             <p className="text-sm text-[#9e9e9e] text-center py-4">No users match your search</p>
           ) : (
             <div className="border border-[#f0f0f0] rounded-xl overflow-hidden">
-              {filteredUsers.map((u, i) => (
+              {pagedUsers.map((u, i) => (
                 <div key={u.id} className={`flex items-center gap-4 px-4 py-3 ${i < filteredUsers.length - 1 ? 'border-b border-[#f0f0f0]' : ''} hover:bg-[#fafafa] transition`}>
                   <div className="w-8 h-8 rounded-full bg-[#e33b5f]/10 flex items-center justify-center text-xs font-bold text-[#e33b5f] flex-shrink-0">
                     {(u.first_name?.[0] ?? '') + (u.last_name?.[0] ?? '') || '?'}
@@ -747,6 +753,31 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Pagination controls */}
+          {filteredUsers.length > 0 && (
+            <div className="flex items-center justify-between gap-4 flex-wrap pt-1">
+              <div className="flex items-center gap-2 text-sm text-[#9e9e9e]">
+                <span>Show</span>
+                {[10, 25, 50, 100].map(n => (
+                  <button key={n} onClick={() => { setPageSize(n); setUserPage(0); }}
+                    className={`px-2 py-0.5 rounded text-xs font-medium transition ${pageSize === n ? 'bg-[#e33b5f] text-white' : 'bg-[#f0f0f0] hover:bg-[#e8e8e8] text-[#555353]'}`}>
+                    {n}
+                  </button>
+                ))}
+                <span>of {filteredUsers.length} users</span>
+              </div>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setUserPage(p => Math.max(0, p - 1))} disabled={userPage === 0}
+                    className="px-2 py-1 text-xs border border-[#f0f0f0] rounded hover:bg-[#f0f0f0] disabled:opacity-30">←</button>
+                  <span className="text-xs text-[#9e9e9e] px-2">{userPage + 1} / {totalPages}</span>
+                  <button onClick={() => setUserPage(p => Math.min(totalPages - 1, p + 1))} disabled={userPage >= totalPages - 1}
+                    className="px-2 py-1 text-xs border border-[#f0f0f0] rounded hover:bg-[#f0f0f0] disabled:opacity-30">→</button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
