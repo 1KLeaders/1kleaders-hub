@@ -15,6 +15,8 @@ export default function UserImportPage() {
   const [step,     setStep]     = useState<'idle'|'ready'|'importing'|'emailing'|'done'>('idle');
   const [sendingAll, setSendingAll] = useState(false);
   const [sendAllMsg, setSendAllMsg] = useState('');
+  const [testEmail,  setTestEmail]  = useState('');
+  const [testMode,   setTestMode]   = useState(true);
   const [mode,     setMode]     = useState<'import'|'email-only'>('import');
   const [users,    setUsers]    = useState<ImportUser[]>([]);
   const [results,  setResults]  = useState<{ imported: number; skipped: number; emailsSent: number; errors: string[] } | null>(null);
@@ -28,20 +30,21 @@ export default function UserImportPage() {
       // Load all profiles from DB
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('email, first_name, last_name')
+        .select('email, first_name, last_name, role')
+        .in('role', ['shareholder', 'admin', 'super-admin', 'developer'])
         .order('created_at', { ascending: true });
 
       if (!profiles?.length) { setSendAllMsg('❌ No users found in database'); setSendingAll(false); return; }
 
       // Send in batches of 10 to avoid timeout
       let totalSent = 0;
-      const batchSize = 10;
+      const batchSize = 50;
       for (let i = 0; i < profiles.length; i += batchSize) {
         const batch = profiles.slice(i, i + batchSize);
         const res = await fetch('/api/admin/send-welcome-emails', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ users: batch.map(p => ({ email: p.email, first_name: p.first_name })) }),
+          body: JSON.stringify({ users: batch.map(p => ({ email: p.email, first_name: p.first_name })), test_email: testMode && testEmail ? testEmail : undefined }),
         });
         const data = await res.json();
         totalSent += data.sent ?? 0;
@@ -199,9 +202,21 @@ export default function UserImportPage() {
             <p className="text-xs text-blue-600 mt-0.5">Generates a fresh magic link for every user in the database and sends the setup email</p>
             {sendAllMsg && <p className={`text-xs mt-1 font-medium ${sendAllMsg.startsWith('✓') ? 'text-emerald-600' : 'text-red-500'}`}>{sendAllMsg}</p>}
           </div>
-          <Button onClick={sendToAllUsers} disabled={sendingAll} className="bg-blue-600 hover:bg-blue-700 text-white flex-shrink-0">
-            {sendingAll ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" />Sending...</> : <><Mail className="w-4 h-4 mr-1" />Send to All</>}
-          </Button>
+          <div className="flex flex-col items-end gap-2 flex-shrink-0">
+            <label className="flex items-center gap-2 text-xs text-blue-700 cursor-pointer">
+              <input type="checkbox" checked={testMode} onChange={e => setTestMode(e.target.checked)} className="accent-blue-600" />
+              Test mode — send to:
+              <input type="email" placeholder="your@email.com" value={testEmail}
+                onChange={e => setTestEmail(e.target.value)}
+                className="border border-blue-200 rounded px-2 py-0.5 text-xs w-44 bg-white" />
+            </label>
+            <Button onClick={sendToAllUsers} disabled={sendingAll || (testMode && !testEmail)}
+              className="bg-blue-600 hover:bg-blue-700 text-white">
+              {sendingAll ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" />Sending...</>
+                : testMode ? <><Mail className="w-4 h-4 mr-1" />Send Test ({testEmail ? '1 recipient' : 'enter email'})</>
+                : <><Mail className="w-4 h-4 mr-1" />Send to All</>}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
