@@ -13,12 +13,46 @@ type ImportUser = {
 
 export default function UserImportPage() {
   const [step,     setStep]     = useState<'idle'|'ready'|'importing'|'emailing'|'done'>('idle');
+  const [sendingAll, setSendingAll] = useState(false);
+  const [sendAllMsg, setSendAllMsg] = useState('');
   const [mode,     setMode]     = useState<'import'|'email-only'>('import');
   const [users,    setUsers]    = useState<ImportUser[]>([]);
   const [results,  setResults]  = useState<{ imported: number; skipped: number; emailsSent: number; errors: string[] } | null>(null);
   const [log,      setLog]      = useState<string[]>([]);
 
   function addLog(msg: string) { setLog(prev => [...prev, msg]); }
+
+  async function sendToAllUsers() {
+    setSendingAll(true); setSendAllMsg('');
+    try {
+      // Load all profiles from DB
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('email, first_name, last_name')
+        .order('created_at', { ascending: true });
+
+      if (!profiles?.length) { setSendAllMsg('❌ No users found in database'); setSendingAll(false); return; }
+
+      // Send in batches of 10 to avoid timeout
+      let totalSent = 0;
+      const batchSize = 10;
+      for (let i = 0; i < profiles.length; i += batchSize) {
+        const batch = profiles.slice(i, i + batchSize);
+        const res = await fetch('/api/admin/send-welcome-emails', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ users: batch.map(p => ({ email: p.email, first_name: p.first_name })) }),
+        });
+        const data = await res.json();
+        totalSent += data.sent ?? 0;
+        setSendAllMsg(`Sending... ${totalSent}/${profiles.length}`);
+      }
+      setSendAllMsg(`✓ Sent ${totalSent} of ${profiles.length} emails`);
+    } catch (e: any) {
+      setSendAllMsg(`❌ ${e.message}`);
+    }
+    setSendingAll(false);
+  }
 
   async function handleCSV(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -153,6 +187,20 @@ export default function UserImportPage() {
         </h1>
         <p className="text-[#7e7e7e] mt-1">Import users from the Join Us form CSV export</p>
       </div>
+
+      {/* Send to all existing users */}
+      <Card className="border-[#f0f0f0] bg-blue-50 border-blue-100">
+        <CardContent className="p-5 flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <p className="font-semibold text-blue-800 text-sm">📧 Send Welcome Emails to All Users</p>
+            <p className="text-xs text-blue-600 mt-0.5">Generates a fresh magic link for every user in the database and sends the setup email</p>
+            {sendAllMsg && <p className={`text-xs mt-1 font-medium ${sendAllMsg.startsWith('✓') ? 'text-emerald-600' : 'text-red-500'}`}>{sendAllMsg}</p>}
+          </div>
+          <Button onClick={sendToAllUsers} disabled={sendingAll} className="bg-blue-600 hover:bg-blue-700 text-white flex-shrink-0">
+            {sendingAll ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" />Sending...</> : <><Mail className="w-4 h-4 mr-1" />Send to All</>}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Step 1: Upload */}
       <Card className="border-[#f0f0f0]">

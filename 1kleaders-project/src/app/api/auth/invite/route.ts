@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 
-const EMAIL_HTML = (firstName: string, setupLink: string) => `<!DOCTYPE html>
+const EMAIL_HTML = (firstName: string, email: string, setupLink: string) => `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
 <body style="margin:0;padding:0;background-color:#f6f6f6;font-family:Arial,sans-serif;">
@@ -19,7 +19,11 @@ const EMAIL_HTML = (firstName: string, setupLink: string) => `<!DOCTYPE html>
 <h1 style="font-size:26px;font-weight:800;color:#222;margin:0 0 8px;">Welcome to 1KL Hub 👋</h1>
 <p style="color:#7e7e7e;font-size:14px;margin:0 0 28px;">Your partner portal for 1000 Leaders Holdings</p>
 <p style="color:#444;font-size:15px;line-height:1.7;margin:0 0 16px;">Hi ${firstName},</p>
-<p style="color:#444;font-size:15px;line-height:1.7;margin:0 0 24px;">Your account on the <strong>1KL Hub</strong> is ready. Click the button below to set up your password and complete your profile. The link is valid for <strong>24 hours</strong>.</p>
+<p style="color:#444;font-size:15px;line-height:1.7;margin:0 0 16px;">Your account on the <strong>1KL Hub</strong> is ready. Click the button below to set up your password and complete your profile. The link is valid for <strong>24 hours</strong>.</p>
+<div style="background:#f6f6f6;border-radius:8px;padding:12px 16px;margin-bottom:24px;">
+<p style="margin:0;font-size:13px;color:#9e9e9e;">Signing in as:</p>
+<p style="margin:4px 0 0;font-size:15px;font-weight:700;color:#222;">${email}</p>
+</div>
 <table cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
 <tr><td style="background:linear-gradient(30deg,#e33b5f,#E65F5C);border-radius:6px;">
 <a href="${setupLink}" style="display:inline-block;padding:14px 28px;color:#fff;font-size:15px;font-weight:700;text-decoration:none;">Set Up My Account →</a>
@@ -59,7 +63,7 @@ async function sendWelcomeEmail(email: string, firstName: string) {
       from:    'info@1kleaders.com',
       to:      email,
       subject: 'Welcome to 1KL Hub — Set Up Your Account',
-      html:    EMAIL_HTML(firstName, data.properties.action_link),
+      html:    EMAIL_HTML(firstName, email, data.properties.action_link),
     }),
   });
 }
