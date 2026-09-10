@@ -298,7 +298,8 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
         body: JSON.stringify({ secret: process.env.NEXT_PUBLIC_CRON_SECRET, users }),
       });
       const data = await res.json();
-      setResetMsg(data.error ? `❌ ${data.error}` : `✓ Reset ${data.success} of ${data.total} passwords (${data.failed} failed)`);
+      const errSample = data.errors?.slice(0,3).join(' | ') ?? '';
+      setResetMsg(data.error ? `❌ ${data.error}` : `✓ Reset ${data.success} of ${data.total} (${data.failed} failed)${errSample ? ': ' + errSample : ''}`);
     } catch (e: any) {
       setResetMsg(`❌ ${e.message}`);
     }
