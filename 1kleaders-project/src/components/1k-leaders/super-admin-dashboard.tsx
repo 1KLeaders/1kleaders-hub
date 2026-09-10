@@ -142,7 +142,6 @@ function NewBadgeCreator({ isSuperAdmin }: { isSuperAdmin: boolean }) {
     setBadges(prev => [...prev, newBadge]);
     setLabel(''); setIcon('⭐'); setColor(BADGE_COLORS[0].value);
     setSaved(true); setTimeout(() => setSaved(false), 2000);
-    // TODO: persist to Supabase custom_badges table
   };
 
   return (
@@ -296,7 +295,7 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
       const res = await fetch('/api/admin/reset-passwords', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ users }),
+        body: JSON.stringify({ secret: process.env.NEXT_PUBLIC_CRON_SECRET, users }),
       });
       const data = await res.json();
       setResetMsg(data.error ? `❌ ${data.error}` : `✓ Reset ${data.success} of ${data.total} passwords (${data.failed} failed)`);
@@ -587,7 +586,6 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* User Management Table — will be wired to Supabase profiles table */}
         <Card className="lg:col-span-2 border-stone-200">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg text-stone-900">Recent Users</CardTitle>

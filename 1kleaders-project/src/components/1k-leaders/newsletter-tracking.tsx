@@ -92,7 +92,6 @@ export default function NewsletterTracking() {
 
     if (data) setNewsletters(prev => [data as Newsletter, ...prev]);
 
-    // TODO: Trigger SendGrid send via /api/sendgrid/newsletter when configured
     setSending(false);
     setShowCompose(false);
     setComposeTitle(''); setComposeSubject(''); setComposeBody('');

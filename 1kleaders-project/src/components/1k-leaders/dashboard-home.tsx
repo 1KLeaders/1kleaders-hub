@@ -29,34 +29,8 @@ const dashboardConfigs: Record<string, { title: string; subtitle: string }> = {
 };
 
 const activities: Record<DashboardRole, { text: string; time: string; type: string }[]> = {
-  shareholder: [
-    { text: 'Q4 dividend distribution announced', time: '1 hour ago', type: 'success' },
-    { text: 'New voting proposal: Board expansion', time: '3 hours ago', type: 'warning' },
-    { text: 'Discussion room: Investment Committee is active', time: '6 hours ago', type: 'info' },
-    { text: 'Share value increased by 2.3%', time: '2 days ago', type: 'success' },
-    { text: 'New startup opportunity matching your interests', time: '3 days ago', type: 'info' },
-  ],
-  'super-admin': [
-    { text: '15 new user registrations today', time: '1 hour ago', type: 'info' },
-    { text: 'System maintenance completed successfully', time: '3 hours ago', type: 'success' },
-    { text: 'New partnership agreement pending approval', time: '6 hours ago', type: 'warning' },
-    { text: 'Automated admission letter sent to 3 new members', time: '1 day ago', type: 'success' },
-  ],
-  admin: [
-    { text: '5 new applications awaiting review', time: '30 min ago', type: 'warning' },
-    { text: 'Newsletter "May Update" - 84% open rate', time: '2 hours ago', type: 'success' },
-    { text: 'Document submission deadline approaching', time: '4 hours ago', type: 'warning' },
-    { text: 'Welcome email sent to 2 new verified partners', time: '5 hours ago', type: 'success' },
-  ],
-  user: [
-    { text: 'Complete your profile to unlock more features', time: 'Just now', type: 'warning' },
-    { text: 'New opportunity posted in FinTech sector', time: '3 hours ago', type: 'info' },
-    { text: 'Try the AI Idea Assistant to refine your ideas', time: '1 day ago', type: 'info' },
-  ],
-  developer: [
-    { text: 'Auth context loaded — session active', time: 'Just now', type: 'success' },
-    { text: 'Full platform access enabled', time: 'Just now', type: 'success' },
-  ],
+  shareholder: [], 'super-admin': [], admin: [], user: [], developer: [],
+  vep: [], mab: [],
 };
 
 type LiveIdea = {

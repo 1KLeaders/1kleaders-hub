@@ -50,7 +50,7 @@ function MABDashboard() {
         <p className="text-[#7e7e7e]">Management Advisory Board — evaluate startups using MAB criteria</p>
       </div>
       <div className="p-8 text-center bg-white rounded-xl border border-[#f0f0f0]">
-        <p className="text-[#9e9e9e] text-sm">MAB Dashboard coming soon — criteria: Product & Tech, Product Market Fit, Risk Assessment, Business Model, Team</p>
+        <p className="text-[#9e9e9e] text-sm">MAB Dashboard — coming soon.</p>
       </div>
     </div>
   );
