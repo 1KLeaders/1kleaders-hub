@@ -299,7 +299,7 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
       });
       const data = await res.json();
       const errSample = data.errors?.slice(0,3).join(' | ') ?? '';
-      setResetMsg(data.error ? `❌ ${data.error}` : `✓ Reset ${data.success} of ${data.total} (${data.failed} failed)${errSample ? ': ' + errSample : ''}`);
+      setResetMsg(data.error ? `❌ ${data.error}` : `✓ Created ${data.created ?? 0}, updated ${data.updated ?? 0} of ${data.total} (${data.failed} failed)${errSample ? ': ' + errSample : ''}`);
     } catch (e: any) {
       setResetMsg(`❌ ${e.message}`);
     }
