@@ -340,8 +340,47 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
   }
 
   const scheduleMeeting = async (id: string) => {
-    const date = meetingDateInputs[id]
-    await updateStatus(id, 'meeting-scheduled', { meeting_date: date || null })
+    const date = meetingDateInputs[id];
+    const row = waitlist.find(r => r.id === id);
+    if (!row) return;
+
+    // Update waitlist status
+    await updateStatus(id, 'meeting-scheduled', { meeting_date: date || null });
+
+    // Create Teams meeting if date is set
+    if (date) {
+      try {
+        const startDT = new Date(date).toISOString();
+        const res = await fetch('/api/teams/create-meeting', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title:          `1KL Intro Meeting — ${row.first_name} ${row.last_name}`,
+            start_datetime: startDT,
+            description:    `Introductory meeting with ${row.first_name} ${row.last_name} (${row.email}) — ${row.org_name ?? ''}`,
+            invitee_emails: [row.email],
+          }),
+        });
+        const data = await res.json();
+        if (data.join_url) {
+          // Save meeting to calendar
+          await supabase.from('calendar_events').insert({
+            title:          `Intro Meeting — ${row.first_name} ${row.last_name}`,
+            date:           date.slice(0, 10),
+            time:           date.slice(11, 16) || '12:00',
+            type:           'meeting',
+            location:       'Microsoft Teams',
+            description:    `Introductory meeting with ${row.email}`,
+            teams_join_url: data.join_url,
+            teams_event_id: data.meeting_id,
+          });
+          alert(`✓ Teams meeting created and invite sent to ${row.email}`);
+        }
+      } catch (e) {
+        console.error('Teams meeting creation failed:', e);
+        alert('Meeting scheduled but Teams invite failed — please create manually.');
+      }
+    }
   }
 
   const [inviting, setInviting] = useState<string | null>(null)
@@ -370,16 +409,35 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
       const json = await res.json();
 
       if (!res.ok) {
-        // If user already exists, just mark the waitlist entry as approved
         if (json.error?.includes('already') || json.error?.includes('exists')) {
           await supabase.from('waitlist_submissions').update({ status: 'approved' }).eq('id', row.id);
           setWaitlist(prev => prev.filter(r => r.id !== row.id));
-          alert('User already has an account — marked as approved.');
         } else {
           alert(`Invite failed: ${json.error}`);
+          setInviting(null);
+          return;
         }
       } else {
         setWaitlist(prev => prev.filter(r => r.id !== row.id));
+      }
+
+      // Send DocuSign agreement automatically
+      try {
+        const dsRes = await fetch('/api/docusign/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            recipient_email: row.email,
+            recipient_name:  `${row.first_name} ${row.last_name}`,
+          }),
+        });
+        const dsData = await dsRes.json();
+        if (!dsRes.ok) {
+          console.warn('DocuSign send failed:', dsData.error);
+          alert(`✓ Approved and welcome email sent. Note: DocuSign agreement could not be sent automatically — ${dsData.error}`);
+        }
+      } catch (e) {
+        console.warn('DocuSign send error:', e);
       }
     } catch (e) {
       alert('Network error — could not send invite.');

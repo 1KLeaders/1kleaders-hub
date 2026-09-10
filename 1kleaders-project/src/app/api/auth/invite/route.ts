@@ -131,5 +131,30 @@ export async function POST(req: NextRequest) {
   // Send welcome email with magic link
   await sendWelcomeEmail(email, first_name ?? 'Partner');
 
+  // Auto-send DocuSign agreement
+  try {
+    const { getJWTAccessToken, sendEnvelope } = await import('@/lib/docusign');
+    const accessToken = await getJWTAccessToken();
+    const envelope = await sendEnvelope({
+      accessToken,
+      recipientName:  `${first_name ?? ''} ${last_name ?? ''}`.trim(),
+      recipientEmail: email,
+      recipientId:    authData.user.id,
+      metadata:       { user_id: authData.user.id, waitlist_id: waitlist_id ?? '' },
+    });
+    await supabaseAdmin.from('docusign_envelopes').insert({
+      envelope_id:     envelope.envelopeId,
+      user_id:         authData.user.id,
+      recipient_name:  `${first_name ?? ''} ${last_name ?? ''}`.trim(),
+      recipient_email: email,
+      status:          envelope.status,
+      sent_at:         envelope.statusDateTime,
+    });
+    await supabaseAdmin.from('profiles').update({ onboarding_status: 'Agreement Sent' }).eq('id', authData.user.id);
+  } catch (e: any) {
+    console.warn('DocuSign auto-send failed:', e.message);
+    // Don't block the invite if DocuSign fails
+  }
+
   return NextResponse.json({ success: true, user_id: authData.user.id, existing: false });
 }

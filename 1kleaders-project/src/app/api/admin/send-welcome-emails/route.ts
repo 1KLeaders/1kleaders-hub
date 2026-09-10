@@ -1,5 +1,4 @@
 // POST /api/admin/send-welcome-emails
-// Generates a magic link for each user and sends a branded welcome email via Resend
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 
@@ -33,6 +32,9 @@ const EMAIL_HTML = (firstName: string, email: string, setupLink: string) => `<!D
 <hr style="border:none;border-top:1px solid #f0f0f0;margin:0 0 20px;" />
 <p style="color:#9e9e9e;font-size:13px;line-height:1.6;margin:0;">Questions? <a href="mailto:info@1kleaders.com" style="color:#e33b5f;">info@1kleaders.com</a><br>© 2026 1000 Leaders Holdings Limited</p>
 </td></tr>
+<tr><td style="padding:24px 0;text-align:center;">
+<p style="color:#9e9e9e;font-size:12px;margin:0;">© 2026 1000 Leaders Holdings Limited · Abu Dhabi Global Market, UAE</p>
+</td></tr>
 </table>
 </td></tr>
 </table>
@@ -51,21 +53,33 @@ export async function POST(req: NextRequest) {
 
   for (const user of users) {
     try {
-      // Generate magic link via Supabase admin API
-      const { data, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      // Try magic link first
+      let setupLink: string | null = null;
+
+      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
         type: 'magiclink',
         email: user.email,
-        options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/`,
-        }
+        options: { redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/` },
       });
 
-      if (linkError || !data?.properties?.action_link) {
-        errors.push(`${user.email}: ${linkError?.message ?? 'Could not generate link'}`);
-        continue;
+      if (!linkError && linkData?.properties?.action_link) {
+        setupLink = linkData.properties.action_link;
+      } else {
+        // If magic link fails (user may not exist in auth yet), use recovery link
+        const { data: recData, error: recError } = await supabaseAdmin.auth.admin.generateLink({
+          type: 'recovery',
+          email: user.email,
+          options: { redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/` },
+        });
+        if (!recError && recData?.properties?.action_link) {
+          setupLink = recData.properties.action_link;
+        }
       }
 
-      const setupLink = data.properties.action_link;
+      if (!setupLink) {
+        errors.push(`${user.email}: Could not generate link — ${linkError?.message}`);
+        continue;
+      }
 
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -74,7 +88,7 @@ export async function POST(req: NextRequest) {
           from:    'info@1kleaders.com',
           to:      user.email,
           subject: 'Welcome to 1KL Hub — Set Up Your Account',
-          html:    EMAIL_HTML(user.first_name ?? 'Partner', setupLink),
+          html:    EMAIL_HTML(user.first_name ?? 'Partner', user.email, setupLink),
         }),
       });
 
