@@ -45,9 +45,12 @@ export default function UserImportPage() {
         });
         const data = await res.json();
         totalSent += data.sent ?? 0;
-        setSendAllMsg(`Sending... ${totalSent}/${profiles.length}`);
+        const errSample = data.errors?.slice(0,2).join(' | ') ?? '';
+        setSendAllMsg(`Sending... ${totalSent}/${profiles.length}${errSample ? ' — ' + errSample : ''}`)
       }
       setSendAllMsg(`✓ Sent ${totalSent} of ${profiles.length} emails`);
+      // Fetch final errors from last batch for debugging
+      
     } catch (e: any) {
       setSendAllMsg(`❌ ${e.message}`);
     }
