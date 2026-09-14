@@ -3,7 +3,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { getJWTAccessToken as getAccessToken } from '@/lib/docusign';
-import { createClient } from '@supabase/supabase-js';
 
 export async function GET(req: NextRequest) {
   const envelopeId = req.nextUrl.searchParams.get('envelope_id');
