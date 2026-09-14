@@ -58,14 +58,14 @@ export default function AgreementsPage({ role }: Props) {
       }
 
       const data = await res.json();
-      if (!res.ok) { alert(data.error ?? 'Could not open document'); return; }
+      if (!res.ok) { alert(`Error (${res.status}): ${data.error ?? JSON.stringify(data)}`); return; }
 
       if (data.type === 'sign') {
         // Pending — open embedded signing
         window.open(data.url, '_blank');
       }
-    } catch (e) {
-      alert('Failed to open document');
+    } catch (e: any) {
+      alert(`Failed to open document: ${e.message}`);
     }
     setViewing(null);
   }
