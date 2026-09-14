@@ -282,8 +282,25 @@ export default function AnnouncementsPage({ role, navigate }: Props & { navigate
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20 gap-2 text-[#9e9e9e]">
-          <Loader2 className="w-5 h-5 animate-spin" /> Loading announcements...
+        <div className="space-y-4">
+          <div className="border border-[#f0f0f0] rounded-2xl overflow-hidden grid grid-cols-1 sm:grid-cols-[380px_1fr] animate-pulse">
+            <div className="bg-[#f0f0f0] min-h-[200px]" />
+            <div className="p-7 space-y-3">
+              <div className="h-3 bg-[#f0f0f0] rounded w-24" />
+              <div className="h-5 bg-[#f0f0f0] rounded w-48" />
+              <div className="h-3 bg-[#f0f0f0] rounded w-full" />
+              <div className="h-3 bg-[#f0f0f0] rounded w-3/4" />
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="border border-[#f0f0f0] rounded-xl p-6 space-y-3 animate-pulse">
+                <div className="h-3 bg-[#f0f0f0] rounded w-20" />
+                <div className="h-4 bg-[#f0f0f0] rounded w-40" />
+                <div className="h-3 bg-[#f0f0f0] rounded w-full" />
+              </div>
+            ))}
+          </div>
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
