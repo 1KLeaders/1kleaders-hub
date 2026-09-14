@@ -40,6 +40,7 @@ export default function AgreementsPage({ role }: Props) {
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState('');
   const [loading,   setLoading]   = useState(true);
+  const [viewing,   setViewing]   = useState<string | null>(null);
 
   async function viewDocument(envelopeId: string, status: string) {
     setViewing(envelopeId);
