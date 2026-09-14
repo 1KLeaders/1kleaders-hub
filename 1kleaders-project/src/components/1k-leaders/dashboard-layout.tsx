@@ -49,6 +49,7 @@ const navItems: NavItem[] = [
   { icon: Trophy,          label: 'Leaderboard',      page: 'attendance-leaderboard' },
   { icon: MessageSquare,   label: 'Discussion Rooms', page: 'discussion-rooms', roles: ['shareholder', 'admin', 'super-admin', 'developer'] },
   { icon: FolderOpen,      label: 'Documents',        page: 'documents' },
+  { icon: FileText,        label: 'Forms',            page: 'forms', roles: ['shareholder', 'user', 'vep', 'mab'] },
   { icon: Handshake,       label: 'Shareholders',     page: 'partners',          roles: ['shareholder', 'admin', 'super-admin', 'developer'] },
   { icon: FileCheck,       label: 'KYC & Onboarding', page: 'onboarding',        roles: ['user', 'shareholder'] },
   { icon: BarChart3,       label: 'Idea Ranking',     page: 'idea-ranking',      roles: ['admin', 'super-admin', 'developer'] },
@@ -153,8 +154,8 @@ export default function DashboardLayout({ navigate, role, currentPage, onSignOut
                 <Award className="w-4 h-4" />Contributions
               </button>
               <button onClick={() => handleNav('forms')}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'forms' || currentPage.startsWith('form-') ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
-                <FileText className="w-4 h-4" />Forms
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'forms' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
+                <FileText className="w-4 h-4" />Create Forms
               </button>
               <button onClick={() => handleNav('user-import')}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'user-import' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>

@@ -25,7 +25,7 @@ type DbDoc = {
   owner_id: string;
 };
 
-const CATEGORIES = ['All','KYC','Agreements','Company','Idea','Financial','Shareholder','General'];
+const CATEGORIES = ['All','KYC','Company','Idea','Financial','Shareholder','General'];
 
 const statusColors: Record<string, string> = {
   verified: 'bg-[#e33b5f]/10 text-[#c02d4f]',

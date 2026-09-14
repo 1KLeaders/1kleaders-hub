@@ -114,7 +114,7 @@ export default function Home() {
         case 'admin-dashboard':   return <SuperAdminDashboard onNavigate={navigate} />;
         case 'admin-users':            return <SuperAdminDashboard onNavigate={navigate} />;
         case 'attendance-leaderboard': return <AttendanceLeaderboardPage />;
-        case 'forms':                  return <FormBuilderPage role={role} navigate={navigate} />;
+        case 'forms': return ['admin','super-admin','developer'].includes(role ?? '') ? <FormBuilderPage role={role} navigate={navigate} /> : <FormsListPage navigate={navigate} />;
         case 'user-import':           return <UserImportPage />;
         case 'admin-settings':    return <SettingsPage />;
         case 'onboarding-tracker': return <OnboardingTracker />;
