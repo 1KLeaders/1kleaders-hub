@@ -193,16 +193,20 @@ export default function AgreementsPage({ role }: Props) {
                     </p>
                     <p className="text-[10px] text-[#9e9e9e] font-mono mt-0.5">{env.envelope_id}</p>
                   </div>
-                  <a
-                    href={`https://app.docusign.com/documents/details/${env.envelope_id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={() => viewDocument(env.envelope_id, env.status)}
+                    disabled={viewing === env.envelope_id}
                     className="shrink-0"
                   >
-                    <Button size="sm" variant="outline" className="h-8 text-xs">
-                      <ExternalLink className="w-3.5 h-3.5 mr-1" /> View
+                    <Button size="sm" variant="outline" className="h-8 text-xs" disabled={viewing === env.envelope_id}>
+                      {viewing === env.envelope_id
+                        ? <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />Opening...</>
+                        : env.status === 'completed'
+                          ? <><ExternalLink className="w-3.5 h-3.5 mr-1" />View PDF</>
+                          : <><ExternalLink className="w-3.5 h-3.5 mr-1" />Sign</>
+                      }
                     </Button>
-                  </a>
+                  </button>
                 </CardContent>
               </Card>
             );
