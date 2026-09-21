@@ -329,7 +329,7 @@ export default function DashboardHome({ role, navigate }: Props) {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2"><Rocket className="w-5 h-5 text-[#e33b5f]" /> Approved Startups</CardTitle>
-              <Button variant="ghost" size="sm" className="text-[#e33b5f]" onClick={() => navigate('idea-ranking')}>View All</Button>
+              <Button variant="ghost" size="sm" className="text-[#e33b5f]" onClick={() => navigate('startups')}>View All</Button>
             </div>
           </CardHeader>
           <CardContent>
