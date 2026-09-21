@@ -63,6 +63,17 @@ export default function BugReportPage() {
     setReports(prev => prev.map(r => r.id === id ? { ...r, status } : r));
   };
 
+  async function uploadScreenshot(file: File) {
+    setUploading(true);
+    const path = `bug-reports/${Date.now()}-${file.name}`;
+    const { error } = await supabase.storage.from('documents').upload(path, file, { upsert: true });
+    if (!error) {
+      const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(path);
+      setScreenshot(publicUrl);
+    }
+    setUploading(false);
+  }
+
   async function handleSubmit() {
     setError(null);
     if (!title.trim() || !description.trim()) return setError('Title and description are required.');

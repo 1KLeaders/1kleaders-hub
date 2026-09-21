@@ -1,38 +1,78 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { Badge } from '@/components/ui/badge';
+import { useState, useEffect, useRef } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, ExternalLink, Globe, MapPin, TrendingUp, Users, DollarSign, Rocket, ChevronRight } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, ArrowLeft, Globe, Users, Edit2, Plus, Trash2, Camera, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/auth-context';
 
-type TeamMember = { name: string; role: string; bio?: string };
-type Financials  = { raise_target?: string; raise_currency?: string; stage?: string; arr_target?: string; arr_year?: number };
-
-type Startup = {
-  id: string; name: string; tagline: string | null; sector: string | null;
-  stage: string | null; status: string; location: string | null; website: string | null;
-  logo_url: string | null; primary_color: string | null; accent_color: string | null;
-  description: string | null; problem: string | null; solution: string | null;
-  market_size: string | null; traction: string | null;
-  team: TeamMember[] | null; financials: Financials | null; deck_url: string | null;
-};
-
+interface TeamMember { name: string; role: string; photo?: string; }
+interface Startup {
+  id: string; name: string; tagline: string | null; description: string | null;
+  logo_url: string | null; website: string | null; industry: string | null;
+  stage: string | null; location: string | null; deck_url: string | null;
+  team: TeamMember[] | null; primary_color: string | null; accent_color: string | null;
+}
+interface Update {
+  id: string; created_at: string; title: string; content: string | null;
+  image_url: string | null; profiles: { first_name: string; last_name: string } | null;
+}
 interface Props { startupId: string; navigate?: (page: string) => void; }
 
-const STATUS_COLOR: Record<string, string> = {
-  Active:  'bg-emerald-100 text-emerald-700',
-  Stealth: 'bg-amber-100 text-amber-700',
-  Exited:  'bg-stone-100 text-stone-500',
-};
-
 export default function StartupDetailPage({ startupId, navigate }: Props) {
-  const [startup, setStartup] = useState<Startup | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { profile, role } = useAuth();
+  const [startup,   setStartup]   = useState<Startup | null>(null);
+  const [updates,   setUpdates]   = useState<Update[]>([]);
+  const [loading,   setLoading]   = useState(true);
+  const [posting,   setPosting]   = useState(false);
+  const [showPost,  setShowPost]  = useState(false);
+  const [postTitle, setPostTitle] = useState('');
+  const [postBody,  setPostBody]  = useState('');
+  const [postImg,   setPostImg]   = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const isAdmin    = ['admin','super-admin','developer'].includes(role ?? '');
+  const isFounder  = profile?.founder_startup_ids?.includes(startupId);
+  const canPost    = isAdmin || isFounder;
 
   useEffect(() => {
     supabase.from('startups').select('*').eq('id', startupId).single()
       .then(({ data }) => { setStartup(data as Startup); setLoading(false); });
+    supabase.from('startup_updates')
+      .select('*, profiles(first_name, last_name)')
+      .eq('startup_id', startupId)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setUpdates((data ?? []) as Update[]));
   }, [startupId]);
+
+  async function uploadImage(file: File): Promise<string | null> {
+    const path = `startup-updates/${startupId}/${Date.now()}-${file.name}`;
+    const { error } = await supabase.storage.from('documents').upload(path, file, { upsert: true });
+    if (error) return null;
+    const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(path);
+    return publicUrl;
+  }
+
+  async function postUpdate() {
+    if (!postTitle.trim()) return;
+    setPosting(true);
+    const { data } = await supabase.from('startup_updates').insert({
+      startup_id: startupId,
+      author_id:  profile!.id,
+      title:      postTitle.trim(),
+      content:    postBody.trim() || null,
+      image_url:  postImg || null,
+    }).select('*, profiles(first_name, last_name)').single();
+    if (data) setUpdates(prev => [data as Update, ...prev]);
+    setPostTitle(''); setPostBody(''); setPostImg(''); setShowPost(false);
+    setPosting(false);
+  }
+
+  async function deleteUpdate(id: string) {
+    await supabase.from('startup_updates').delete().eq('id', id);
+    setUpdates(prev => prev.filter(u => u.id !== id));
+  }
 
   if (loading) return (
     <div className="flex items-center justify-center py-20">
@@ -41,191 +81,160 @@ export default function StartupDetailPage({ startupId, navigate }: Props) {
   );
 
   if (!startup) return (
-    <div className="flex flex-col items-center justify-center py-20 gap-3">
-      <Rocket className="w-10 h-10 text-[#9e9e9e]" />
-      <p className="text-sm text-[#9e9e9e]">Startup not found.</p>
-      {navigate && <Button variant="outline" onClick={() => navigate('startups')}>Back to Startups</Button>}
+    <div className="text-center py-20">
+      <p className="text-[#9e9e9e]">Startup not found.</p>
+      <Button variant="outline" className="mt-4" onClick={() => navigate?.('startups')}>← Back</Button>
     </div>
   );
 
-  const primary = startup.primary_color ?? '#222222';
+  const primary = startup.primary_color ?? '#141414';
   const accent  = startup.accent_color  ?? '#e33b5f';
 
   return (
-    <div className="max-w-4xl space-y-0">
+    <div className="max-w-4xl space-y-6">
       {/* Back */}
       <button onClick={() => navigate?.('startups')}
-        className="flex items-center gap-1.5 text-sm text-[#9e9e9e] hover:text-[#222] transition mb-6">
-        <ArrowLeft className="w-4 h-4" />Back to Portfolio
+        className="flex items-center gap-1.5 text-sm text-[#9e9e9e] hover:text-[#222] transition">
+        <ArrowLeft className="w-4 h-4" />Back to Startups
       </button>
 
       {/* Hero */}
       <div className="rounded-2xl overflow-hidden border border-[#f0f0f0]">
-        {/* Brand header */}
-        <div className="h-2" style={{ background: `linear-gradient(90deg, ${primary}, ${accent})` }} />
-        <div className="px-8 py-10" style={{ backgroundColor: primary }}>
-          <div className="flex items-start justify-between gap-6 flex-wrap">
-            <div className="flex items-center gap-5">
-              {/* Logo */}
-              <div className="w-20 h-20 rounded-2xl flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}>
-                {startup.logo_url
-                  ? <img src={startup.logo_url} alt={startup.name} className="w-14 h-14 object-contain" />
-                  : <span className="text-3xl font-black text-white">{startup.name[0]}</span>
-                }
+        <div className="h-32 w-full" style={{ background: `linear-gradient(135deg, ${primary}, ${accent})` }} />
+        <div className="px-8 pb-8 bg-white">
+          <div className="flex items-end gap-5 -mt-10 mb-5">
+            {startup.logo_url
+              ? <img src={startup.logo_url} alt={startup.name} className="w-20 h-20 rounded-2xl border-4 border-white shadow-md object-contain bg-white" />
+              : <div className="w-20 h-20 rounded-2xl border-4 border-white shadow-md flex items-center justify-center text-2xl font-black text-white" style={{ background: accent }}>{startup.name[0]}</div>
+            }
+            <div className="pb-2 flex-1">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-2xl font-black text-[#222]">{startup.name}</h1>
+                {startup.stage && <Badge className="bg-[#f0f0f0] text-[#555353]">{startup.stage}</Badge>}
+                {startup.industry && <Badge className="bg-[#f0f0f0] text-[#555353]">{startup.industry}</Badge>}
               </div>
-              <div>
-                <h1 className="text-3xl font-black text-white tracking-tight">{startup.name}</h1>
-                {startup.tagline && <p className="text-base mt-1 italic" style={{ color: accent }}>{startup.tagline}</p>}
-                <div className="flex items-center gap-3 mt-2 flex-wrap">
-                  <Badge className={STATUS_COLOR[startup.status] ?? STATUS_COLOR.Active}>{startup.status}</Badge>
-                  {startup.stage && <span className="text-xs font-bold text-white/60 uppercase tracking-widest">{startup.stage}</span>}
-                </div>
-              </div>
+              {startup.tagline && <p className="text-[#7e7e7e] mt-1">{startup.tagline}</p>}
             </div>
-            <div className="flex flex-col items-end gap-2">
-              {startup.location && (
-                <span className="flex items-center gap-1.5 text-sm text-white/70">
-                  <MapPin className="w-3.5 h-3.5" />{startup.location}
-                </span>
-              )}
-              {startup.sector && (
-                <span className="flex items-center gap-1.5 text-sm text-white/70">
-                  <TrendingUp className="w-3.5 h-3.5" />{startup.sector}
-                </span>
-              )}
-              {startup.website && (
-                <a href={startup.website} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-sm font-semibold text-white hover:opacity-80 transition">
-                  <Globe className="w-3.5 h-3.5" />{startup.website.replace(/https?:\/\//, '')}
-                </a>
-              )}
-            </div>
+            {startup.website && (
+              <a href={startup.website} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm"><Globe className="w-3.5 h-3.5 mr-1" />Website</Button>
+              </a>
+            )}
           </div>
+          {startup.description && <p className="text-[#555353] leading-relaxed">{startup.description}</p>}
         </div>
-
-        {/* Description */}
-        {startup.description && (
-          <div className="px-8 py-6 border-t border-[#f0f0f0]">
-            <p className="text-base text-[#555353] leading-relaxed">{startup.description}</p>
-          </div>
-        )}
       </div>
 
-      {/* Problem / Solution */}
-      {(startup.problem || startup.solution) && (
-        <div className="grid sm:grid-cols-2 gap-4 pt-4">
-          {startup.problem && (
-            <div className="border border-[#f0f0f0] rounded-2xl p-6">
-              <p className="text-xs font-bold tracking-widest text-[#9e9e9e] uppercase mb-4">The Problem</p>
-              <p className="text-sm text-[#555353] leading-relaxed">{startup.problem}</p>
-            </div>
+      <div className="grid md:grid-cols-3 gap-6">
+        {/* Main column */}
+        <div className="md:col-span-2 space-y-6">
+          {/* Pitch Deck */}
+          {startup.deck_url && (
+            <Card className="border-[#f0f0f0]">
+              <CardHeader className="pb-3"><CardTitle className="text-base">Pitch Deck</CardTitle></CardHeader>
+              <CardContent>
+                <a href={startup.deck_url} target="_blank" rel="noopener noreferrer">
+                  <Button className="w-full" style={{ backgroundColor: accent, color: '#fff' }}>
+                    View Pitch Deck →
+                  </Button>
+                </a>
+              </CardContent>
+            </Card>
           )}
-          {startup.solution && (
-            <div className="rounded-2xl p-6 text-white" style={{ backgroundColor: primary }}>
-              <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: accent }}>The Solution</p>
-              <p className="text-sm leading-relaxed opacity-90">{startup.solution}</p>
-            </div>
-          )}
-        </div>
-      )}
 
-      {/* Market + Traction */}
-      {(startup.market_size || startup.traction) && (
-        <div className="grid sm:grid-cols-2 gap-4 pt-4">
-          {startup.market_size && (
-            <div className="border border-[#f0f0f0] rounded-2xl p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <DollarSign className="w-4 h-4" style={{ color: accent }} />
-                <p className="text-xs font-bold tracking-widest text-[#9e9e9e] uppercase">Market Opportunity</p>
+          {/* Updates */}
+          <Card className="border-[#f0f0f0]">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Startup Updates</CardTitle>
+                {canPost && (
+                  <Button size="sm" className="text-white" style={{ backgroundColor: accent }}
+                    onClick={() => setShowPost(v => !v)}>
+                    <Plus className="w-3.5 h-3.5 mr-1" />Post Update
+                  </Button>
+                )}
               </div>
-              <p className="text-sm text-[#555353] leading-relaxed">{startup.market_size}</p>
-            </div>
-          )}
-          {startup.traction && (
-            <div className="border border-[#f0f0f0] rounded-2xl p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="w-4 h-4" style={{ color: accent }} />
-                <p className="text-xs font-bold tracking-widest text-[#9e9e9e] uppercase">Traction</p>
-              </div>
-              <p className="text-sm text-[#555353] leading-relaxed">{startup.traction}</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Team */}
-      {startup.team && startup.team.length > 0 && (
-        <div className="border border-[#f0f0f0] rounded-2xl p-6 mt-4">
-          <div className="flex items-center gap-2 mb-5">
-            <Users className="w-4 h-4" style={{ color: accent }} />
-            <p className="text-xs font-bold tracking-widest text-[#9e9e9e] uppercase">Team</p>
-          </div>
-          <div className="grid sm:grid-cols-2 gap-4">
-            {startup.team.map((m, i) => (
-              <div key={i} className="flex items-start gap-4 p-4 rounded-xl" style={{ backgroundColor: primary + '10' }}>
-                <div className="w-11 h-11 rounded-full flex items-center justify-center text-base font-black text-white flex-shrink-0"
-                  style={{ backgroundColor: primary }}>
-                  {m.name[0]}
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {showPost && canPost && (
+                <div className="border border-[#f0f0f0] rounded-xl p-4 space-y-3 bg-[#fafafa]">
+                  <input className="w-full border border-[#f0f0f0] rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-[#e33b5f]/50"
+                    placeholder="Update title..." value={postTitle} onChange={e => setPostTitle(e.target.value)} />
+                  <textarea className="w-full border border-[#f0f0f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#e33b5f]/50 resize-none"
+                    rows={3} placeholder="What's new? (optional)" value={postBody} onChange={e => setPostBody(e.target.value)} />
+                  {postImg && <img src={postImg} alt="preview" className="w-full rounded-lg max-h-48 object-cover" />}
+                  <div className="flex items-center gap-2">
+                    <input ref={fileRef} type="file" accept="image/*" className="hidden"
+                      onChange={async e => {
+                        const f = e.target.files?.[0];
+                        if (f) { const url = await uploadImage(f); if (url) setPostImg(url); }
+                        e.target.value = '';
+                      }} />
+                    <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
+                      <Camera className="w-3.5 h-3.5 mr-1" />Add Image
+                    </Button>
+                    <Button size="sm" className="text-white ml-auto" style={{ backgroundColor: accent }}
+                      onClick={postUpdate} disabled={posting || !postTitle.trim()}>
+                      {posting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Post'}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setShowPost(false)}>Cancel</Button>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="font-bold text-sm text-[#222]">{m.name}</p>
-                  <p className="text-xs font-semibold mb-1.5" style={{ color: accent }}>{m.role}</p>
-                  {m.bio && <p className="text-xs text-[#7e7e7e] leading-relaxed">{m.bio}</p>}
+              )}
+              {updates.length === 0 && !showPost && (
+                <p className="text-sm text-[#9e9e9e] text-center py-4">No updates yet.</p>
+              )}
+              {updates.map(u => (
+                <div key={u.id} className="border-b border-[#f0f0f0] last:border-0 pb-4 last:pb-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-semibold text-sm text-[#222]">{u.title}</p>
+                      <p className="text-xs text-[#9e9e9e]">
+                        {u.profiles ? `${u.profiles.first_name} ${u.profiles.last_name}` : 'Team'} · {new Date(u.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    {(isAdmin || isFounder) && (
+                      <button onClick={() => deleteUpdate(u.id)} className="text-[#9e9e9e] hover:text-red-400 transition flex-shrink-0">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  {u.image_url && <img src={u.image_url} alt="" className="mt-2 rounded-lg w-full max-h-48 object-cover" />}
+                  {u.content && <p className="text-sm text-[#555353] mt-2 leading-relaxed">{u.content}</p>}
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </CardContent>
+          </Card>
         </div>
-      )}
 
-      {/* Financials */}
-      {startup.financials && (
-        <div className="border border-[#f0f0f0] rounded-2xl p-6 mt-4">
-          <p className="text-xs font-bold tracking-widest text-[#9e9e9e] uppercase mb-4">Financials</p>
-          <div className="flex items-center gap-8 flex-wrap">
-            {startup.financials.raise_target && (
-              <div>
-                <p className="text-xs text-[#9e9e9e]">Raising</p>
-                <p className="text-2xl font-black" style={{ color: primary }}>
-                  {startup.financials.raise_currency ?? '$'}{startup.financials.raise_target}
-                </p>
-              </div>
-            )}
-            {startup.financials.stage && (
-              <div>
-                <p className="text-xs text-[#9e9e9e]">Round</p>
-                <p className="text-lg font-bold text-[#222]">{startup.financials.stage}</p>
-              </div>
-            )}
-            {startup.financials.arr_target && (
-              <div>
-                <p className="text-xs text-[#9e9e9e]">ARR Target</p>
-                <p className="text-lg font-bold text-[#222]">${startup.financials.arr_target} by {startup.financials.arr_year}</p>
-              </div>
-            )}
+        {/* Team sidebar */}
+        {startup.team && startup.team.length > 0 && (
+          <div>
+            <Card className="border-[#f0f0f0]">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Users className="w-4 h-4" />Team
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {startup.team.map((m, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    {m.photo
+                      ? <img src={m.photo} alt={m.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                      : <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{ backgroundColor: accent }}>
+                          {m.name[0]}
+                        </div>
+                    }
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-[#222] truncate">{m.name}</p>
+                      <p className="text-xs text-[#9e9e9e] truncate">{m.role}</p>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
           </div>
-        </div>
-      )}
-
-      {/* CTA */}
-      <div className="flex items-center gap-3 pt-6 flex-wrap">
-        {startup.website && (
-          <a href={startup.website} target="_blank" rel="noopener noreferrer">
-            <Button className="text-white" style={{ backgroundColor: primary }}>
-              <Globe className="w-4 h-4 mr-2" />Visit Website <ExternalLink className="w-3.5 h-3.5 ml-1" />
-            </Button>
-          </a>
         )}
-        {startup.deck_url && (
-          <a href={startup.deck_url} target="_blank" rel="noopener noreferrer">
-            <Button variant="outline">View Pitch Deck</Button>
-          </a>
-        )}
-        <button onClick={() => navigate?.('startups')}
-          className="ml-auto text-sm text-[#9e9e9e] hover:text-[#222] flex items-center gap-1 transition">
-          Back to all startups <ChevronRight className="w-4 h-4" />
-        </button>
       </div>
     </div>
   );

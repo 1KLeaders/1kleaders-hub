@@ -54,6 +54,8 @@ export default function DashboardHome({ role, navigate }: Props) {
   const [approvedIdeas,  setApprovedIdeas]  = useState<LiveIdea[]>([]);
   const [topIdeas,       setTopIdeas]       = useState<LiveIdea[]>([]);
   const [recentActivity, setRecentActivity] = useState<{ text: string; time: string; type: string }[]>([]);
+  const [cohortOpen,    setCohortOpen]    = useState(false);
+  const [approvedStartups, setApprovedStartups] = useState<{id:string;name:string;logo_url:string|null;primary_color:string|null}[]>([]);
   const [expiringDocs,   setExpiringDocs]   = useState(0);
   const [selectedIdea,   setSelectedIdea]   = useState<LiveIdea | null>(null);
   const [contentLoading, setContentLoading] = useState(true);

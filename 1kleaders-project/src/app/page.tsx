@@ -34,6 +34,7 @@ import AnnouncementsPage from '@/components/1k-leaders/announcements-page';
 import UserImportPage from '@/components/1k-leaders/user-import-page';
 import FormBuilderPage from '@/components/1k-leaders/form-builder-page';
 import FormViewerPage from '@/components/1k-leaders/form-viewer-page';
+import FormsListPage from '@/components/1k-leaders/forms-list-page';
 import AttendanceLeaderboardPage from '@/components/1k-leaders/attendance-leaderboard-page';
 import AnnouncementDetailPage from '@/components/1k-leaders/announcement-detail-page';
 import IdeaStatusTracker from '@/components/1k-leaders/idea-status-tracker';
@@ -90,7 +91,10 @@ export default function Home() {
   // ── Authenticated user: hub ───────────────────────────────────────────────
   if (session && profile) {
     // If they landed on a public page after auth, redirect to dashboard
-    if (!dashboardPages.includes(currentPage)) {
+    const isDynamicPage = currentPage.startsWith('startup-') || 
+      currentPage.startsWith('announcement-') || 
+      currentPage.startsWith('form-');
+    if (!dashboardPages.includes(currentPage) && !isDynamicPage) {
       setCurrentPage('dashboard');
     }
 

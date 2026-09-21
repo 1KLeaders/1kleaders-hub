@@ -459,7 +459,21 @@ export default function ShareholdersPage({ navigate, role }: Props) {
                   <Badge className="text-[10px] bg-[#f0f0f0] text-[#555353] py-0">{p.role}</Badge>
                   {(p.subroles ?? []).slice(0, 1).map(sr => <DigitalBadge key={sr} role={sr} />)}
                 </div>
-                <ChevronRight className="w-4 h-4 text-[#9e9e9e] flex-shrink-0" />
+                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                  {p.last_seen && (() => {
+                    const mins = (Date.now() - new Date(p.last_seen).getTime()) / 60000;
+                    const isOnline = mins < 5;
+                    return (
+                      <div className="flex items-center gap-1">
+                        <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400' : 'bg-[#e8e8e8]'}`} />
+                        <span className="text-[9px] text-[#9e9e9e]">
+                          {isOnline ? 'Online' : mins < 60 ? `${Math.round(mins)}m ago` : mins < 1440 ? `${Math.round(mins/60)}h ago` : new Date(p.last_seen).toLocaleDateString()}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                  <ChevronRight className="w-4 h-4 text-[#9e9e9e]" />
+                </div>
               </div>
             );
           })}

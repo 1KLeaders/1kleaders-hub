@@ -248,6 +248,9 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
       } catch (e) { console.warn('Dashboard metrics fetch failed', e); }
     }
     fetchMetrics();
+    supabase.from('platform_settings').select('value').eq('key','cohort_open').single()
+      .then(({ data }) => setCohortOpen(data?.value === 'true'));
+    supabase.from('startups').select('id, name').then(({ data }) => setStartups(data ?? []));
   }, []);
 
   const [users,        setUsers]        = useState<any[]>([]);
@@ -291,6 +294,19 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
   const [error, setError] = useState<string | null>(null)
   const [updating, setUpdating] = useState<string | null>(null)
   const [meetingDateInputs, setMeetingDateInputs] = useState<Record<string, string>>({})
+
+  const assignFounderAccess = async (userId: string, startupIds: string[]) => {
+    await supabase.from('profiles').update({ founder_startup_ids: startupIds }).eq('id', userId);
+    setFounderModal(null);
+  };
+
+  const toggleCohort = async () => {
+    setCohortLoading(true);
+    const newVal = !cohortOpen;
+    await supabase.from('platform_settings').upsert({ key: 'cohort_open', value: String(newVal) });
+    setCohortOpen(newVal);
+    setCohortLoading(false);
+  };
 
   const resetAllPasswords = async () => {
     setResetting(true); setResetMsg('');
@@ -391,6 +407,10 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
   const [approvalRoles, setApprovalRoles] = useState<Record<string, string>>({})
   const [resetting,     setResetting]     = useState(false)
   const [resetMsg,      setResetMsg]      = useState('')
+  const [cohortOpen,    setCohortOpen]    = useState(false)
+  const [cohortLoading, setCohortLoading] = useState(false)
+  const [startups,      setStartups]      = useState<{id:string;name:string}[]>([])
+  const [founderModal,  setFounderModal]  = useState<{userId:string;name:string;current:string[]} | null>(null)
 
   const approveAndInvite = async (row: WaitlistRow) => {
     if (row.status === 'approved') {
@@ -783,6 +803,24 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
         </CardContent>
       </Card>
 
+      {/* Cohort Toggle */}
+      <Card className="border-[#f0f0f0]">
+        <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <p className="font-semibold text-[#222] text-sm">Cohort Status</p>
+            <p className="text-xs text-[#9e9e9e] mt-0.5">Controls whether the Idea Ranking section appears on the dashboard</p>
+          </div>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <span className={`text-sm font-medium ${cohortOpen ? 'text-emerald-600' : 'text-[#9e9e9e]'}`}>
+              {cohortOpen ? '● Open' : '○ Closed'}
+            </span>
+            <Button onClick={toggleCohort} disabled={cohortLoading} variant="outline" size="sm">
+              {cohortLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : cohortOpen ? 'Close Cohort' : 'Open Cohort'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Content Moderation */}
       <ModerationPanel />
 
@@ -800,6 +838,43 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
           </Button>
         </CardContent>
       </Card>
+
+      {/* Founder Access Modal */}
+      {founderModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md border-[#f0f0f0]">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Founder Access — {founderModal.name}</CardTitle>
+              <p className="text-xs text-[#9e9e9e]">Select which startups this person can manage</p>
+            </CardHeader>
+            <CardContent className="space-y-2 max-h-64 overflow-y-auto">
+              {startups.map(s => {
+                const checked = founderModal.current.includes(s.id);
+                return (
+                  <label key={s.id} className="flex items-center gap-3 cursor-pointer py-1.5">
+                    <input type="checkbox" className="accent-[#e33b5f]" checked={checked}
+                      onChange={() => {
+                        const ids = checked
+                          ? founderModal.current.filter(id => id !== s.id)
+                          : [...founderModal.current, s.id];
+                        setFounderModal(m => m ? { ...m, current: ids } : m);
+                      }} />
+                    <span className="text-sm text-[#222]">{s.name}</span>
+                  </label>
+                );
+              })}
+              {startups.length === 0 && <p className="text-sm text-[#9e9e9e]">No startups found</p>}
+            </CardContent>
+            <div className="p-4 flex gap-2 justify-end border-t border-[#f0f0f0]">
+              <Button variant="outline" size="sm" onClick={() => setFounderModal(null)}>Cancel</Button>
+              <Button size="sm" className="bg-[#e33b5f] text-white"
+                onClick={() => assignFounderAccess(founderModal.userId, founderModal.current)}>
+                Save
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* New Badge Creator — Super Admin only */}
       <NewBadgeCreator isSuperAdmin={true} />
