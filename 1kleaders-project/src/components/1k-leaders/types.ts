@@ -34,6 +34,7 @@ export type Page =
   | 'attendance-leaderboard'
   | 'user-import'
   | 'forms'
+  | 'shareholder-activity'
   | 'admin-settings'
   | 'fellowship-applications'
   | 'recommendations';

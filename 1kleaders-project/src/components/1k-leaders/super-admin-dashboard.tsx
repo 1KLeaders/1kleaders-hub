@@ -890,7 +890,7 @@ function AdminUserList() {
 
   useEffect(() => {
     supabase.from('profiles')
-      .select('id, first_name, last_name, email, role, created_at, onboarding_status, last_seen')
+      .select('id, first_name, last_name, email, role, created_at, onboarding_status, last_seen, founder_startup_ids')
       .order('last_seen', { ascending: false, nullsFirst: false })
       .limit(8)
       .then(({ data }) => { setUsers(data ?? []); setLoading(false); });

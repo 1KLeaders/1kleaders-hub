@@ -157,6 +157,10 @@ export default function DashboardLayout({ navigate, role, currentPage, onSignOut
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'forms' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
                 <FileText className="w-4 h-4" />Create Forms
               </button>
+              <button onClick={() => handleNav('shareholder-activity')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'shareholder-activity' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
+                <Activity className="w-4 h-4" />Shareholder Activity
+              </button>
               <button onClick={() => handleNav('user-import')}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${currentPage === 'user-import' ? 'bg-[#e33b5f]/20 text-[#f07969]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}>
                 <Upload className="w-4 h-4" />User Import

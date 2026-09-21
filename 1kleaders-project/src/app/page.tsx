@@ -33,6 +33,7 @@ import StartupDetailPage from '@/components/1k-leaders/startup-detail-page';
 import AnnouncementsPage from '@/components/1k-leaders/announcements-page';
 import UserImportPage from '@/components/1k-leaders/user-import-page';
 import FormBuilderPage from '@/components/1k-leaders/form-builder-page';
+import ShareholderActivityPage from '@/components/1k-leaders/shareholder-activity-page';
 import FormViewerPage from '@/components/1k-leaders/form-viewer-page';
 import FormsListPage from '@/components/1k-leaders/forms-list-page';
 import AttendanceLeaderboardPage from '@/components/1k-leaders/attendance-leaderboard-page';
@@ -62,7 +63,7 @@ const dashboardPages: Page[] = [
   'partners', 'settings', 'notifications', 'profile', 'calendar',
   'discussion-rooms', 'ai-assistant', 'newsletter-tracking',
   'vep-dashboard', 'mab-dashboard', 'recommendations', 'admin-dashboard',
-  'startup-page', 'bug-report', 'onboarding-tracker', 'cohort-management', 'onboarding', 'quality-review', 'contributions', 'idea-status', 'fellowship-applications', 'announcements', 'startups', 'attendance-leaderboard', 'user-import', 'forms',
+  'startup-page', 'bug-report', 'onboarding-tracker', 'cohort-management', 'onboarding', 'quality-review', 'contributions', 'idea-status', 'fellowship-applications', 'announcements', 'startups', 'attendance-leaderboard', 'user-import', 'forms', 'shareholder-activity',
 ];
 
 export default function Home() {
@@ -119,6 +120,7 @@ export default function Home() {
         case 'admin-users':            return <SuperAdminDashboard onNavigate={navigate} />;
         case 'attendance-leaderboard': return <AttendanceLeaderboardPage />;
         case 'forms': return ['admin','super-admin','developer'].includes(role ?? '') ? <FormBuilderPage role={role} navigate={navigate} /> : <FormsListPage navigate={navigate} />;
+        case 'shareholder-activity': return <ShareholderActivityPage />;
         case 'user-import':           return <UserImportPage />;
         case 'admin-settings':    return <SettingsPage />;
         case 'onboarding-tracker': return <OnboardingTracker />;

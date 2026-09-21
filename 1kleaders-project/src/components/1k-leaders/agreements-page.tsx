@@ -32,6 +32,39 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
   voided:     { label: 'Voided',                    color: 'bg-stone-100 text-stone-500',   icon: XCircle },
 };
 
+
+function EnvelopeRow({ env, viewing, onView }: { 
+  env: any; viewing: string | null; onView: (id: string, status: string) => void; 
+}) {
+  const statusColors: Record<string, string> = {
+    completed: 'bg-emerald-100 text-emerald-700',
+    sent:      'bg-blue-100 text-blue-700',
+    delivered: 'bg-blue-100 text-blue-700',
+    declined:  'bg-red-100 text-red-600',
+    voided:    'bg-stone-100 text-stone-500',
+  };
+  return (
+    <div className="flex items-center gap-3 p-3 border border-[#f0f0f0] rounded-xl bg-white hover:border-[#e33b5f]/20 transition">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-[#222] truncate">Partnership Agreement</p>
+        <p className="text-xs text-[#9e9e9e]">
+          {env.sent_at ? new Date(env.sent_at).toLocaleDateString() : '—'}
+          {env.signed_at ? ` · Signed ${new Date(env.signed_at).toLocaleDateString()}` : ''}
+        </p>
+      </div>
+      <Badge className={`text-[10px] flex-shrink-0 ${statusColors[env.status] ?? 'bg-stone-100 text-stone-500'}`}>
+        {env.status}
+      </Badge>
+      <button onClick={() => onView(env.envelope_id, env.status)} disabled={viewing === env.envelope_id}
+        className="flex-shrink-0">
+        <Button size="sm" variant="outline" className="h-7 text-xs" disabled={viewing === env.envelope_id}>
+          {viewing === env.envelope_id ? <Loader2 className="w-3 h-3 animate-spin" /> : env.status === 'completed' ? 'View PDF' : 'Sign'}
+        </Button>
+      </button>
+    </div>
+  );
+}
+
 export default function AgreementsPage({ role }: Props) {
   const { profile } = useAuth();
   const isAdmin = role === 'admin' || role === 'super-admin' || role === 'developer';
@@ -40,7 +73,8 @@ export default function AgreementsPage({ role }: Props) {
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState('');
   const [loading,   setLoading]   = useState(true);
-  const [viewing,   setViewing]   = useState<string | null>(null);
+  const [viewing,      setViewing]      = useState<string | null>(null);
+  const [groupByShareholder, setGroupByShareholder] = useState(true);
 
   async function viewDocument(envelopeId: string, status: string) {
     setViewing(envelopeId);
@@ -119,6 +153,16 @@ export default function AgreementsPage({ role }: Props) {
   const pending  = envelopes.filter(e => ['sent','delivered'].includes(e.status)).length;
   const declined = envelopes.filter(e => e.status === 'declined').length;
 
+  // Group envelopes by recipient email for admin view
+  const grouped = isAdmin && groupByShareholder
+    ? envelopes.reduce((acc, env) => {
+        const key = env.recipient_email || 'Unknown';
+        if (!acc[key]) acc[key] = { name: env.recipient_name, email: key, envelopes: [] };
+        acc[key].envelopes.push(env);
+        return acc;
+      }, {} as Record<string, { name: string; email: string; envelopes: typeof envelopes }>)
+    : null;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -128,6 +172,11 @@ export default function AgreementsPage({ role }: Props) {
           {syncMsg && <p className={`text-xs font-medium mt-1 ${syncMsg.startsWith('✓') ? 'text-emerald-600' : 'text-red-500'}`}>{syncMsg}</p>}
         </div>
         <div className="flex gap-2">
+          {isAdmin && (
+            <Button size="sm" variant="outline" onClick={() => setGroupByShareholder(v => !v)}>
+              {groupByShareholder ? 'Flat View' : 'Group by Shareholder'}
+            </Button>
+          )}
           {isAdmin && (
             <Button size="sm" variant="outline" onClick={syncDocuSign} disabled={syncing}>
               <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
@@ -170,9 +219,35 @@ export default function AgreementsPage({ role }: Props) {
             </p>
           </CardContent>
         </Card>
+      ) : grouped ? (
+        // Admin grouped view
+        <div className="space-y-6">
+          {Object.values(grouped).map(group => (
+            <div key={group.email}>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-7 h-7 rounded-full bg-[#e33b5f]/10 flex items-center justify-center text-xs font-bold text-[#e33b5f]">
+                  {group.name?.[0] ?? '?'}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-[#222]">{group.name}</p>
+                  <p className="text-xs text-[#9e9e9e]">{group.email}</p>
+                </div>
+                <span className="ml-auto text-xs text-[#9e9e9e]">{group.envelopes.length} agreement{group.envelopes.length !== 1 ? 's' : ''}</span>
+              </div>
+              <div className="space-y-2 pl-9">
+                {group.envelopes.map(env => (
+                  <EnvelopeRow key={env.envelope_id} env={env} viewing={viewing} onView={viewDocument} />
+                ))}
+              </div>
+            </div>
+          ))}
+          {Object.keys(grouped).length === 0 && (
+            <p className="text-sm text-[#9e9e9e] text-center py-8">No agreements found. Click Sync DocuSign to import.</p>
+          )}
+        </div>
       ) : (
         <div className="space-y-3">
-          {envelopes.map(env => {
+          {(grouped ? [] : envelopes).map(env => {
             const cfg = statusConfig[env.status] ?? statusConfig.sent;
             const Icon = cfg.icon;
             return (

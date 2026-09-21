@@ -103,14 +103,18 @@ export default function ShareholdersPage({ navigate, role }: Props) {
   async function openProfile(partner: DbPartner) {
     setSelected(partner);
     setLoadingDetail(true);
-    const [{ data: ideas }, { data: docs }] = await Promise.all([
+    const [{ data: ideas }, { data: docs }, { data: agreements }] = await Promise.all([
       supabase.from('ideas').select('id, title, status, sector, vep_score, created_at')
         .eq('submitted_by', partner.id).order('created_at', { ascending: false }),
       supabase.from('kyc_documents').select('id, doc_type, status, created_at')
         .eq('user_id', partner.id).order('created_at', { ascending: false }),
+      supabase.from('docusign_envelopes').select('envelope_id, status, sent_at, signed_at, recipient_name')
+        .or(`user_id.eq.${partner.id},recipient_email.eq.${partner.email}`)
+        .order('sent_at', { ascending: false }),
     ]);
     setPartnerIdeas((ideas ?? []) as PartnerIdea[]);
     setPartnerDocs((docs ?? []) as PartnerDoc[]);
+    setPartnerAgreements(agreements ?? []);
     setLoadingDetail(false);
   }
 
