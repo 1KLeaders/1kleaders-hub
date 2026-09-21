@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +39,9 @@ export default function BugReportPage() {
   const [page,        setPage]        = useState('');
   const [submitting,  setSubmitting]  = useState(false);
   const [submitted,   setSubmitted]   = useState(false);
+  const [screenshot,  setScreenshot]  = useState<string | null>(null);
+  const [uploading,   setUploading]   = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [error,       setError]       = useState<string | null>(null);
 
   // Developer-only: view all reports
