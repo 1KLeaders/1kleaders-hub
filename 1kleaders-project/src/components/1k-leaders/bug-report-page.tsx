@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Bug, Send, Loader2, Check, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Bug, Send, Loader2, Check, RefreshCw, ChevronDown, ChevronUp, X, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth-context';
 
@@ -151,6 +151,46 @@ export default function BugReportPage() {
               <Check className="w-4 h-4" /> Bug report submitted — thanks!
             </div>
           )}
+
+          {/* Screenshot upload */}
+          <div>
+            <label className="text-sm font-medium text-[#222] block mb-1.5">
+              Screenshot <span className="text-[#9e9e9e] font-normal">(optional)</span>
+            </label>
+            {screenshot ? (
+              <div className="relative">
+                <img src={screenshot} alt="screenshot" className="w-full rounded-xl max-h-48 object-cover border border-[#f0f0f0]" />
+                <button type="button" onClick={() => setScreenshot(null)}
+                  className="absolute top-2 right-2 w-6 h-6 bg-[#222]/60 rounded-full flex items-center justify-center text-white hover:bg-red-500 transition">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => fileRef.current?.click()}
+                className="w-full border-2 border-dashed border-[#f0f0f0] rounded-xl p-4 text-sm text-[#9e9e9e] hover:border-[#e33b5f]/40 hover:text-[#e33b5f] transition flex items-center justify-center gap-2">
+                {uploading
+                  ? <><Loader2 className="w-4 h-4 animate-spin" />Uploading...</>
+                  : <><ImageIcon className="w-4 h-4" />Attach a screenshot</>
+                }
+              </button>
+            )}
+            <input ref={fileRef} type="file" accept="image/*" className="hidden"
+              onChange={async e => {
+                const f = e.target.files?.[0];
+                if (f) {
+                  setUploading(true);
+                  const path = `bug-reports/${Date.now()}-${f.name}`;
+                  const { error } = await supabase.storage.from('documents').upload(path, f, { upsert: true });
+                  if (!error) {
+                    const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(path);
+                    setScreenshot(publicUrl);
+                  }
+                  setUploading(false);
+                }
+                e.target.value = '';
+              }} />
+          </div>
+
           <Button className="bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] text-white" onClick={handleSubmit} disabled={submitting}>
             {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Submitting...</> : <><Send className="w-4 h-4 mr-2" />Submit Report</>}
           </Button>
