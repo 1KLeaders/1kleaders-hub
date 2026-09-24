@@ -121,17 +121,13 @@ export default function DiscussionRooms({ role }: Props) {
   }
 
   async function deleteMessage(msgId: string) {
-    // Optimistic removal
-    setMessages(prev => prev.filter(m => m.id !== msgId));
-    // Try admin API directly — bypasses RLS
-    const res = await fetch('/api/admin/delete-message', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: msgId, table: 'discussion_messages' }),
-    });
-    const data = await res.json();
-    if (!res.ok) alert(`Delete failed: ${data.error}`);
-  }
+      setMessages(prev => prev.filter(m => m.id !== msgId));
+      const { error } = await supabase.rpc('delete_message', {
+        p_id: msgId,
+        p_user_id: profile!.id,
+      });
+      if (error) alert(`Delete failed: ${error.message}`);
+    }
 
   async function deleteRoom(roomId: string) {
     await supabase.from('discussion_rooms').delete().eq('id', roomId);
