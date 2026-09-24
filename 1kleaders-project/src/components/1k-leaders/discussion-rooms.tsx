@@ -121,18 +121,14 @@ export default function DiscussionRooms({ role }: Props) {
   }
 
   async function deleteMessage(msgId: string) {
-    // Optimistic removal
-    setMessages(prev => prev.filter(m => m.id !== msgId));
-    const { error } = await supabase.from('discussion_messages').delete().eq('id', msgId);
-    if (error) {
-      console.error('Delete failed:', error.message);
-      // Try via admin API as fallback
-      await fetch('/api/admin/delete-message', {
+      setMessages(prev => prev.filter(m => m.id !== msgId));
+      const res = await fetch('/api/admin/delete-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: msgId, table: 'discussion_messages' }),
       });
-    }
+      const data = await res.json();
+      if (!res.ok) alert(`Delete failed: ${data.error}`);
   }
 
   async function deleteRoom(roomId: string) {
