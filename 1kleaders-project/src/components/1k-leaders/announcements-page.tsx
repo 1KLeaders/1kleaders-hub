@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Megaphone, Lock, Globe, FileText, Play, Pause,
   Share2, X, ChevronUp, Loader2, Plus, RefreshCw,
@@ -173,99 +174,125 @@ export default function AnnouncementsPage({ role, navigate }: Props & { navigate
         </div>
       </div>
 
-      {/* Admin create/edit form — full view like form builder */}
+      {/* Admin create/edit — form builder style */}
       {isAdmin && view === 'edit' && (
-        <div className="mx-8 mb-8 max-w-5xl space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="max-w-4xl mx-8 mb-8 space-y-4">
+          {/* Header bar */}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <Button variant="outline" size="sm" onClick={() => { setView('list'); setEditId(null); setForm(EMPTY_ANN); }}>← Back</Button>
-            <h3 className="font-bold text-[#222]">{editId ? 'Edit Announcement' : 'New Announcement'}</h3>
             <div className="flex items-center gap-2">
-              <label className="flex items-center gap-2 cursor-pointer text-sm">
-                <input type="checkbox" className="accent-[#e33b5f]" checked={form.is_published} onChange={e => setForm(f => ({ ...f, is_published: e.target.checked }))} />
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" className="accent-[#e33b5f]" checked={form.is_published}
+                  onChange={e => setForm(f => ({ ...f, is_published: e.target.checked }))} />
                 Published
               </label>
               <Button className="bg-[#e33b5f] text-white" onClick={saveAnn} disabled={saving || !form.title.trim()}>
-                {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
                 {editId ? 'Save Changes' : 'Create'}
               </Button>
             </div>
           </div>
-          <div className="bg-[#f6f6f6] border border-[#e8e8e8] rounded-2xl p-6 space-y-4">
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider block mb-1">Title *</label>
-              <Input className="border-[#e8e8e8]" value={form.title} onChange={e => {
-                const t = e.target.value;
-                setForm(f => ({ ...f, title: t, meta: f.meta || autoMeta(t, f.category) }));
-              }} />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider block mb-1">Metadata <span className="normal-case font-normal text-[#9e9e9e]">(auto-generated)</span></label>
-              <Input className="border-[#e8e8e8] text-xs text-[#9e9e9e]" value={form.meta ?? ''} onChange={e => setForm(f => ({ ...f, meta: e.target.value }))} />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider block mb-1">Category</label>
-              <select className="w-full border border-[#e8e8e8] rounded-lg px-3 py-2 text-sm" value={form.category} onChange={e => {
-                const cat = e.target.value as Category;
-                setForm(f => ({ ...f, category: cat, meta: autoMeta(f.title, cat) }));
-              }}>
-                {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider block mb-1">Visibility</label>
-              <select className="w-full border border-[#e8e8e8] rounded-lg px-3 py-2 text-sm" value={form.visibility} onChange={e => setForm(f => ({ ...f, visibility: e.target.value as Visibility }))}>
-                <option value="shareholders_only">Shareholders Only</option>
-                <option value="external_use">External Use</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider block mb-1">Description</label>
-            <textarea className="w-full border border-[#e8e8e8] rounded-lg px-3 py-2 text-sm resize-none" rows={2}
-              value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider block mb-1">Content</label>
-            <AnnouncementEditor
-              value={form.content ?? ''}
-              onChange={html => setForm(f => ({ ...f, content: html }))}
-              placeholder="Write your announcement here — use the toolbar to add images, videos, headings, and more..."
-            />
-          </div>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider block mb-1">CTA Label</label>
-              <Input className="border-[#e8e8e8]" value={form.cta ?? ''} onChange={e => setForm(f => ({ ...f, cta: e.target.value }))} />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider block mb-1">Media URL (Podcast/Video)</label>
-              <Input className="border-[#e8e8e8]" placeholder="https://..." value={form.media_url ?? ''} onChange={e => setForm(f => ({ ...f, media_url: e.target.value || null }))} />
-            </div>
-          </div>
-          {/* Attachments */}
-          <div>
-            <label className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider block mb-2">Attachments</label>
-            <input ref={fileInputRef} type="file" multiple className="hidden"
-              onChange={e => { setPendingFiles(prev => [...prev, ...Array.from(e.target.files ?? [])]); e.target.value = ''; }} />
-            <div className="border-2 border-dashed border-[#e8e8e8] rounded-lg p-4 space-y-2">
-              {[...(form.attachments ?? []), ...pendingFiles.map(f => ({ name: f.name, url: null, size: f.size }))].map((a, i) => (
-                <div key={i} className="flex items-center gap-2 bg-[#f6f6f6] rounded px-3 py-1.5 text-xs">
-                  <span className="flex-1 truncate">{a.name}</span>
-                  {a.size && <span className="text-[#9e9e9e]">{(a.size / 1024).toFixed(1)} KB</span>}
-                  <button onClick={() => {
-                    if ((a as any).url) setForm(f => ({ ...f, attachments: (f.attachments ?? []).filter(x => x.url !== (a as any).url) }));
-                    else setPendingFiles(prev => prev.filter(f => f.name !== a.name));
-                  }} className="text-[#9e9e9e] hover:text-red-500">×</button>
+
+          {/* Settings card — title, category, visibility */}
+          <Card className="border-[#f0f0f0]">
+            <CardContent className="p-5 space-y-3">
+              <Input
+                className="text-xl font-bold border-0 border-b border-[#f0f0f0] rounded-none px-0 focus-visible:ring-0"
+                placeholder="Announcement title"
+                value={form.title}
+                onChange={e => {
+                  const t = e.target.value;
+                  setForm(f => ({ ...f, title: t, meta: f.meta || autoMeta(t, f.category) }));
+                }}
+              />
+              <Input
+                className="border-0 border-b border-[#f0f0f0] rounded-none px-0 focus-visible:ring-0 text-[#7e7e7e]"
+                placeholder="Description (optional)"
+                value={form.description}
+                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              />
+              <div className="flex items-center gap-4 pt-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[#9e9e9e]">Category:</span>
+                  <select className="border border-[#f0f0f0] rounded-lg px-2 py-1 text-sm bg-white focus:outline-none"
+                    value={form.category}
+                    onChange={e => { const cat = e.target.value as Category; setForm(f => ({ ...f, category: cat, meta: autoMeta(f.title, cat) })); }}>
+                    {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                  </select>
                 </div>
-              ))}
-              <button onClick={() => fileInputRef.current?.click()}
-                className="text-xs text-[#e33b5f] font-medium hover:underline">
-                + Add attachment
-              </button>
-            </div>
-          </div>
-          </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[#9e9e9e]">Visibility:</span>
+                  <select className="border border-[#f0f0f0] rounded-lg px-2 py-1 text-sm bg-white focus:outline-none"
+                    value={form.visibility}
+                    onChange={e => setForm(f => ({ ...f, visibility: e.target.value as Visibility }))}>
+                    <option value="shareholders_only">Shareholders Only</option>
+                    <option value="external_use">External Use</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-2 ml-auto">
+                  <span className="text-xs text-[#9e9e9e]">Meta:</span>
+                  <Input className="border-[#f0f0f0] text-xs text-[#9e9e9e] w-48 h-7"
+                    value={form.meta ?? ''} onChange={e => setForm(f => ({ ...f, meta: e.target.value }))} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Content card */}
+          <Card className="border-[#f0f0f0]">
+            <CardContent className="p-5 space-y-2">
+              <p className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider">Content</p>
+              <AnnouncementEditor
+                value={form.content ?? ''}
+                onChange={html => setForm(f => ({ ...f, content: html }))}
+                placeholder="Write your announcement here — use the toolbar to add images, videos, headings, and more..."
+              />
+            </CardContent>
+          </Card>
+
+          {/* Extra fields card */}
+          <Card className="border-[#f0f0f0]">
+            <CardContent className="p-5 space-y-3">
+              <p className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider">Optional Fields</p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-[#9e9e9e] block mb-1">CTA Label</label>
+                  <Input className="border-[#f0f0f0]" placeholder="e.g. Read →"
+                    value={form.cta ?? ''} onChange={e => setForm(f => ({ ...f, cta: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="text-xs text-[#9e9e9e] block mb-1">Media URL (Podcast / Video)</label>
+                  <Input className="border-[#f0f0f0]" placeholder="https://..."
+                    value={form.media_url ?? ''} onChange={e => setForm(f => ({ ...f, media_url: e.target.value || null }))} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Attachments card */}
+          <Card className="border-dashed border-[#e8e8e8]">
+            <CardContent className="p-5">
+              <p className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider mb-3">Attachments</p>
+              <input ref={fileInputRef} type="file" multiple className="hidden"
+                onChange={e => { setPendingFiles(prev => [...prev, ...Array.from(e.target.files ?? [])]); e.target.value = ''; }} />
+              <div className="space-y-2">
+                {[...(form.attachments ?? []), ...pendingFiles.map(f => ({ name: f.name, url: null, size: f.size }))].map((a, i) => (
+                  <div key={i} className="flex items-center gap-2 bg-[#f6f6f6] rounded-lg px-3 py-2 text-xs">
+                    <span className="flex-1 truncate">{a.name}</span>
+                    {a.size && <span className="text-[#9e9e9e]">{(a.size / 1024).toFixed(1)} KB</span>}
+                    <button onClick={() => {
+                      if ((a as any).url) setForm(f => ({ ...f, attachments: (f.attachments ?? []).filter(x => x.url !== (a as any).url) }));
+                      else setPendingFiles(prev => prev.filter(f => f.name !== a.name));
+                    }} className="text-[#9e9e9e] hover:text-red-500 text-base leading-none">×</button>
+                  </div>
+                ))}
+                <button onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-[#f0f0f0] rounded-lg hover:border-[#e33b5f]/40 hover:bg-[#e33b5f]/5 transition text-[#9e9e9e] hover:text-[#e33b5f]">
+                  <Plus className="w-3.5 h-3.5" />Add attachment
+                </button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
