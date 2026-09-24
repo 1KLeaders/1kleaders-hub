@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Megaphone, Lock, Globe, FileText, Play, Pause,
-  Share2, X, ChevronUp, Loader2, Plus, RefreshCw,
-  Link, Check, Trash2, Eye, EyeOff, Save
+  Share2, X, ChevronUp, ChevronDown, Loader2, Plus, RefreshCw,
+  Link, Check, Trash2, Eye, EyeOff, Save, GripVertical,
+  Type, AlignLeft, List, Upload
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth-context';
@@ -37,6 +38,13 @@ type NewAnn = Omit<Announcement, 'id' | 'created_at'>;
 
 const CATEGORIES: Category[] = ['Updates', 'Reports', 'Podcast', 'Newsletter', 'Announcement'];
 
+function genId() { return Math.random().toString(36).slice(2, 9); }
+
+const DEFAULT_SECTIONS = [
+  { id: genId(), type: 'title',   label: 'Title' },
+  { id: genId(), type: 'content', label: 'Content' },
+];
+
 const EMPTY_ANN: NewAnn = {
   title: '', category: 'Announcement', visibility: 'shareholders_only',
   content: '', meta: '', cta: 'Read →', media_url: null, attachments: null, is_published: false,
@@ -53,6 +61,7 @@ export default function AnnouncementsPage({ role, navigate }: Props & { navigate
   const [shareId,     setShareId]     = useState<string | null>(null);
   const [copied,      setCopied]      = useState(false);
   const [view,        setView]        = useState<'list'|'edit'>('list');
+  const [annSections, setAnnSections] = useState<{id:string;type:string;label:string}[]>(DEFAULT_SECTIONS);
   const [form,        setForm]        = useState<NewAnn>(EMPTY_ANN);
   const [saving,      setSaving]      = useState(false);
   const [editId,      setEditId]      = useState<string | null>(null);
@@ -174,127 +183,184 @@ export default function AnnouncementsPage({ role, navigate }: Props & { navigate
         </div>
       </div>
 
-      {/* Admin create/edit — form builder style */}
-      {isAdmin && view === 'edit' && (
-        <div className="max-w-4xl mx-8 mb-8 space-y-4">
-          {/* Header bar */}
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <Button variant="outline" size="sm" onClick={() => { setView('list'); setEditId(null); setForm(EMPTY_ANN); }}>← Back</Button>
-            <div className="flex items-center gap-2">
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" className="accent-[#e33b5f]" checked={form.is_published}
-                  onChange={e => setForm(f => ({ ...f, is_published: e.target.checked }))} />
-                Published
-              </label>
-              <Button className="bg-[#e33b5f] text-white" onClick={saveAnn} disabled={saving || !form.title.trim()}>
-                {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
-                {editId ? 'Save Changes' : 'Create'}
-              </Button>
+      {/* Admin create/edit — identical to form builder */}
+      {isAdmin && view === 'edit' && (() => {
+        const SECTION_TYPES: { type: string; label: string; icon: any }[] = [
+          { type: 'title',       label: 'Title',         icon: Type },
+          { type: 'description', label: 'Description',   icon: AlignLeft },
+          { type: 'category',    label: 'Category',      icon: List },
+          { type: 'visibility',  label: 'Visibility',    icon: Lock },
+          { type: 'content',     label: 'Content',       icon: FileText },
+          { type: 'cta',         label: 'CTA Label',     icon: Link },
+          { type: 'media',       label: 'Media URL',     icon: Play },
+          { type: 'attachment',  label: 'Attachment',    icon: Upload },
+        ];
+
+        const sections = annSections;
+        const setSections = setAnnSections;
+
+        function addSection(type: string) {
+          setSections(prev => [...prev, { id: genId(), type, label: SECTION_TYPES.find(t => t.type === type)?.label ?? type }]);
+        }
+        function removeSection(id: string) { setSections(prev => prev.filter(s => s.id !== id)); }
+        function moveSection(id: string, dir: -1|1) {
+          setSections(prev => {
+            const idx = prev.findIndex(s => s.id === id);
+            if (idx + dir < 0 || idx + dir >= prev.length) return prev;
+            const next = [...prev];
+            [next[idx], next[idx+dir]] = [next[idx+dir], next[idx]];
+            return next;
+          });
+        }
+
+        return (
+          <div className="max-w-4xl mx-8 mb-8 space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <Button variant="outline" size="sm" onClick={() => { setView('list'); setEditId(null); setForm(EMPTY_ANN); setAnnSections(DEFAULT_SECTIONS); }}>← Back</Button>
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="checkbox" className="accent-[#e33b5f]" checked={form.is_published}
+                    onChange={e => setForm(f => ({ ...f, is_published: e.target.checked }))} />
+                  Published
+                </label>
+                <Button className="bg-[#e33b5f] text-white" onClick={saveAnn} disabled={saving || !form.title.trim()}>
+                  {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
+                  {editId ? 'Save Changes' : 'Create'}
+                </Button>
+              </div>
             </div>
-          </div>
 
-          {/* Settings card — title, category, visibility */}
-          <Card className="border-[#f0f0f0]">
-            <CardContent className="p-5 space-y-3">
-              <Input
-                className="text-xl font-bold border-0 border-b border-[#f0f0f0] rounded-none px-0 focus-visible:ring-0"
-                placeholder="Announcement title"
-                value={form.title}
-                onChange={e => {
-                  const t = e.target.value;
-                  setForm(f => ({ ...f, title: t, meta: f.meta || autoMeta(t, f.category) }));
-                }}
-              />
-              <Input
-                className="border-0 border-b border-[#f0f0f0] rounded-none px-0 focus-visible:ring-0 text-[#7e7e7e]"
-                placeholder="Description (optional)"
-                value={form.description}
-                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              />
-              <div className="flex items-center gap-4 pt-2 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-[#9e9e9e]">Category:</span>
-                  <select className="border border-[#f0f0f0] rounded-lg px-2 py-1 text-sm bg-white focus:outline-none"
-                    value={form.category}
-                    onChange={e => { const cat = e.target.value as Category; setForm(f => ({ ...f, category: cat, meta: autoMeta(f.title, cat) })); }}>
-                    {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-[#9e9e9e]">Visibility:</span>
-                  <select className="border border-[#f0f0f0] rounded-lg px-2 py-1 text-sm bg-white focus:outline-none"
-                    value={form.visibility}
-                    onChange={e => setForm(f => ({ ...f, visibility: e.target.value as Visibility }))}>
-                    <option value="shareholders_only">Shareholders Only</option>
-                    <option value="external_use">External Use</option>
-                  </select>
-                </div>
-                <div className="flex items-center gap-2 ml-auto">
-                  <span className="text-xs text-[#9e9e9e]">Meta:</span>
-                  <Input className="border-[#f0f0f0] text-xs text-[#9e9e9e] w-48 h-7"
-                    value={form.meta ?? ''} onChange={e => setForm(f => ({ ...f, meta: e.target.value }))} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Content card */}
-          <Card className="border-[#f0f0f0]">
-            <CardContent className="p-5 space-y-2">
-              <p className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider">Content</p>
-              <AnnouncementEditor
-                value={form.content ?? ''}
-                onChange={html => setForm(f => ({ ...f, content: html }))}
-                placeholder="Write your announcement here — use the toolbar to add images, videos, headings, and more..."
-              />
-            </CardContent>
-          </Card>
-
-          {/* Extra fields card */}
-          <Card className="border-[#f0f0f0]">
-            <CardContent className="p-5 space-y-3">
-              <p className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider">Optional Fields</p>
-              <div className="grid sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-[#9e9e9e] block mb-1">CTA Label</label>
-                  <Input className="border-[#f0f0f0]" placeholder="e.g. Read →"
-                    value={form.cta ?? ''} onChange={e => setForm(f => ({ ...f, cta: e.target.value }))} />
-                </div>
-                <div>
-                  <label className="text-xs text-[#9e9e9e] block mb-1">Media URL (Podcast / Video)</label>
-                  <Input className="border-[#f0f0f0]" placeholder="https://..."
-                    value={form.media_url ?? ''} onChange={e => setForm(f => ({ ...f, media_url: e.target.value || null }))} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Attachments card */}
-          <Card className="border-dashed border-[#e8e8e8]">
-            <CardContent className="p-5">
-              <p className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider mb-3">Attachments</p>
-              <input ref={fileInputRef} type="file" multiple className="hidden"
-                onChange={e => { setPendingFiles(prev => [...prev, ...Array.from(e.target.files ?? [])]); e.target.value = ''; }} />
-              <div className="space-y-2">
-                {[...(form.attachments ?? []), ...pendingFiles.map(f => ({ name: f.name, url: null, size: f.size }))].map((a, i) => (
-                  <div key={i} className="flex items-center gap-2 bg-[#f6f6f6] rounded-lg px-3 py-2 text-xs">
-                    <span className="flex-1 truncate">{a.name}</span>
-                    {a.size && <span className="text-[#9e9e9e]">{(a.size / 1024).toFixed(1)} KB</span>}
-                    <button onClick={() => {
-                      if ((a as any).url) setForm(f => ({ ...f, attachments: (f.attachments ?? []).filter(x => x.url !== (a as any).url) }));
-                      else setPendingFiles(prev => prev.filter(f => f.name !== a.name));
-                    }} className="text-[#9e9e9e] hover:text-red-500 text-base leading-none">×</button>
+            {/* Settings card */}
+            <Card className="border-[#f0f0f0]">
+              <CardContent className="p-5 space-y-3">
+                <Input className="text-xl font-bold border-0 border-b border-[#f0f0f0] rounded-none px-0 focus-visible:ring-0"
+                  placeholder="Announcement title" value={form.title}
+                  onChange={e => { const t = e.target.value; setForm(f => ({ ...f, title: t, meta: f.meta || autoMeta(t, f.category) })); }} />
+                <Input className="border-0 border-b border-[#f0f0f0] rounded-none px-0 focus-visible:ring-0 text-[#7e7e7e]"
+                  placeholder="Description (optional)" value={form.description}
+                  onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+                <div className="flex items-center gap-4 pt-1 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-[#9e9e9e]">Category:</span>
+                    <select className="border border-[#f0f0f0] rounded-lg px-2 py-1 text-sm bg-transparent focus:outline-none"
+                      value={form.category} onChange={e => { const cat = e.target.value as Category; setForm(f => ({ ...f, category: cat, meta: autoMeta(f.title, cat) })); }}>
+                      {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                    </select>
                   </div>
-                ))}
-                <button onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-[#f0f0f0] rounded-lg hover:border-[#e33b5f]/40 hover:bg-[#e33b5f]/5 transition text-[#9e9e9e] hover:text-[#e33b5f]">
-                  <Plus className="w-3.5 h-3.5" />Add attachment
-                </button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-[#9e9e9e]">Visibility:</span>
+                    <select className="border border-[#f0f0f0] rounded-lg px-2 py-1 text-sm bg-transparent focus:outline-none"
+                      value={form.visibility} onChange={e => setForm(f => ({ ...f, visibility: e.target.value as Visibility }))}>
+                      <option value="shareholders_only">Shareholders Only</option>
+                      <option value="external_use">External Use</option>
+                    </select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Section fields — identical to form builder field cards */}
+            <div className="space-y-3">
+              {sections.map((section, idx) => {
+                const SectionIcon = SECTION_TYPES.find(t => t.type === section.type)?.icon ?? FileText;
+                return (
+                  <Card key={section.id} className="border-[#f0f0f0]">
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <GripVertical className="w-4 h-4 text-[#9e9e9e] flex-shrink-0" />
+                        <SectionIcon className="w-4 h-4 text-[#e33b5f] flex-shrink-0" />
+                        <span className="flex-1 font-medium text-sm">{section.label}</span>
+                        <button onClick={() => moveSection(section.id, -1)} disabled={idx === 0} className="p-1 rounded hover:bg-[#f0f0f0] disabled:opacity-30">
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => moveSection(section.id, 1)} disabled={idx === sections.length - 1} className="p-1 rounded hover:bg-[#f0f0f0] disabled:opacity-30">
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => removeSection(section.id)} className="p-1 rounded hover:bg-red-50 text-red-400">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {section.type === 'title' && (
+                        <Input className="border-[#f0f0f0]" placeholder="Announcement title" value={form.title}
+                          onChange={e => { const t = e.target.value; setForm(f => ({ ...f, title: t, meta: f.meta || autoMeta(t, f.category) })); }} />
+                      )}
+                      {section.type === 'description' && (
+                        <textarea className="w-full border border-[#f0f0f0] rounded-lg px-3 py-2 text-sm resize-none focus:outline-none bg-transparent" rows={2}
+                          placeholder="Short description..." value={form.description}
+                          onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+                      )}
+                      {section.type === 'category' && (
+                        <select className="w-full border border-[#f0f0f0] rounded-lg px-3 py-2 text-sm bg-transparent focus:outline-none"
+                          value={form.category} onChange={e => { const cat = e.target.value as Category; setForm(f => ({ ...f, category: cat, meta: autoMeta(f.title, cat) })); }}>
+                          {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                        </select>
+                      )}
+                      {section.type === 'visibility' && (
+                        <select className="w-full border border-[#f0f0f0] rounded-lg px-3 py-2 text-sm bg-transparent focus:outline-none"
+                          value={form.visibility} onChange={e => setForm(f => ({ ...f, visibility: e.target.value as Visibility }))}>
+                          <option value="shareholders_only">Shareholders Only</option>
+                          <option value="external_use">External Use</option>
+                        </select>
+                      )}
+                      {section.type === 'content' && (
+                        <AnnouncementEditor value={form.content ?? ''}
+                          onChange={html => setForm(f => ({ ...f, content: html }))}
+                          placeholder="Write your announcement content..." />
+                      )}
+                      {section.type === 'cta' && (
+                        <Input className="border-[#f0f0f0]" placeholder="e.g. Read →"
+                          value={form.cta ?? ''} onChange={e => setForm(f => ({ ...f, cta: e.target.value }))} />
+                      )}
+                      {section.type === 'media' && (
+                        <Input className="border-[#f0f0f0]" placeholder="https://... (podcast or video URL)"
+                          value={form.media_url ?? ''} onChange={e => setForm(f => ({ ...f, media_url: e.target.value || null }))} />
+                      )}
+                      {section.type === 'attachment' && (
+                        <div>
+                          <input ref={fileInputRef} type="file" multiple className="hidden"
+                            onChange={e => { setPendingFiles(prev => [...prev, ...Array.from(e.target.files ?? [])]); e.target.value = ''; }} />
+                          <div className="space-y-1.5">
+                            {[...(form.attachments ?? []), ...pendingFiles.map(f => ({ name: f.name, url: null, size: f.size }))].map((a, i) => (
+                              <div key={i} className="flex items-center gap-2 bg-[#f6f6f6] rounded-lg px-3 py-2 text-xs">
+                                <span className="flex-1 truncate">{a.name}</span>
+                                {a.size && <span className="text-[#9e9e9e]">{(a.size / 1024).toFixed(1)} KB</span>}
+                                <button onClick={() => {
+                                  if ((a as any).url) setForm(f => ({ ...f, attachments: (f.attachments ?? []).filter(x => x.url !== (a as any).url) }));
+                                  else setPendingFiles(prev => prev.filter(f => f.name !== a.name));
+                                }} className="text-[#9e9e9e] hover:text-red-500">×</button>
+                              </div>
+                            ))}
+                            <button onClick={() => fileInputRef.current?.click()}
+                              className="text-xs text-[#e33b5f] hover:underline">+ Add file</button>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {/* Add Field — identical to form builder */}
+            <Card className="border-dashed border-[#e8e8e8]">
+              <CardContent className="p-4">
+                <p className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider mb-3">Add Field</p>
+                <div className="flex flex-wrap gap-2">
+                  {SECTION_TYPES.map(({ type, label, icon: Icon }) => (
+                    <button key={type} onClick={() => addSection(type)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-[#f0f0f0] rounded-lg hover:border-[#e33b5f]/40 hover:bg-[#e33b5f]/5 transition">
+                      <Icon className="w-3.5 h-3.5 text-[#9e9e9e]" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      })()}
 
       {view === 'list' && <>{/* Category tabs */}
       <div className="px-8 pb-6 max-w-5xl">
@@ -375,7 +441,7 @@ export default function AnnouncementsPage({ role, navigate }: Props & { navigate
                   )}
                   {isAdmin && (
                     <div className="flex gap-1 ml-auto" onClick={e => e.stopPropagation()}>
-                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setForm({ ...featured }); setEditId(featured.id); setView('edit'); }}>Edit</Button>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setForm({ ...featured }); setEditId(featured.id); setAnnSections(DEFAULT_SECTIONS); setView('edit'); }}>Edit</Button>
                       <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => togglePublish(featured)}>
                         {featured.is_published ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                       </Button>
@@ -421,7 +487,7 @@ export default function AnnouncementsPage({ role, navigate }: Props & { navigate
                       {isAdmin && (
                         <div className="flex gap-1" onClick={e => e.stopPropagation()}>
                           <button className="w-7 h-7 rounded border border-[#e8e8e8] flex items-center justify-center hover:border-[#e33b5f]/40"
-                            onClick={() => { setForm({ ...ann }); setEditId(ann.id); setView('edit'); }}>
+                            onClick={() => { setForm({ ...ann }); setEditId(ann.id); setAnnSections(DEFAULT_SECTIONS); setView('edit'); }}>
                             <Eye className="w-3 h-3 text-[#9e9e9e]" />
                           </button>
                           <button className="w-7 h-7 rounded border border-[#e8e8e8] flex items-center justify-center hover:border-red-300"
