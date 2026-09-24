@@ -132,7 +132,7 @@ export default function DashboardHome({ role, navigate }: Props) {
       try {
         // Fetch cohort status
         const { data: cohortSetting } = await supabase
-          .from('platform_settings').select('value').eq('key', 'cohort_open').single();
+          .from('platform_settings').select('value').eq('key', 'cohort_open').maybeSingle();
         setCohortOpen(cohortSetting?.value === 'true');
 
         // Fetch approved startups (is_visible = true)
