@@ -2,14 +2,17 @@
 // Deletes a message/item using service role (bypasses RLS)
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
 
 const ALLOWED_TABLES = ['discussion_messages', 'ideas', 'calendar_events', 'announcements'];
 
 export async function POST(req: NextRequest) {
   // Verify user is authenticated
-  const supabaseClient = createRouteHandlerClient({ cookies });
+  const supabaseClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false }, global: { headers: { Cookie: req.headers.get('cookie') ?? '' } } }
+  );
   const { data: { user } } = await supabaseClient.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
