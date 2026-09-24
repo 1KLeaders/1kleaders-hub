@@ -354,44 +354,96 @@ export default function ShareholdersPage({ navigate, role }: Props) {
           </Card>
         )}
 
-        {/* Documents — admin only */}
+        {/* Agreements & KYC — admin only */}
         {isAdmin && (
-          <Card className="border-[#f0f0f0]">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <FileText className="w-4 h-4 text-[#e33b5f]" /> KYC Documents
-                <Badge className="text-xs bg-[#f0f0f0] text-[#555353]">{partnerDocs.length}</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loadingDetail ? (
-                <div className="flex items-center gap-2 text-[#9e9e9e] text-sm py-4">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Loading...
-                </div>
-              ) : partnerDocs.length === 0 ? (
-                <p className="text-sm text-[#9e9e9e]">No documents uploaded yet.</p>
-              ) : (
-                <div className="space-y-2">
-                  {partnerDocs.map(doc => (
-                    <div key={doc.id} className="flex items-center justify-between p-3 bg-[#f6f6f6] rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-[#9e9e9e]" />
+          <>
+            {/* Agreements */}
+            <Card className="border-[#f0f0f0]">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileCheck className="w-4 h-4 text-[#e33b5f]" /> Agreements
+                  <Badge className="text-xs bg-[#f0f0f0] text-[#555353]">{partnerAgreements.length}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingDetail ? (
+                  <div className="flex items-center gap-2 text-[#9e9e9e] text-sm py-4">
+                    <Loader2 className="w-4 h-4 animate-spin" />Loading...
+                  </div>
+                ) : partnerAgreements.length === 0 ? (
+                  <p className="text-sm text-[#9e9e9e]">No agreements found.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {partnerAgreements.map((env: any) => (
+                      <div key={env.envelope_id} className="flex items-center justify-between p-3 bg-[#f6f6f6] rounded-lg">
                         <div>
-                          <p className="text-sm font-medium text-[#222] capitalize">{doc.doc_type.replace(/_/g, ' ')}</p>
-                          <p className="text-xs text-[#9e9e9e]">{new Date(doc.created_at).toLocaleDateString()}</p>
+                          <p className="text-sm font-medium text-[#222]">Partnership Agreement</p>
+                          <p className="text-xs text-[#9e9e9e]">
+                            Sent {env.sent_at ? new Date(env.sent_at).toLocaleDateString() : '—'}
+                            {env.signed_at ? ` · Signed ${new Date(env.signed_at).toLocaleDateString()}` : ''}
+                          </p>
+                        </div>
+                        <Badge className={`text-xs ${
+                          env.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
+                          env.status === 'sent' || env.status === 'delivered' ? 'bg-blue-100 text-blue-700' :
+                          env.status === 'declined' ? 'bg-red-100 text-red-700' :
+                          'bg-[#f0f0f0] text-[#555353]'
+                        }`}>{env.status}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* KYC Documents */}
+            <Card className="border-[#f0f0f0]">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-[#e33b5f]" /> KYC Documents
+                  <Badge className="text-xs bg-[#f0f0f0] text-[#555353]">{partnerDocs.length}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingDetail ? (
+                  <div className="flex items-center gap-2 text-[#9e9e9e] text-sm py-4">
+                    <Loader2 className="w-4 h-4 animate-spin" />Loading...
+                  </div>
+                ) : partnerDocs.length === 0 ? (
+                  <p className="text-sm text-[#9e9e9e]">No KYC documents uploaded yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {partnerDocs.map(doc => (
+                      <div key={doc.id} className="flex items-center justify-between p-3 bg-[#f6f6f6] rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-[#9e9e9e]" />
+                          <div>
+                            <p className="text-sm font-medium text-[#222] capitalize">{doc.doc_type.replace(/_/g, ' ')}</p>
+                            <p className="text-xs text-[#9e9e9e]">{new Date(doc.created_at).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={doc.status}
+                            onChange={async e => {
+                              const newStatus = e.target.value;
+                              await supabase.from('kyc_documents').update({ status: newStatus }).eq('id', doc.id);
+                              setPartnerDocs(prev => prev.map(d => d.id === doc.id ? { ...d, status: newStatus } : d));
+                            }}
+                            className="text-xs border border-[#f0f0f0] rounded-lg px-2 py-1 bg-white focus:outline-none">
+                            <option value="pending">Pending</option>
+                            <option value="submitted">Submitted</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                          </select>
                         </div>
                       </div>
-                      <Badge className={`text-xs ${
-                        doc.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
-                        doc.status === 'submitted' ? 'bg-amber-100 text-amber-700' :
-                        'bg-[#f0f0f0] text-[#555353]'
-                      }`}>{doc.status}</Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </>
         )}
       </div>
     );

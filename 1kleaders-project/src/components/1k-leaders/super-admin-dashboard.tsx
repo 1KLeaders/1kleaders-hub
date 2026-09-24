@@ -248,8 +248,8 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
       } catch (e) { console.warn('Dashboard metrics fetch failed', e); }
     }
     fetchMetrics();
-    supabase.from('platform_settings').select('value').eq('key','cohort_open').single()
-      .then(({ data }) => setCohortOpen(data?.value === 'true'));
+    fetch('/api/admin/platform-settings?key=cohort_open')
+      .then(r => r.json()).then(d => setCohortOpen(d?.value === 'true')).catch(() => {});
     supabase.from('startups').select('id, name').then(({ data }) => setStartups(data ?? []));
   }, []);
 
@@ -303,8 +303,14 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
   const toggleCohort = async () => {
     setCohortLoading(true);
     const newVal = !cohortOpen;
-    await supabase.from('platform_settings').upsert({ key: 'cohort_open', value: String(newVal) });
-    setCohortOpen(newVal);
+    try {
+      await fetch('/api/admin/platform-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'cohort_open', value: String(newVal) }),
+      });
+      setCohortOpen(newVal);
+    } catch (e) { console.error('Failed to toggle cohort:', e); }
     setCohortLoading(false);
   };
 

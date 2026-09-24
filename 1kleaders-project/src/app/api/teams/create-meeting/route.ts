@@ -1,45 +1,28 @@
 // POST /api/teams/create-meeting
 import { NextRequest, NextResponse } from 'next/server';
+import { getValidTeamsToken } from '@/lib/teams-token';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { createClient } from '@supabase/supabase-js';
 
 export async function POST(req: NextRequest) {
-  const { title, start_datetime, end_datetime, description } = await req.json();
+  const { title, start_datetime, end_datetime, description, invitee_emails = [] } = await req.json();
 
   if (!title || !start_datetime) {
     return NextResponse.json({ error: 'title and start_datetime required' }, { status: 400 });
   }
 
-  // Get stored token — try current user first, then any admin connection
-  const supabaseClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { persistSession: false }, global: { headers: { Cookie: req.headers.get('cookie') ?? '' } } }
-  );
-  const { data: { user } } = await supabaseClient.auth.getUser();
-
-  const { data: connection } = await supabaseAdmin
-    .from('teams_connections')
-    .select('access_token, expires_at, user_id')
-    .eq('connected', true)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (!connection?.access_token) {
-    return NextResponse.json({ error: 'Teams not connected. Go to Calendar and click Connect Teams.' }, { status: 503 });
-  }
-
-  if (connection.expires_at && new Date(connection.expires_at) < new Date()) {
-    return NextResponse.json({ error: 'Teams token expired — please reconnect Teams from the Calendar page.' }, { status: 401 });
+  // Get valid token with auto-refresh
+  const tokenData = await getValidTeamsToken();
+  if (!tokenData) {
+    return NextResponse.json({ error: 'Teams not connected or token expired — reconnect from the Calendar page.' }, { status: 503 });
   }
 
   const endTime = end_datetime ?? new Date(new Date(start_datetime).getTime() + 60 * 60 * 1000).toISOString();
 
+  // Create online meeting
   const meetingRes = await fetch('https://graph.microsoft.com/v1.0/me/onlineMeetings', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${connection.access_token}`,
+      'Authorization': `Bearer ${tokenData.access_token}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -54,16 +37,36 @@ export async function POST(req: NextRequest) {
 
   if (!meetingRes.ok) {
     const errMsg = meetingData?.error?.message ?? meetingData?.error?.code ?? JSON.stringify(meetingData);
-    console.error('Teams meeting creation failed:', meetingRes.status, errMsg);
-    return NextResponse.json({
-      error: `Teams error (${meetingRes.status}): ${errMsg}`,
-      details: meetingData,
-    }, { status: 500 });
+    return NextResponse.json({ error: `Teams error (${meetingRes.status}): ${errMsg}` }, { status: 500 });
   }
 
-  return NextResponse.json({
-    success:    true,
-    join_url:   meetingData.joinWebUrl,
-    meeting_id: meetingData.id,
-  });
+  const joinUrl  = meetingData.joinWebUrl;
+  const meetingId = meetingData.id;
+
+  // Send calendar invites to attendees if provided
+  if (invitee_emails.length > 0) {
+    const attendees = invitee_emails.map((email: string) => ({
+      emailAddress: { address: email },
+      type: 'required',
+    }));
+
+    await fetch('https://graph.microsoft.com/v1.0/me/events', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${tokenData.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        subject:   title,
+        body:      { contentType: 'HTML', content: `${description ?? ''}<br/><br/>Teams link: <a href="${joinUrl}">${joinUrl}</a>` },
+        start:     { dateTime: start_datetime, timeZone: 'UTC' },
+        end:       { dateTime: endTime,        timeZone: 'UTC' },
+        attendees,
+        isOnlineMeeting:        true,
+        onlineMeetingProvider:  'teamsForBusiness',
+      }),
+    });
+  }
+
+  return NextResponse.json({ success: true, join_url: joinUrl, meeting_id: meetingId });
 }

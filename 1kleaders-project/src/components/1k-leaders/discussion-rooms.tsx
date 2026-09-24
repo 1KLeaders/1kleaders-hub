@@ -120,6 +120,11 @@ export default function DiscussionRooms({ role }: Props) {
     setEditingRoom(null);
   }
 
+  async function deleteMessage(msgId: string) {
+    await supabase.from('room_messages').delete().eq('id', msgId);
+    setMessages(prev => prev.filter(m => m.id !== msgId));
+  }
+
   async function deleteRoom(roomId: string) {
     await supabase.from('discussion_rooms').delete().eq('id', roomId);
     setRooms(prev => prev.filter(r => r.id !== roomId));
@@ -227,7 +232,10 @@ export default function DiscussionRooms({ role }: Props) {
     const newMsg: Omit<Message, 'id'> = {
       room_id:         selectedRoom,
       user_id:         profile.id,
-      content:         message.trim() || (attachUrl ? `📎 ${attachment?.name ?? 'File'}` : ''),
+      content:         message.trim()
+        ? (attachUrl ? `${message.trim()}
+📎 ${attachment?.name ?? 'File'}||${attachUrl}` : message.trim())
+        : (attachUrl ? `📎 ${attachment?.name ?? 'File'}||${attachUrl}` : ''),
       created_at:      new Date().toISOString(),
       sender_name:     name,
       sender_role:     profile.role,
@@ -408,7 +416,7 @@ export default function DiscussionRooms({ role }: Props) {
                   messages.map(msg => {
                     const isMe = msg.user_id === profile?.id;
                     return (
-                      <div key={msg.id} className={`flex gap-3 ${isMe ? 'flex-row-reverse' : ''}`}>
+                      <div key={msg.id} className={`flex gap-3 group ${isMe ? 'flex-row-reverse' : ''}`}>
                         <Avatar className="w-8 h-8 shrink-0">
                           <AvatarFallback className="bg-[#e33b5f]/10 text-[#c02d4f] text-xs font-semibold">
                             {msg.sender_initials}
@@ -420,7 +428,37 @@ export default function DiscussionRooms({ role }: Props) {
                             {msg.sender_subroles?.slice(0, 2).map(sr => <DigitalBadge key={sr} role={sr} />)}
                           </div>
                           <div className={`px-3 py-2 rounded-2xl text-sm ${isMe ? 'bg-[#e33b5f] text-white rounded-tr-sm' : 'bg-[#f6f6f6] text-[#222] rounded-tl-sm'}`}>
-                            {msg.content}
+                            <span className="flex-1 space-y-1.5">
+                              {msg.content.split('
+').map((line, li) => {
+                                if (line.startsWith('📎 ') && line.includes('||')) {
+                                  const [namepart, url] = line.slice(2).split('||');
+                                  const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(namepart.trim());
+                                  return isImage ? (
+                                    <span key={li} className="block">
+                                      <img src={url} alt={namepart.trim()}
+                                        className="max-w-[240px] max-h-48 rounded-lg object-cover cursor-pointer border border-white/10"
+                                        onClick={() => window.open(url, '_blank')} />
+                                      <span className="text-[10px] text-white/50 block mt-0.5">{namepart.trim()}</span>
+                                    </span>
+                                  ) : (
+                                    <span key={li} className="block">
+                                      <a href={url} target="_blank" rel="noopener noreferrer"
+                                        className="flex items-center gap-1 text-sm underline opacity-80 hover:opacity-100">
+                                        📎 {namepart.trim()}
+                                      </a>
+                                    </span>
+                                  );
+                                }
+                                return <span key={li} className="block">{line}</span>;
+                              })}
+                            </span>
+                            {(isAdmin || isMe) && (
+                              <button onClick={() => deleteMessage(msg.id)}
+                                className="opacity-0 group-hover:opacity-100 transition text-[#9e9e9e] hover:text-red-400 flex-shrink-0 ml-1 self-start mt-1">
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            )}
                           </div>
                           <span className="text-[10px] text-[#9e9e9e]">
                             {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

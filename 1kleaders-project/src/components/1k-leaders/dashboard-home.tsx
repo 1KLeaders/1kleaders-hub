@@ -130,6 +130,16 @@ export default function DashboardHome({ role, navigate }: Props) {
     async function fetchContent() {
       setContentLoading(true);
       try {
+        // Fetch cohort status
+        const { data: cohortSetting } = await supabase
+          .from('platform_settings').select('value').eq('key', 'cohort_open').single();
+        setCohortOpen(cohortSetting?.value === 'true');
+
+        // Fetch approved startups (is_visible = true)
+        const { data: startups } = await supabase
+          .from('startups').select('id, name, logo_url, primary_color')
+          .eq('is_visible', true).order('sort_order');
+        setApprovedStartups(startups ?? []);
         // Approved ideas (for startup highlights)
         const { data: approved } = await supabase
           .from('ideas')

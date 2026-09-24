@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import {
   Calendar as CalendarIcon, Clock, Bell, Mail, AlertTriangle,
   Plus, ChevronLeft, ChevronRight, Video, MapPin, Vote, ThumbsUp, Users,
-  Check, X, Send, Phone, Loader2, RefreshCw
+  Check, X, Send, Phone, Loader2, RefreshCw, Trash2
 } from 'lucide-react';
 import type { DashboardRole } from './types';
 import { supabase } from '@/lib/supabase';
@@ -556,6 +556,12 @@ export default function CalendarPage({ role }: Props) {
                             <div className="flex items-center gap-2">
                               <h4 className="font-semibold text-[#222] text-sm">{e.title}</h4>
                               {joinUrl && !isPast && <span className="text-[10px] bg-[#5059C9] text-white px-1.5 py-0.5 rounded font-medium">Join Teams</span>}
+                              {isAdmin && (
+                                <button onClick={ev => { ev.stopPropagation(); deleteEvent(e.id); }}
+                                  className="ml-auto opacity-60 hover:opacity-100 text-red-400 hover:text-red-500 transition flex-shrink-0">
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
                             <div className="flex items-center gap-2 mt-0.5 text-xs text-[#7e7e7e] flex-wrap">
                               <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{e.time}</span>
