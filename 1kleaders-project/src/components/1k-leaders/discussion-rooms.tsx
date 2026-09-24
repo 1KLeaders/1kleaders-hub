@@ -121,7 +121,7 @@ export default function DiscussionRooms({ role }: Props) {
   }
 
   async function deleteMessage(msgId: string) {
-    await supabase.from('room_messages').delete().eq('id', msgId);
+    await supabase.from('discussion_messages').delete().eq('id', msgId);
     setMessages(prev => prev.filter(m => m.id !== msgId));
   }
 
@@ -416,7 +416,7 @@ export default function DiscussionRooms({ role }: Props) {
                   messages.map(msg => {
                     const isMe = msg.user_id === profile?.id;
                     return (
-                      <div key={msg.id} className={`flex gap-3 group ${isMe ? 'flex-row-reverse' : ''}`}>
+                      <div key={msg.id} className={`flex gap-3 items-end group ${isMe ? 'flex-row-reverse' : ''}`}>
                         <Avatar className="w-8 h-8 shrink-0">
                           <AvatarFallback className="bg-[#e33b5f]/10 text-[#c02d4f] text-xs font-semibold">
                             {msg.sender_initials}
@@ -427,11 +427,20 @@ export default function DiscussionRooms({ role }: Props) {
                             <span className="text-xs font-medium text-[#444]">{isMe ? 'You' : msg.sender_name}</span>
                             {msg.sender_subroles?.slice(0, 2).map(sr => <DigitalBadge key={sr} role={sr} />)}
                           </div>
+                          {(isAdmin || isMe) && (
+                            <button onClick={() => deleteMessage(msg.id)}
+                              className="opacity-0 group-hover:opacity-100 transition text-[#9e9e9e] hover:text-red-400 mb-1 flex-shrink-0">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           <div className={`px-3 py-2 rounded-2xl text-sm ${isMe ? 'bg-[#e33b5f] text-white rounded-tr-sm' : 'bg-[#f6f6f6] text-[#222] rounded-tl-sm'}`}>
                             <span className="flex-1 space-y-1.5">
                               {msg.content.split('\n').map((line, li) => {
                                 if (line.startsWith('📎 ') && line.includes('||')) {
-                                  const [namepart, url] = line.slice(2).split('||');
+                                  const withoutEmoji = line.replace(/^📎\s*/, '');
+                                  const sepIdx = withoutEmoji.indexOf('||');
+                                  const namepart = withoutEmoji.slice(0, sepIdx);
+                                  const url = withoutEmoji.slice(sepIdx + 2);
                                   const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(namepart.trim());
                                   return isImage ? (
                                     <span key={li} className="block">
@@ -452,12 +461,7 @@ export default function DiscussionRooms({ role }: Props) {
                                 return <span key={li} className="block">{line}</span>;
                               })}
                             </span>
-                            {(isAdmin || isMe) && (
-                              <button onClick={() => deleteMessage(msg.id)}
-                                className="opacity-0 group-hover:opacity-100 transition text-[#9e9e9e] hover:text-red-400 flex-shrink-0 ml-1 self-start mt-1">
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            )}
+
                           </div>
                           <span className="text-[10px] text-[#9e9e9e]">
                             {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
