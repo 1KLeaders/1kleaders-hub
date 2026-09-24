@@ -121,8 +121,18 @@ export default function DiscussionRooms({ role }: Props) {
   }
 
   async function deleteMessage(msgId: string) {
-    await supabase.from('discussion_messages').delete().eq('id', msgId);
+    // Optimistic removal
     setMessages(prev => prev.filter(m => m.id !== msgId));
+    const { error } = await supabase.from('discussion_messages').delete().eq('id', msgId);
+    if (error) {
+      console.error('Delete failed:', error.message);
+      // Try via admin API as fallback
+      await fetch('/api/admin/delete-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: msgId, table: 'discussion_messages' }),
+      });
+    }
   }
 
   async function deleteRoom(roomId: string) {
@@ -182,7 +192,6 @@ export default function DiscussionRooms({ role }: Props) {
       }, payload => {
         const incoming = payload.new as Message;
         setMessages(prev => {
-          // If this is our own message, replace the temp entry rather than adding a duplicate
           const tempIndex = prev.findIndex(m => m.id.startsWith('temp-') && m.user_id === incoming.user_id && m.content === incoming.content);
           if (tempIndex !== -1) {
             const next = [...prev];
@@ -192,6 +201,14 @@ export default function DiscussionRooms({ role }: Props) {
           return [...prev, incoming];
         });
         setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+      })
+      .on('postgres_changes', {
+        event:  'DELETE',
+        schema: 'public',
+        table:  'discussion_messages',
+        filter: `room_id=eq.${selectedRoom}`,
+      }, payload => {
+        setMessages(prev => prev.filter(m => m.id !== (payload.old as any).id));
       })
       .subscribe();
 
