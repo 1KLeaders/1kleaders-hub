@@ -121,14 +121,16 @@ export default function DiscussionRooms({ role }: Props) {
   }
 
   async function deleteMessage(msgId: string) {
-      setMessages(prev => prev.filter(m => m.id !== msgId));
-      const res = await fetch('/api/admin/delete-message', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: msgId, table: 'discussion_messages' }),
-      });
-      const data = await res.json();
-      if (!res.ok) alert(`Delete failed: ${data.error}`);
+    // Optimistic removal
+    setMessages(prev => prev.filter(m => m.id !== msgId));
+    // Try admin API directly — bypasses RLS
+    const res = await fetch('/api/admin/delete-message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: msgId, table: 'discussion_messages' }),
+    });
+    const data = await res.json();
+    if (!res.ok) alert(`Delete failed: ${data.error}`);
   }
 
   async function deleteRoom(roomId: string) {
