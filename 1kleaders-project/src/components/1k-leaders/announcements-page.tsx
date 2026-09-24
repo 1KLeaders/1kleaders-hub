@@ -51,7 +51,7 @@ export default function AnnouncementsPage({ role, navigate }: Props & { navigate
   const [openId,      setOpenId]      = useState<string | null>(null);
   const [shareId,     setShareId]     = useState<string | null>(null);
   const [copied,      setCopied]      = useState(false);
-  const [showForm,    setShowForm]    = useState(false);
+  const [view,        setView]        = useState<'list'|'edit'>('list');
   const [form,        setForm]        = useState<NewAnn>(EMPTY_ANN);
   const [saving,      setSaving]      = useState(false);
   const [editId,      setEditId]      = useState<string | null>(null);
@@ -119,7 +119,7 @@ export default function AnnouncementsPage({ role, navigate }: Props & { navigate
       if (data) setItems(prev => [data as Announcement, ...prev]);
     }
     setSaving(false);
-    setShowForm(false);
+    setView('list');
     setEditId(null);
     setForm(EMPTY_ANN);
   }
@@ -166,17 +166,31 @@ export default function AnnouncementsPage({ role, navigate }: Props & { navigate
             <p className="text-base text-[#7e7e7e] max-w-xl">Stay up to date with the latest updates, reports, insights, and content from 1K Leaders.</p>
           </div>
           {isAdmin && (
-            <Button className="bg-[#e33b5f] text-white" onClick={() => { setForm(EMPTY_ANN); setEditId(null); setShowForm(v => !v); }}>
-              {showForm ? <><X className="w-4 h-4 mr-1" />Cancel</> : <><Plus className="w-4 h-4 mr-1" />New Announcement</>}
+            <Button className="bg-[#e33b5f] text-white" onClick={() => { setForm(EMPTY_ANN); setEditId(null); setView(v => v === 'list' ? 'edit' : 'list'); }}>
+              {view === 'edit' ? <><X className="w-4 h-4 mr-1" />Cancel</> : <><Plus className="w-4 h-4 mr-1" />New Announcement</>}
             </Button>
           )}
         </div>
       </div>
 
-      {/* Admin create/edit form */}
-      {isAdmin && showForm && (
-        <div className="mx-8 mb-8 max-w-5xl bg-[#f6f6f6] border border-[#e8e8e8] rounded-2xl p-6 space-y-4">
-          <h3 className="font-bold text-[#222]">{editId ? 'Edit Announcement' : 'New Announcement'}</h3>
+      {/* Admin create/edit form — full view like form builder */}
+      {isAdmin && view === 'edit' && (
+        <div className="mx-8 mb-8 max-w-5xl space-y-4">
+          <div className="flex items-center justify-between">
+            <Button variant="outline" size="sm" onClick={() => { setView('list'); setEditId(null); setForm(EMPTY_ANN); }}>← Back</Button>
+            <h3 className="font-bold text-[#222]">{editId ? 'Edit Announcement' : 'New Announcement'}</h3>
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2 cursor-pointer text-sm">
+                <input type="checkbox" className="accent-[#e33b5f]" checked={form.is_published} onChange={e => setForm(f => ({ ...f, is_published: e.target.checked }))} />
+                Published
+              </label>
+              <Button className="bg-[#e33b5f] text-white" onClick={saveAnn} disabled={saving || !form.title.trim()}>
+                {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                {editId ? 'Save Changes' : 'Create'}
+              </Button>
+            </div>
+          </div>
+          <div className="bg-[#f6f6f6] border border-[#e8e8e8] rounded-2xl p-6 space-y-4">
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider block mb-1">Title *</label>
@@ -251,20 +265,11 @@ export default function AnnouncementsPage({ role, navigate }: Props & { navigate
               </button>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" className="accent-[#e33b5f]" checked={form.is_published} onChange={e => setForm(f => ({ ...f, is_published: e.target.checked }))} />
-              <span className="text-sm font-medium text-[#222]">Published</span>
-            </label>
-            <Button className="bg-[#e33b5f] text-white ml-auto" onClick={saveAnn} disabled={saving || !form.title.trim()}>
-              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-              {editId ? 'Save Changes' : 'Create'}
-            </Button>
           </div>
         </div>
       )}
 
-      {/* Category tabs */}
+      {view === 'list' && <>{/* Category tabs */}
       <div className="px-8 pb-6 max-w-5xl">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex gap-1 flex-wrap">
@@ -343,7 +348,7 @@ export default function AnnouncementsPage({ role, navigate }: Props & { navigate
                   )}
                   {isAdmin && (
                     <div className="flex gap-1 ml-auto" onClick={e => e.stopPropagation()}>
-                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setForm({ ...featured }); setEditId(featured.id); setShowForm(true); }}>Edit</Button>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setForm({ ...featured }); setEditId(featured.id); setView('edit'); }}>Edit</Button>
                       <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => togglePublish(featured)}>
                         {featured.is_published ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                       </Button>
@@ -389,7 +394,7 @@ export default function AnnouncementsPage({ role, navigate }: Props & { navigate
                       {isAdmin && (
                         <div className="flex gap-1" onClick={e => e.stopPropagation()}>
                           <button className="w-7 h-7 rounded border border-[#e8e8e8] flex items-center justify-center hover:border-[#e33b5f]/40"
-                            onClick={() => { setForm({ ...ann }); setEditId(ann.id); setShowForm(true); }}>
+                            onClick={() => { setForm({ ...ann }); setEditId(ann.id); setView('edit'); }}>
                             <Eye className="w-3 h-3 text-[#9e9e9e]" />
                           </button>
                           <button className="w-7 h-7 rounded border border-[#e8e8e8] flex items-center justify-center hover:border-red-300"
@@ -483,6 +488,7 @@ export default function AnnouncementsPage({ role, navigate }: Props & { navigate
         );
       })()}
     </div>
+    </>}
   );
 }
 
