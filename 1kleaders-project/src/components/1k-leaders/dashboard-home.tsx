@@ -136,9 +136,10 @@ export default function DashboardHome({ role, navigate }: Props) {
         setCohortOpen(cohortSetting?.value === 'true');
 
         // Fetch approved startups (is_visible = true)
-        const { data: startups } = await supabase
+        const { data: startups, error: startupsError } = await supabase
           .from('startups').select('id, name, logo_url, primary_color')
-          .eq('is_visible', true).order('sort_order');
+          .eq('is_visible', true);
+        if (startupsError) console.warn('Startups fetch error:', startupsError.message);
         setApprovedStartups(startups ?? []);
         // Approved ideas (for startup highlights)
         const { data: approved } = await supabase
