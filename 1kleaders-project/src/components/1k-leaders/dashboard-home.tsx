@@ -354,34 +354,21 @@ export default function DashboardHome({ role, navigate }: Props) {
                   </div>
                 ))}
               </div>
-            ) : approvedIdeas.length === 0 ? (
+            ) : approvedStartups.length === 0 ? (
               <div className="text-center py-8 text-[#9e9e9e] text-sm">
                 <Rocket className="w-8 h-8 mx-auto mb-2 text-[#d0d0d0]" />
-                No approved startups yet. They will appear here once ideas complete the evaluation pipeline.
+                No startups yet.
               </div>
             ) : (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {approvedIdeas.map(idea => (
-                  <div key={idea.id} className="p-3 border rounded-lg hover:shadow-md transition cursor-pointer hover:border-[#e33b5f]/30"
-                    onClick={() => setSelectedIdea(idea)}>
-                    <div className="w-8 h-8 rounded-lg bg-[#e33b5f]/10 flex items-center justify-center mb-2">
-                      <Lightbulb className="w-4 h-4 text-[#e33b5f]" />
-                    </div>
-                    <h4 className="font-semibold text-sm text-[#222] truncate">{idea.title}</h4>
-                    {idea.tagline && <p className="text-xs text-[#7e7e7e] truncate mt-0.5 italic">"{idea.tagline}"</p>}
-                    <div className="flex items-center gap-2 mt-2 flex-wrap">
-                      {idea.sector && <Badge variant="secondary" className="text-xs">{idea.sector}</Badge>}
-                      {idea.stage  && <Badge variant="outline"   className="text-xs">{idea.stage}</Badge>}
-                    </div>
-                    {idea.vep_score != null && (
-                      <div className="flex items-center gap-1.5 mt-2">
-                        <div className="flex-1 h-1.5 bg-[#f0f0f0] rounded-full overflow-hidden">
-                          <div className="h-full bg-[#e33b5f] rounded-full" style={{ width: `${idea.vep_score}%` }} />
-                        </div>
-                        <span className="text-xs text-[#e33b5f] font-medium">{idea.vep_score}</span>
-                      </div>
-                    )}
-                    <Badge className="mt-2 text-xs bg-emerald-100 text-emerald-700">✓ Approved</Badge>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {approvedStartups.map(s => (
+                  <div key={s.id} className="flex flex-col items-center gap-2 p-3 border border-[#f0f0f0] rounded-xl hover:border-[#e33b5f]/20 transition cursor-pointer"
+                    onClick={() => navigate(`startup-${s.id}`)}>
+                    {s.logo_url
+                      ? <img src={s.logo_url} alt={s.name} className="w-12 h-12 object-contain rounded-lg" />
+                      : <div className="w-12 h-12 rounded-lg flex items-center justify-center text-lg font-black text-white" style={{ backgroundColor: s.primary_color ?? '#e33b5f' }}>{s.name[0]}</div>
+                    }
+                    <p className="text-xs font-semibold text-[#222] text-center">{s.name}</p>
                   </div>
                 ))}
               </div>
