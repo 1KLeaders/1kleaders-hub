@@ -429,8 +429,7 @@ export default function DiscussionRooms({ role }: Props) {
                           </div>
                           <div className={`px-3 py-2 rounded-2xl text-sm ${isMe ? 'bg-[#e33b5f] text-white rounded-tr-sm' : 'bg-[#f6f6f6] text-[#222] rounded-tl-sm'}`}>
                             <span className="flex-1 space-y-1.5">
-                              {msg.content.split('
-').map((line, li) => {
+                              {msg.content.split('\n').map((line, li) => {
                                 if (line.startsWith('📎 ') && line.includes('||')) {
                                   const [namepart, url] = line.slice(2).split('||');
                                   const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(namepart.trim());
