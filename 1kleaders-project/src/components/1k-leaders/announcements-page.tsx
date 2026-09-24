@@ -487,8 +487,8 @@ export default function AnnouncementsPage({ role, navigate }: Props & { navigate
           </div>
         );
       })()}
+      </>}
     </div>
-    </>}
   );
 }
 
