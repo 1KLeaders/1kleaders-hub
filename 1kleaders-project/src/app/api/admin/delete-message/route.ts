@@ -11,15 +11,24 @@ export async function POST(req: NextRequest) {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-  if (!serviceKey) return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY not set' }, { status: 500 });
-  if (!url) return NextResponse.json({ error: 'NEXT_PUBLIC_SUPABASE_URL not set' }, { status: 500 });
-
-  // Create admin client inline to rule out import issues
-  const admin = createClient(url, serviceKey, {
+  const admin = createClient(url!, serviceKey!, {
     auth: { autoRefreshToken: false, persistSession: false }
   });
 
+  // First verify we can read
+  const { data: readTest, error: readError } = await admin
+    .from(table).select('id').eq('id', id).maybeSingle();
+
+  if (readError) return NextResponse.json({ error: `Read failed: ${readError.message}` }, { status: 500 });
+  if (!readTest) return NextResponse.json({ error: `Row not found: ${id}` }, { status: 404 });
+
   const { error } = await admin.from(table).delete().eq('id', id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ 
+    error: error.message, 
+    code: error.code,
+    details: error.details,
+    hint: error.hint
+  }, { status: 500 });
+  
   return NextResponse.json({ success: true });
 }
