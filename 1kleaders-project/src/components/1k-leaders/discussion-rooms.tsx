@@ -233,8 +233,7 @@ export default function DiscussionRooms({ role }: Props) {
       room_id:         selectedRoom,
       user_id:         profile.id,
       content:         message.trim()
-        ? (attachUrl ? `${message.trim()}
-📎 ${attachment?.name ?? 'File'}||${attachUrl}` : message.trim())
+        ? (attachUrl ? `${message.trim()}\n📎 ${attachment?.name ?? 'File'}||${attachUrl}` : message.trim())
         : (attachUrl ? `📎 ${attachment?.name ?? 'File'}||${attachUrl}` : ''),
       created_at:      new Date().toISOString(),
       sender_name:     name,
