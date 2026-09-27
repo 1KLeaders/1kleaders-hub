@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, Search, FileText, Download, CheckCircle, Clock, Shield, FolderOpen, Loader2, RefreshCw, Trash2, X, Eye } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { DashboardRole, Page } from './types';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth-context';
@@ -30,7 +29,12 @@ type DbDoc = {
   owner_id: string;
 };
 
+// File categories for uploads in the `documents` table
 const CATEGORIES = ['All','KYC','Company','Idea','Financial','Shareholder','General'];
+
+// One filter row for the whole page: KYC and Agreements open their own views, the rest filter files
+const VIEWS = ['All', 'KYC', 'Agreements', 'Company', 'Idea', 'Financial', 'Shareholder', 'General'];
+const TAB_TO_VIEW: Record<DocumentsTab, string> = { files: 'All', kyc: 'KYC', agreements: 'Agreements' };
 
 const statusColors: Record<string, string> = {
   verified: 'bg-[#e33b5f]/10 text-[#c02d4f]',
@@ -47,8 +51,8 @@ function formatSize(bytes: number | null) {
 }
 
 export default function DocumentsPage({ role, navigate, initialTab = 'files' }: Props) {
-  const [tab, setTab] = useState<DocumentsTab>(initialTab);
-  useEffect(() => { setTab(initialTab); }, [initialTab]);
+  const [view, setView] = useState(TAB_TO_VIEW[initialTab]);
+  useEffect(() => { setView(TAB_TO_VIEW[initialTab]); }, [initialTab]);
 
   return (
     <div className="space-y-6">
@@ -56,27 +60,40 @@ export default function DocumentsPage({ role, navigate, initialTab = 'files' }: 
         <h1 className="text-2xl font-bold text-[#222]">Documents</h1>
         <p className="text-[#7e7e7e]">Files, KYC documents and partnership agreements</p>
       </div>
-      <Tabs value={tab} onValueChange={v => setTab(v as DocumentsTab)}>
-        <TabsList>
-          <TabsTrigger value="files">Files</TabsTrigger>
-          <TabsTrigger value="kyc">KYC</TabsTrigger>
-          <TabsTrigger value="agreements">Agreements</TabsTrigger>
-        </TabsList>
-        <TabsContent value="files" className="mt-6"><FilesTab role={role} /></TabsContent>
-        <TabsContent value="kyc" className="mt-6"><KycDocumentsTab role={role} navigate={navigate} /></TabsContent>
-        <TabsContent value="agreements" className="mt-6"><AgreementsTab role={role} /></TabsContent>
-      </Tabs>
+
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {VIEWS.map(v => (
+          <button key={v} onClick={() => setView(v)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition ${view === v ? 'bg-[#e33b5f] text-white' : 'bg-[#f6f6f6] text-[#555353] hover:bg-[#e8e8e8] dark:bg-white/5 dark:text-[#ccc] dark:hover:bg-white/10'}`}>
+            {v}
+          </button>
+        ))}
+      </div>
+
+      {view === 'KYC' ? (
+        <div className="space-y-8">
+          <KycDocumentsTab role={role} navigate={navigate} />
+          {/* Older KYC files uploaded as general documents, if any */}
+          <FilesTab role={role} category="KYC" hideWhenEmpty title="Other KYC files" />
+        </div>
+      ) : view === 'Agreements' ? (
+        <AgreementsTab role={role} />
+      ) : (
+        <FilesTab role={role} category={view} />
+      )}
     </div>
   );
 }
 
-function FilesTab({ role }: { role?: DashboardRole }) {
+function FilesTab({ role, category, hideWhenEmpty, title }: {
+  role?: DashboardRole; category: string; hideWhenEmpty?: boolean; title?: string;
+}) {
   const { profile } = useAuth();
   const isAdmin = role === 'admin' || role === 'super-admin' || role === 'developer';
 
   const [docs,        setDocs]        = useState<DbDoc[]>([]);
   const [loading,     setLoading]     = useState(true);
-  const [activeCat,   setActiveCat]   = useState('All');
+  const activeCat = category;
   const [search,      setSearch]      = useState('');
   const [uploading,   setUploading]   = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -175,18 +192,25 @@ function FilesTab({ role }: { role?: DashboardRole }) {
     return true;
   });
 
+  // New uploads default to the category being viewed
+  useEffect(() => { if (category !== 'All') setUploadCategory(category); }, [category]);
+
+  if (hideWhenEmpty && (loading || docs.filter(d => d.category === category).length === 0)) return null;
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <p className="text-sm text-[#7e7e7e]">Manage and organize platform documents</p>
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={fetchDocs} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
-          <Button className="bg-[#e33b5f] hover:bg-[#c02d4f] text-white" onClick={() => setShowUpload(v => !v)}>
-            {showUpload ? <><X className="w-4 h-4 mr-2" />Cancel</> : <><Upload className="w-4 h-4 mr-2" />Upload</>}
-          </Button>
+      {title && <h2 className="text-sm font-semibold text-[#222]">{title}</h2>}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-3 w-4 h-4 text-[#9e9e9e]" />
+          <Input placeholder={category === 'All' ? 'Search documents...' : `Search ${category} documents...`} className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
+        <Button variant="outline" className="h-10" onClick={fetchDocs} disabled={loading} title="Refresh">
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+        </Button>
+        <Button className="h-10 bg-[#e33b5f] hover:bg-[#c02d4f] text-white" onClick={() => setShowUpload(v => !v)}>
+          {showUpload ? <><X className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Cancel</span></> : <><Upload className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Upload</span></>}
+        </Button>
       </div>
 
       {/* Upload panel */}
@@ -225,20 +249,6 @@ function FilesTab({ role }: { role?: DashboardRole }) {
           </CardContent>
         </Card>
       )}
-
-      <div className="relative">
-        <Search className="absolute left-3 top-3 w-4 h-4 text-[#9e9e9e]" />
-        <Input placeholder="Search documents..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
-      </div>
-
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {CATEGORIES.map(c => (
-          <button key={c} onClick={() => setActiveCat(c)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition ${activeCat === c ? 'bg-[#e33b5f] text-white' : 'bg-[#f6f6f6] text-[#555353] hover:bg-[#e8e8e8]'}`}>
-            {c}
-          </button>
-        ))}
-      </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
