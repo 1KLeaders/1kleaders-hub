@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, Trophy, RefreshCw, Users } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { apiFetch } from '@/lib/api-fetch';
 
 type LeaderEntry = { name: string; email: string; minutes: number; meetings: number };
 
@@ -51,7 +52,7 @@ export default function AttendanceLeaderboardPage() {
 
     for (const e of pastMeetings) {
       try {
-        const res = await fetch('/api/teams/attendance?meetingId=' + encodeURIComponent(e.teams_event_id));
+        const res = await apiFetch('/api/teams/attendance?meetingId=' + encodeURIComponent(e.teams_event_id));
         const data = await res.json();
         if (!data.attendees?.length) continue;
 

@@ -11,6 +11,8 @@ import {
   CheckCircle2, Clock, AlertCircle, Users, FileText, CreditCard, Shield
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { apiFetch } from '@/lib/api-fetch';
+import ProspectOnboarding from './prospect-onboarding';
 
 const ONBOARDING_STEPS = [
   'Meeting Completed',
@@ -45,6 +47,10 @@ type Partner = {
 type KycDoc = {
   doc_type: string;
   status: string;
+  storage_path: string | null;
+  file_name: string | null;
+  source: string | null;
+  answers: Record<string, any> | null;
 };
 
 const docStatusColor = (s: string) =>
@@ -75,12 +81,64 @@ export default function OnboardingTracker() {
   useEffect(() => { fetchPartners(); }, []);
 
   async function loadKycDocs(userId: string) {
-    if (kycDocs[userId]) return;
     const { data } = await supabase
       .from('kyc_documents')
-      .select('doc_type, status')
+      .select('doc_type, status, storage_path, file_name, source, answers')
       .eq('user_id', userId);
     setKycDocs(prev => ({ ...prev, [userId]: (data ?? []) as KycDoc[] }));
+  }
+
+  async function openDoc(doc: KycDoc) {
+    if (!doc.storage_path) return;
+    const { data } = await supabase.storage.from('kyc-documents').createSignedUrl(doc.storage_path, 60);
+    if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+  }
+
+  // Final approval: approves KYC + receipt and makes the member a Shareholder (server-side)
+  async function approveShareholder(p: Partner) {
+    if (!window.confirm(`Approve ${[p.first_name, p.last_name].filter(Boolean).join(' ') || p.email} as a Shareholder?\n\nThis approves their submitted KYC documents and payment receipt, and changes their role to Shareholder.`)) return;
+    setUpdating(p.id);
+    const res = await apiFetch('/api/onboarding/approve-shareholder', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: p.id, action: 'approve' }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setUpdating(null);
+    if (!res.ok) { alert(`Approval failed: ${data.error ?? res.status}`); return; }
+    setPartners(prev => prev.map(x => x.id === p.id ? { ...x, role: data.role, onboarding_status: 'Payment Confirmed' } : x));
+    loadKycDocs(p.id);
+  }
+
+  async function rejectReceipt(p: Partner) {
+    const reason = window.prompt('Why is the receipt being rejected? (shown to the member)');
+    if (reason === null) return;
+    setUpdating(p.id);
+    const res = await apiFetch('/api/onboarding/approve-shareholder', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: p.id, action: 'reject_receipt', reason }),
+    });
+    setUpdating(null);
+    if (!res.ok) { alert('Could not reject receipt'); return; }
+    setPartners(prev => prev.map(x => x.id === p.id ? { ...x, onboarding_status: 'KYC Submitted' } : x));
+    loadKycDocs(p.id);
+  }
+
+  // Payment instructions shown to members on the KYC & Onboarding page
+  const [payInstructions, setPayInstructions] = useState('');
+  const [editingPay, setEditingPay] = useState(false);
+  const [savingPay, setSavingPay] = useState(false);
+  useEffect(() => {
+    supabase.from('platform_settings').select('value').eq('key', 'payment_instructions').maybeSingle()
+      .then(({ data }) => setPayInstructions(data?.value ?? ''));
+  }, []);
+  async function savePayInstructions() {
+    setSavingPay(true);
+    const res = await apiFetch('/api/admin/platform-settings', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'payment_instructions', value: payInstructions }),
+    });
+    setSavingPay(false);
+    if (res.ok) setEditingPay(false); else alert('Could not save payment instructions');
   }
 
   async function updateStatus(userId: string, status: string, extra?: Record<string, any>) {
@@ -116,7 +174,7 @@ export default function OnboardingTracker() {
     }
 
     // Fire-and-forget email notification
-    fetch('/api/onboarding/notify', {
+    apiFetch('/api/onboarding/notify', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ user_id: userId, new_status: status, ...extra }),
@@ -124,7 +182,12 @@ export default function OnboardingTracker() {
   }
 
   async function updateDocStatus(userId: string, docType: string, status: string) {
-    await supabase.from('kyc_documents').update({ status }).match({ user_id: userId, doc_type: docType });
+    let rejection_reason: string | null = null;
+    if (status === 'rejected') {
+      rejection_reason = window.prompt('Reason for rejection (shown to the member):');
+      if (rejection_reason === null) return;
+    }
+    await supabase.from('kyc_documents').update({ status, rejection_reason }).match({ user_id: userId, doc_type: docType });
     setKycDocs(prev => ({
       ...prev,
       [userId]: (prev[userId] ?? []).map(d => d.doc_type === docType ? { ...d, status } : d),
@@ -163,12 +226,36 @@ export default function OnboardingTracker() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#222]">Onboarding Tracker</h1>
-          <p className="text-[#7e7e7e]">Manage partner progress through all 22 onboarding steps</p>
+          <p className="text-[#7e7e7e]">KYC → payment → approval. Approving a member makes them a Shareholder.</p>
         </div>
         <Button size="sm" variant="outline" onClick={fetchPartners} disabled={loading}>
           <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
         </Button>
       </div>
+
+      {/* Admin-started onboarding: invite a prospect shareholder */}
+      <ProspectOnboarding onAccountCreated={fetchPartners} />
+
+      {/* Payment instructions (shown to members on KYC & Onboarding) */}
+      <Card className="border-[#f0f0f0]">
+        <CardContent className="p-4 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-[#222] flex items-center gap-2"><CreditCard className="w-4 h-4 text-[#e33b5f]" />Payment instructions</p>
+            {!editingPay
+              ? <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setEditingPay(true)}>Edit</Button>
+              : <div className="flex gap-1.5">
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditingPay(false)}>Cancel</Button>
+                  <Button size="sm" className="h-7 text-xs bg-[#e33b5f] text-white" onClick={savePayInstructions} disabled={savingPay}>
+                    {savingPay ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Save'}
+                  </Button>
+                </div>}
+          </div>
+          {editingPay
+            ? <textarea rows={4} className="w-full border border-[#f0f0f0] rounded-lg px-3 py-2 text-sm resize-y" value={payInstructions}
+                placeholder="Bank name, account name, IBAN, amount, reference to use…" onChange={e => setPayInstructions(e.target.value)} />
+            : <p className="text-xs text-[#7e7e7e] whitespace-pre-wrap">{payInstructions || 'Not set — members will only see the upload box.'}</p>}
+        </CardContent>
+      </Card>
 
       {/* Phase summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
@@ -281,53 +368,85 @@ export default function OnboardingTracker() {
                     </div>
 
                     {/* KYC document review */}
-                    {needsKyc && (
-                      <div>
-                        <p className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider mb-2">KYC Documents</p>
-                        {docs.length === 0 ? (
-                          <p className="text-xs text-[#9e9e9e]">No documents uploaded yet.</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {docs.map(doc => (
-                              <div key={doc.doc_type} className="flex items-center justify-between gap-2">
-                                <span className="text-xs text-[#444] capitalize">{doc.doc_type.replace(/-/g, ' ')}</span>
-                                <div className="flex items-center gap-1.5">
+                    <div>
+                      <p className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider mb-2">KYC Documents</p>
+                      {docs.filter(d => d.doc_type !== 'payment-receipt').length === 0 ? (
+                        <p className="text-xs text-[#9e9e9e]">No KYC submitted yet.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {docs.filter(d => d.doc_type !== 'payment-receipt').map(doc => (
+                            <div key={doc.doc_type}>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs text-[#444] capitalize flex items-center gap-1.5 min-w-0">
+                                  <span className="truncate">{doc.doc_type.replace(/-/g, ' ')}</span>
+                                  {doc.source === 'typeform' && <span className="text-[9px] px-1 rounded bg-[#f0f0f0] text-[#7e7e7e] normal-case">TypeForm</span>}
+                                  {doc.storage_path && (
+                                    <button onClick={() => openDoc(doc)} className="text-[#e33b5f] hover:underline normal-case shrink-0">view</button>
+                                  )}
+                                </span>
+                                <div className="flex items-center gap-1.5 shrink-0">
                                   <Badge className={`text-[10px] ${docStatusColor(doc.status)}`}>{doc.status}</Badge>
-                                  {doc.status === 'submitted' || doc.status === 'under-review' ? (
-                                    <div className="flex gap-1">
-                                      <button onClick={() => updateDocStatus(p.id, doc.doc_type, 'approved')}
-                                        className="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200 transition">✓</button>
-                                      <button onClick={() => updateDocStatus(p.id, doc.doc_type, 'rejected')}
-                                        className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition">✗</button>
-                                    </div>
-                                  ) : null}
+                                  {doc.status !== 'approved' && (
+                                    <button onClick={() => updateDocStatus(p.id, doc.doc_type, 'approved')} title="Approve"
+                                      className="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200 transition">✓</button>
+                                  )}
+                                  {doc.status !== 'rejected' && (
+                                    <button onClick={() => updateDocStatus(p.id, doc.doc_type, 'rejected')} title="Reject"
+                                      className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition">✗</button>
+                                  )}
                                 </div>
                               </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                              {doc.answers && Object.keys(doc.answers).length > 0 && (
+                                <dl className="mt-1.5 ml-2 pl-2 border-l-2 border-[#f0f0f0] space-y-0.5">
+                                  {Object.entries(doc.answers).map(([q, a]) => (
+                                    <div key={q} className="text-[11px] flex gap-2">
+                                      <dt className="text-[#9e9e9e] shrink-0 max-w-[45%] truncate" title={q}>{q}</dt>
+                                      <dd className="text-[#444] break-words min-w-0">{Array.isArray(a) ? a.join(', ') : String(a)}</dd>
+                                    </div>
+                                  ))}
+                                </dl>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
 
-                    {/* Payment review */}
-                    {needsPayment && (
-                      <div>
-                        <p className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider mb-2">Payment</p>
-                        {p.onboarding_status === 'Payment Receipt Submitted' ? (
-                          <div className="flex items-center gap-2">
-                            <p className="text-xs text-[#555353]">Receipt submitted — awaiting confirmation</p>
-                            <Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
-                              onClick={() => updateStatus(p.id, 'Payment Confirmed')}>
-                              Confirm Payment
-                            </Button>
-                          </div>
-                        ) : p.onboarding_status === 'Payment Confirmed' ? (
-                          <p className="text-xs text-emerald-600 flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> Payment confirmed</p>
-                        ) : (
-                          <p className="text-xs text-[#9e9e9e]">Awaiting receipt from partner.</p>
-                        )}
-                      </div>
-                    )}
+                    {/* Payment review + final approval */}
+                    {(() => {
+                      const receipt = docs.find(d => d.doc_type === 'payment-receipt');
+                      const isShareholder = ['shareholder', 'admin', 'super-admin', 'developer'].includes(p.role);
+                      return (
+                        <div>
+                          <p className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider mb-2">Payment & Approval</p>
+                          {!receipt ? (
+                            <p className="text-xs text-[#9e9e9e]">{isShareholder ? 'Already a shareholder.' : 'Awaiting payment receipt from member.'}</p>
+                          ) : (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-xs text-[#444]">Receipt: {receipt.file_name}</span>
+                                {receipt.answers?.reference && <span className="text-[11px] text-[#7e7e7e]">Ref: {receipt.answers.reference}</span>}
+                                <button onClick={() => openDoc(receipt)} className="text-xs text-[#e33b5f] hover:underline">view</button>
+                                <Badge className={`text-[10px] ${docStatusColor(receipt.status)}`}>{receipt.status}</Badge>
+                              </div>
+                              {!isShareholder && receipt.status !== 'rejected' && (
+                                <div className="flex gap-2 flex-wrap">
+                                  <Button size="sm" className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                                    disabled={updating === p.id} onClick={() => approveShareholder(p)}>
+                                    {updating === p.id ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
+                                    Approve & make Shareholder
+                                  </Button>
+                                  <Button size="sm" variant="outline" className="h-8 text-xs text-red-600" disabled={updating === p.id} onClick={() => rejectReceipt(p)}>
+                                    Reject receipt
+                                  </Button>
+                                </div>
+                              )}
+                              {isShareholder && <p className="text-xs text-emerald-600 flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" />Shareholder</p>}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     <p className="text-[10px] text-[#9e9e9e]">
                       Joined {new Date(p.created_at).toLocaleDateString()} · ID: {p.id.slice(0, 8)}

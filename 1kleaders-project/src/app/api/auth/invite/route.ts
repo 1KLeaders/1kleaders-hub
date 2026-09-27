@@ -3,6 +3,7 @@
 // Sends the same branded magic link welcome email in both cases
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
+import { requireCaller, ADMIN_ROLES } from '@/lib/api-auth';
 
 const EMAIL_HTML = (firstName: string, email: string, setupLink: string) => `<!DOCTYPE html>
 <html>
@@ -69,7 +70,15 @@ async function sendWelcomeEmail(email: string, firstName: string) {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireCaller(req, ADMIN_ROLES);
+  if ('response' in auth) return auth.response;
+
   const { email, first_name, last_name, role, waitlist_id } = await req.json();
+
+  // Only super-admins/developers may grant admin-level roles
+  if (ADMIN_ROLES.includes(role) && !['super-admin', 'developer'].includes(auth.caller.role)) {
+    return NextResponse.json({ error: 'Only super-admins can grant admin roles' }, { status: 403 });
+  }
 
   if (!email || !role) {
     return NextResponse.json({ error: 'email and role are required' }, { status: 400 });

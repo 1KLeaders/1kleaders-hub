@@ -1,37 +1,25 @@
 // POST /api/email/send
-// Send a transactional email via SendGrid
-// Body: { to, toName, subject, html, templateId?, templateData? }
+// Admin-only: send a transactional email via Resend
+// Body: { to, toName?, subject, html?, text? }
 import { NextRequest, NextResponse } from 'next/server';
+import { requireCaller, ADMIN_ROLES } from '@/lib/api-auth';
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_EMAIL       = process.env.RESEND_FROM_EMAIL ?? 'noreply@1kleaders.com';
-const FROM_NAME        = process.env.RESEND_FROM_NAME  ?? '1K Leaders';
+const FROM_EMAIL     = process.env.RESEND_FROM_EMAIL ?? 'info@1kleaders.com';
+const FROM_NAME      = process.env.RESEND_FROM_NAME  ?? '1K Leaders';
 
 export async function POST(req: NextRequest) {
+  const auth = await requireCaller(req, ADMIN_ROLES);
+  if ('response' in auth) return auth.response;
+
   if (!RESEND_API_KEY) {
-    return NextResponse.json({ error: 'SendGrid not configured — add RESEND_API_KEY to environment variables' }, { status: 503 });
+    return NextResponse.json({ error: 'Resend not configured — add RESEND_API_KEY to environment variables' }, { status: 503 });
   }
 
-  const { to, toName, subject, html, text, templateId, templateData } = await req.json();
+  const { to, toName, subject, html, text } = await req.json();
 
   if (!to || !subject) {
     return NextResponse.json({ error: 'to and subject are required' }, { status: 400 });
-  }
-
-  const body: Record<string, any> = {
-    personalizations: [{ to: [{ email: to, name: toName ?? to }] }],
-    from: { email: FROM_EMAIL, name: FROM_NAME },
-    subject,
-  };
-
-  if (templateId) {
-    body.template_id = templateId;
-    body.personalizations[0].dynamic_template_data = templateData ?? {};
-  } else {
-    body.content = [
-      ...(text  ? [{ type: 'text/plain', value: text  }] : []),
-      ...(html   ? [{ type: 'text/html',  value: html  }] : []),
-    ];
   }
 
   const res = await fetch('https://api.resend.com/emails', {
@@ -40,15 +28,20 @@ export async function POST(req: NextRequest) {
       'Authorization': `Bearer ${RESEND_API_KEY}`,
       'Content-Type':  'application/json',
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      from: `${FROM_NAME} <${FROM_EMAIL}>`,
+      to:   toName ? `${toName} <${to}>` : to,
+      subject,
+      ...(html ? { html } : {}),
+      ...(text ? { text } : {}),
+    }),
   });
 
+  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const err = await res.text();
-    console.error('SendGrid error:', err);
-    return NextResponse.json({ error: `SendGrid error: ${res.status}` }, { status: 500 });
+    console.error('Resend error:', data);
+    return NextResponse.json({ error: `Resend error: ${data.message ?? res.status}` }, { status: 500 });
   }
 
-  // SendGrid returns 202 Accepted with no body on success
-  return NextResponse.json({ success: true, messageId: res.headers.get('x-message-id') });
+  return NextResponse.json({ success: true, messageId: data.id });
 }

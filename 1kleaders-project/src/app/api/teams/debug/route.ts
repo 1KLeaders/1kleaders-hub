@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
+import { requireCaller, ADMIN_ROLES } from '@/lib/api-auth';
 
 export async function GET(req: NextRequest) {
+  const auth = await requireCaller(req, ADMIN_ROLES);
+  if ('response' in auth) return auth.response;
+
   const { data: conn } = await supabaseAdmin
     .from('teams_connections')
     .select('email, display_name, expires_at, connected, created_at, ms_user_id')

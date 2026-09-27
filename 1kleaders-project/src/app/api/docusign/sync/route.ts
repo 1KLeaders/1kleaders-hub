@@ -3,8 +3,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { getJWTAccessToken as getAccessToken } from '@/lib/docusign';
+import { requireCaller, ADMIN_ROLES } from '@/lib/api-auth';
+import { syncPendingProspects } from '@/lib/prospects';
 
 export async function POST(req: NextRequest) {
+  const auth = await requireCaller(req, ADMIN_ROLES);
+  if ('response' in auth) return auth.response;
+
   try {
     const token = await getAccessToken();
     const baseUrl   = process.env.DOCUSIGN_BASE_URL;
@@ -73,10 +78,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Signed prospect agreements → create their accounts
+    let prospects: unknown = null;
+    try { prospects = await syncPendingProspects(); } catch (e: any) { prospects = { error: e.message }; }
+
     return NextResponse.json({
       synced,
       total: envelopes.length,
       errors,
+      prospects,
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

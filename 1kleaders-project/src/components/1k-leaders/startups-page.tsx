@@ -7,6 +7,7 @@ import { Loader2, ExternalLink, ChevronRight, ChevronDown, Users, TrendingUp, Ma
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth-context';
 import type { DashboardRole } from './types';
+import { StartupLogo } from './startup-shared';
 
 interface Props { role?: DashboardRole; navigate?: (page: string) => void; }
 
@@ -65,7 +66,7 @@ export default function StartupsPage({ role, navigate }: Props) {
   async function saveStartup() {
     if (!form.name?.trim()) return;
     setSaving(true);
-    if (editId) {
+    if (editId && editId !== 'new') {
       await supabase.from('startups').update(form).eq('id', editId);
       setStartups(prev => prev.map(s => s.id === editId ? { ...s, ...form } as Startup : s));
     } else {
@@ -165,13 +166,7 @@ export default function StartupsPage({ role, navigate }: Props) {
                 {/* Color stripe */}
                 <div className="w-2 self-stretch flex-shrink-0" style={{ backgroundColor: primary }} />
                 {/* Logo / initial */}
-                <div className="w-16 h-16 flex items-center justify-center flex-shrink-0 ml-4"
-                  style={{ backgroundColor: primary + '15' }}>
-                  {s.logo_url
-                    ? <img src={s.logo_url} alt={s.name} className="w-10 h-10 object-contain" />
-                    : <span className="text-xl font-black" style={{ color: primary }}>{s.name[0]}</span>
-                  }
-                </div>
+                <StartupLogo startup={s} size={72} className="ml-4 my-3" />
                 {/* Info */}
                 <div className="flex-1 min-w-0 px-5 py-4">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -196,7 +191,7 @@ export default function StartupsPage({ role, navigate }: Props) {
                   )}
                   {isAdmin && (
                     <>
-                      <button onClick={e => { e.stopPropagation(); setEditId(s.id); setForm(s); setOpenId(null); }}
+                      <button onClick={e => { e.stopPropagation(); setEditId(s.id); setForm(s); }}
                         className="w-8 h-8 rounded-lg border border-[#f0f0f0] flex items-center justify-center hover:border-[#e33b5f]/30 transition">
                         <Pencil className="w-3.5 h-3.5 text-[#9e9e9e]" />
                       </button>

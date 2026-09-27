@@ -2,8 +2,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { getJWTAccessToken as getAccessToken } from '@/lib/docusign';
+import { requireCaller, ADMIN_ROLES } from '@/lib/api-auth';
 
 export async function GET(req: NextRequest) {
+  const auth = await requireCaller(req);
+  if ('response' in auth) return auth.response;
+
   try {
     const envelopeId = req.nextUrl.searchParams.get('envelope_id');
     if (!envelopeId) return NextResponse.json({ error: 'envelope_id required' }, { status: 400 });
@@ -16,6 +20,12 @@ export async function GET(req: NextRequest) {
       .maybeSingle();
 
     if (!envelope) return NextResponse.json({ error: 'Envelope not found' }, { status: 404 });
+
+    const { caller } = auth;
+    const isOwner = envelope.user_id === caller.id || envelope.recipient_email?.toLowerCase() === caller.email.toLowerCase();
+    if (!isOwner && !ADMIN_ROLES.includes(caller.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const token   = await getAccessToken();
     const baseUrl = process.env.DOCUSIGN_BASE_URL;
@@ -42,7 +52,13 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Pending — generate embedded signing URL
+    // Pending — generate embedded signing URL (recipient only, and only while the envelope is open)
+    if (!isOwner) {
+      return NextResponse.json({ error: 'Only the recipient can sign this agreement' }, { status: 403 });
+    }
+    if (!['sent', 'delivered'].includes(envelope.status)) {
+      return NextResponse.json({ error: `This agreement is ${envelope.status} and can no longer be signed` }, { status: 409 });
+    }
     const recipientRes = await fetch(
       `${baseUrl}/v2.1/accounts/${accountId}/envelopes/${envelopeId}/views/recipient`,
       {

@@ -10,6 +10,7 @@ import type { DashboardRole, DashboardPriority, RoleBadge } from './types';
 import { roleBadgeConfig } from './types';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth-context';
+import { StartupLogo } from './startup-shared';
 
 interface Props { role: DashboardRole; navigate: (page: string) => void; }
 
@@ -364,10 +365,7 @@ export default function DashboardHome({ role, navigate }: Props) {
                 {approvedStartups.map(s => (
                   <div key={s.id} className="flex flex-col items-center gap-2 p-3 border border-[#f0f0f0] rounded-xl hover:border-[#e33b5f]/20 transition cursor-pointer"
                     onClick={() => navigate(`startup-${s.id}`)}>
-                    {s.logo_url
-                      ? <img src={s.logo_url} alt={s.name} className="w-12 h-12 object-contain rounded-lg" />
-                      : <div className="w-12 h-12 rounded-lg flex items-center justify-center text-lg font-black text-white" style={{ backgroundColor: s.primary_color ?? '#e33b5f' }}>{s.name[0]}</div>
-                    }
+                    <StartupLogo startup={s} size={72} />
                     <p className="text-xs font-semibold text-[#222] text-center">{s.name}</p>
                   </div>
                 ))}

@@ -144,6 +144,60 @@ export async function sendMeetingScheduledEmail(to: string, firstName: string, m
   `, 'Meeting Scheduled'));
 }
 
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+// Announcement published — sent via Resend's batch endpoint (max 100 per request)
+export async function sendAnnouncementEmails(
+  recipients: { email: string; firstName: string }[],
+  ann: { title: string; excerpt: string; category: string; url: string },
+) {
+  if (!API_KEY) {
+    console.warn('RESEND_API_KEY not configured — skipping announcement emails');
+    return { sent: 0 };
+  }
+  const subject = `${ann.category}: ${ann.title}`;
+  let sent = 0;
+  for (let i = 0; i < recipients.length; i += 100) {
+    const chunk = recipients.slice(i, i + 100);
+    const res = await fetch('https://api.resend.com/emails/batch', {
+      method:  'POST',
+      headers: { 'Authorization': `Bearer ${API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(chunk.map(r => ({
+        from:    `${FROM_NAME} <${FROM_EMAIL}>`,
+        to:      r.email,
+        subject,
+        html: base(`
+          <p style="color:#444;font-size:15px;line-height:1.7;margin:0 0 16px;">Hi ${escapeHtml(r.firstName)},</p>
+          <p style="color:#9e9e9e;font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin:0 0 6px;">${escapeHtml(ann.category)}</p>
+          <p style="color:#222;font-size:18px;font-weight:800;line-height:1.4;margin:0 0 12px;">${escapeHtml(ann.title)}</p>
+          ${ann.excerpt ? `<p style="color:#555;font-size:15px;line-height:1.7;margin:0 0 8px;">${escapeHtml(ann.excerpt)}</p>` : ''}
+          ${btn(ann.url, 'Read on 1KL Hub →')}
+          <p style="color:#9e9e9e;font-size:12px;line-height:1.6;margin:0;">You're receiving this because you turned on announcement emails. You can switch them off in Settings on 1KL Hub.</p>
+        `, 'New on 1KL Hub'),
+      }))),
+    });
+    if (res.ok) sent += chunk.length;
+    else console.error('Resend batch error:', res.status, await res.text());
+  }
+  return { sent };
+}
+
+export async function sendPasswordResetEmail(to: string, firstName: string, resetLink: string) {
+  return sendEmail(to, firstName, 'Reset Your 1KL Hub Password', base(`
+    <p style="color:#444;font-size:15px;line-height:1.7;margin:0 0 16px;">Hi ${firstName},</p>
+    <p style="color:#444;font-size:15px;line-height:1.7;margin:0 0 16px;">We received a request to reset the password for your <strong>1KL Hub</strong> account. Click the button below to choose a new password. The link is valid for <strong>1 hour</strong> and can only be used once.</p>
+    <div style="background:#f6f6f6;border-radius:8px;padding:12px 16px;margin-bottom:8px;">
+      <p style="margin:0;font-size:13px;color:#9e9e9e;">Account:</p>
+      <p style="margin:4px 0 0;font-size:15px;font-weight:700;color:#222;">${to}</p>
+    </div>
+    ${btn(resetLink, 'Reset My Password →')}
+    <p style="color:#9e9e9e;font-size:13px;margin:0 0 8px;">If the button doesn't work, copy this link into your browser:</p>
+    <p style="color:#e33b5f;font-size:12px;word-break:break-all;margin:0 0 20px;">${resetLink}</p>
+    <p style="color:#7e7e7e;font-size:13px;line-height:1.6;margin:0;">If you didn't request this, you can safely ignore this email — your password won't change.</p>
+  `, 'Reset Your Password'));
+}
+
 export async function sendAdminNotificationEmail(to: string, toName: string, subject: string, message: string) {
   return sendEmail(to, toName, subject, base(`
     <p style="color:#444;font-size:15px;line-height:1.7;margin:0 0 16px;">Hi ${toName},</p>

@@ -10,6 +10,10 @@ import type { Page, DashboardRole, RoleBadge } from './types';
 import { roleBadgeConfig } from './types';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth-context';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Props { role?: DashboardRole; navigate?: (page: Page) => void; }
 
@@ -81,6 +85,7 @@ export default function DiscussionRooms({ role }: Props) {
   const [roomRoles,     setRoomRoles]     = useState<string[]>(['shareholder','admin','super-admin','developer']);
   const [savingRoom,    setSavingRoom]    = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [pendingDeleteMsg, setPendingDeleteMsg] = useState<Message | null>(null);
 
   const ROLE_OPTIONS = ['shareholder','user','admin','super-admin','developer'];
 
@@ -438,7 +443,7 @@ export default function DiscussionRooms({ role }: Props) {
                             {msg.sender_subroles?.slice(0, 2).map(sr => <DigitalBadge key={sr} role={sr} />)}
                           </div>
                           {(isAdmin || isMe) && (
-                            <button onClick={() => deleteMessage(msg.id)}
+                            <button onClick={() => setPendingDeleteMsg(msg)} title="Delete message"
                               className="opacity-0 group-hover:opacity-100 transition text-[#9e9e9e] hover:text-red-400 mb-1 flex-shrink-0">
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -521,6 +526,30 @@ export default function DiscussionRooms({ role }: Props) {
           )}
         </Card>
       </div>
+
+      {/* Delete message confirmation */}
+      <AlertDialog open={!!pendingDeleteMsg} onOpenChange={open => { if (!open) setPendingDeleteMsg(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this message?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the message for everyone in the room. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {pendingDeleteMsg && (
+            <div className="px-3 py-2 rounded-lg bg-[#f6f6f6] text-sm text-[#444] max-h-32 overflow-y-auto whitespace-pre-wrap break-words">
+              {pendingDeleteMsg.content.replace(/^📎\s*(.*?)\|\|.*$/gm, '📎 $1')}
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={() => { if (pendingDeleteMsg) deleteMessage(pendingDeleteMsg.id); setPendingDeleteMsg(null); }}>
+              Yes, delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Page, DashboardRole } from '@/components/1k-leaders/types';
 import { useAuth } from '@/context/auth-context';
 import LandingPage from '@/components/1k-leaders/landing-page';
@@ -7,11 +7,11 @@ import WaitlistForm from '@/components/1k-leaders/waitlist-form';
 import LoginPage from '@/components/1k-leaders/login-page';
 import OnboardingKYC from '@/components/1k-leaders/onboarding-kyc';
 import FirstLoginFlow from '@/components/1k-leaders/first-login-flow';
+import ResetPasswordScreen from '@/components/1k-leaders/reset-password-screen';
 import DashboardLayout from '@/components/1k-leaders/dashboard-layout';
 import DashboardHome from '@/components/1k-leaders/dashboard-home';
 import IdeaSubmission from '@/components/1k-leaders/idea-submission';
 import IdeaRanking from '@/components/1k-leaders/idea-ranking';
-import AgreementsPage from '@/components/1k-leaders/agreements-page';
 import DocumentsPage from '@/components/1k-leaders/documents-page';
 import PartnersPage from '@/components/1k-leaders/partners-page';
 import SettingsPage from '@/components/1k-leaders/settings-page';
@@ -67,10 +67,21 @@ const dashboardPages: Page[] = [
 ];
 
 export default function Home() {
-  const { session, profile, role, loading, signOut } = useAuth();
+  const { session, profile, role, loading, signOut, passwordRecovery } = useAuth();
   const [currentPage, setCurrentPage] = useState<Page>('landing');
 
   const navigate = (page: Page) => setCurrentPage(page);
+
+  // Deep links from emails/notifications: /?page=announcement-<id>, /?page=agreements, ...
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const target = url.searchParams.get('page');
+    if (target && /^[a-z0-9-]+$/i.test(target)) {
+      setCurrentPage(target as Page);
+      url.searchParams.delete('page');
+      window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+    }
+  }, []);
 
   // ── Loading splash ────────────────────────────────────────────────────────
   if (loading) {
@@ -82,6 +93,11 @@ export default function Home() {
         </div>
       </div>
     );
+  }
+
+  // ── Authenticated via password-reset link: choose a new password ─────────
+  if (session && passwordRecovery) {
+    return <ResetPasswordScreen onDone={() => setCurrentPage('dashboard')} />;
   }
 
   // ── Authenticated user: first-login flow ──────────────────────────────────
@@ -104,8 +120,9 @@ export default function Home() {
         case 'dashboard':         return <DashboardHome role={role} navigate={navigate} />;
         case 'idea-submission':   return <IdeaSubmission role={role} navigate={navigate} />;
         case 'idea-ranking':      return <IdeaRanking />;
-        case 'agreements':        return <AgreementsPage role={role} />;
-        case 'documents':         return <DocumentsPage role={role} />;
+        // Agreements now live in a tab on the Documents page; old 'agreements' links open that tab
+        case 'agreements':        return <DocumentsPage role={role} navigate={navigate} initialTab="agreements" />;
+        case 'documents':         return <DocumentsPage role={role} navigate={navigate} />;
         case 'partners':          return <PartnersPage role={role} navigate={navigate} />;
         case 'settings':          return <SettingsPage />;
         case 'notifications':     return <NotificationsPage navigate={navigate} role={role} />;
@@ -132,7 +149,7 @@ export default function Home() {
         case 'idea-status':             return <IdeaStatusTracker />;
         case 'fellowship-applications': return <FellowshipApplications />;
         case 'demo-day':             return <DemoDayPage role={role} />;
-        case 'startup-page':      return <StartupPage />;
+        case 'startup-page':      return <StartupPage navigate={navigate} />;
         case 'bug-report':        return <BugReportPage />;
         case 'onboarding':        return <OnboardingKYC navigate={navigate} />;
         case 'recommendations':   return <RecommendationsPage />;

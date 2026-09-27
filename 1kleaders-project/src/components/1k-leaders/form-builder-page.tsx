@@ -13,21 +13,24 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth-context';
 import type { DashboardRole } from './types';
+import { KYC_DOC_TYPE_OPTIONS } from '@/lib/kyc';
 
 interface Props { role?: DashboardRole; navigate?: (p: string) => void; }
 
-type FieldType = 'text'|'textarea'|'email'|'number'|'select'|'multiselect'|'radio'|'checkbox'|'rating'|'date';
+type FieldType = 'text'|'textarea'|'email'|'number'|'select'|'multiselect'|'radio'|'checkbox'|'rating'|'date'|'file';
 
 type Field = {
   id: string; type: FieldType; label: string; required: boolean;
   placeholder?: string; help_text?: string; options?: string[];
+  kyc_doc_type?: string;   // file fields on KYC forms: which KYC document this upload is
 };
 
 type Form = {
   id: string; title: string; description: string | null; is_published: boolean;
   is_anonymous: boolean; show_progress: boolean; accent_color: string;
-  fields: Field[]; created_at: string;
+  fields: Field[]; created_at: string; purpose?: 'general' | 'kyc';
 };
+
 
 const FIELD_TYPES: { type: FieldType; label: string; icon: any }[] = [
   { type: 'text',        label: 'Short Text',    icon: Type },
@@ -39,6 +42,7 @@ const FIELD_TYPES: { type: FieldType; label: string; icon: any }[] = [
   { type: 'multiselect', label: 'Checkboxes',     icon: CheckSquare },
   { type: 'rating',      label: 'Rating',         icon: Star },
   { type: 'date',        label: 'Date',           icon: Calendar },
+  { type: 'file',        label: 'File Upload',    icon: Upload },
 ];
 
 function genId() { return Math.random().toString(36).slice(2, 9); }
@@ -62,7 +66,31 @@ export default function FormBuilderPage({ role, navigate }: Props) {
     return {
       id: '', title: 'Untitled Form', description: '',
       is_published: false, is_anonymous: false, show_progress: true,
-      accent_color: '#e33b5f', fields: [], created_at: new Date().toISOString(),
+      accent_color: '#e33b5f', fields: [], created_at: new Date().toISOString(), purpose: 'general',
+    };
+  }
+
+  // Starter KYC form — admins can edit questions freely afterwards
+  function newKycForm(): Form {
+    const f = (type: FieldType, label: string, extra: Partial<Field> = {}): Field =>
+      ({ id: genId(), type, label, required: true, placeholder: '', ...extra });
+    return {
+      ...newForm(),
+      title: 'KYC Form', purpose: 'kyc', is_anonymous: false,
+      description: 'Know Your Customer information required by ADGM for all 1K Leaders shareholders.',
+      fields: [
+        f('text', 'Full legal name (as on passport)'),
+        f('date', 'Date of birth'),
+        f('text', 'Nationality'),
+        f('textarea', 'Residential address'),
+        f('text', 'Occupation / job title'),
+        f('select', 'Source of funds', { options: ['Salary / employment income', 'Business income', 'Investments', 'Inheritance', 'Other'] }),
+        f('radio', 'Are you a Politically Exposed Person (PEP)?', { options: ['No', 'Yes'] }),
+        f('file', 'Passport copy', { kyc_doc_type: 'passport', help_text: 'Clear scan of the photo page — PDF or image' }),
+        f('file', 'National ID (front and back)', { kyc_doc_type: 'national-id', help_text: 'PDF or image' }),
+        f('file', 'Proof of address (last 3 months)', { kyc_doc_type: 'proof-of-address', help_text: 'Utility bill or bank statement' }),
+        f('file', 'CV / Résumé', { kyc_doc_type: 'cv', required: false }),
+      ],
     };
   }
 
@@ -73,7 +101,9 @@ export default function FormBuilderPage({ role, navigate }: Props) {
       title: editForm.title, description: editForm.description,
       is_published: editForm.is_published, is_anonymous: editForm.is_anonymous,
       show_progress: editForm.show_progress, accent_color: editForm.accent_color,
-      fields: editForm.fields,
+      fields: editForm.fields, purpose: editForm.purpose ?? 'general',
+      // KYC answers must be tied to the person
+      ...(editForm.purpose === 'kyc' ? { is_anonymous: false } : {}),
     };
     if (editForm.id) {
       await supabase.from('forms').update(payload).eq('id', editForm.id);
@@ -108,6 +138,7 @@ export default function FormBuilderPage({ role, navigate }: Props) {
       id: genId(), type, label: FIELD_TYPES.find(t => t.type === type)?.label ?? type,
       required: false, placeholder: '',
       options: ['select','radio','multiselect'].includes(type) ? ['Option 1','Option 2'] : undefined,
+      ...(type === 'file' && editForm.purpose === 'kyc' ? { kyc_doc_type: 'other' } : {}),
     };
     setEditForm(f => f ? { ...f, fields: [...f.fields, field] } : f);
   }
@@ -144,9 +175,14 @@ export default function FormBuilderPage({ role, navigate }: Props) {
           <p className="text-[#7e7e7e] mt-1">Create and manage 1KL-branded forms</p>
         </div>
         {isAdmin && (
-          <Button className="bg-[#e33b5f] text-white" onClick={() => { setEditForm(newForm()); setView('edit'); }}>
-            <Plus className="w-4 h-4 mr-1" />New Form
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" onClick={() => { setEditForm(newKycForm()); setView('edit'); }}>
+              <Plus className="w-4 h-4 mr-1" />New KYC Form
+            </Button>
+            <Button className="bg-[#e33b5f] text-white" onClick={() => { setEditForm(newForm()); setView('edit'); }}>
+              <Plus className="w-4 h-4 mr-1" />New Form
+            </Button>
+          </div>
         )}
       </div>
 
@@ -174,6 +210,7 @@ export default function FormBuilderPage({ role, navigate }: Props) {
                     <Badge className={form.is_published ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-100 text-stone-500'}>
                       {form.is_published ? 'Published' : 'Draft'}
                     </Badge>
+                    {form.purpose === 'kyc' && <Badge className="bg-purple-100 text-purple-700">KYC</Badge>}
                   </div>
                   <p className="text-xs text-[#9e9e9e] mt-0.5">{form.fields.length} fields · Created {new Date(form.created_at).toLocaleDateString()}</p>
                 </div>
@@ -240,10 +277,16 @@ export default function FormBuilderPage({ role, navigate }: Props) {
             {editForm.fields.map(field => (
               <div key={field.id} className="flex gap-3 text-sm">
                 <span className="text-[#9e9e9e] min-w-32 flex-shrink-0">{field.label}</span>
-                <span className="text-[#222]">{
-                  Array.isArray(r.answers[field.id])
-                    ? r.answers[field.id].join(', ')
-                    : r.answers[field.id] ?? '—'
+                <span className="text-[#222] break-words min-w-0">{
+                  field.type === 'file' && r.answers?.[field.id]?.path
+                    ? <button className="text-[#e33b5f] hover:underline" onClick={async () => {
+                        const a = r.answers?.[field.id];
+                        const { data } = await supabase.storage.from(a.bucket).createSignedUrl(a.path, 60);
+                        if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+                      }}>📎 {r.answers?.[field.id].name}</button>
+                    : Array.isArray(r.answers?.[field.id])
+                      ? r.answers?.[field.id].join(', ')
+                      : String(r.answers?.[field.id] ?? '—')
                 }</span>
               </div>
             ))}
@@ -286,10 +329,16 @@ export default function FormBuilderPage({ role, navigate }: Props) {
                 onChange={e => setEditForm(f => f ? { ...f, show_progress: e.target.checked } : f)} />
               Show progress bar
             </label>
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" className="accent-[#e33b5f]" checked={editForm.is_anonymous}
+            <label className={`flex items-center gap-2 text-sm ${editForm.purpose === 'kyc' ? 'opacity-50' : 'cursor-pointer'}`}>
+              <input type="checkbox" className="accent-[#e33b5f]" checked={editForm.is_anonymous && editForm.purpose !== 'kyc'}
+                disabled={editForm.purpose === 'kyc'}
                 onChange={e => setEditForm(f => f ? { ...f, is_anonymous: e.target.checked } : f)} />
               Anonymous responses
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer" title="Members complete this form on their KYC & Onboarding page; uploads land in Documents → KYC">
+              <input type="checkbox" className="accent-[#e33b5f]" checked={editForm.purpose === 'kyc'}
+                onChange={e => setEditForm(f => f ? { ...f, purpose: e.target.checked ? 'kyc' : 'general' } : f)} />
+              Use as KYC form
             </label>
             <div className="flex items-center gap-2 text-sm ml-auto">
               <span className="text-[#9e9e9e]">Accent:</span>
@@ -344,6 +393,18 @@ export default function FormBuilderPage({ role, navigate }: Props) {
                     <button onClick={() => { const opts = [...(field.options ?? []), `Option ${(field.options?.length ?? 0) + 1}`]; updateField(field.id, { options: opts }); }}
                       className="text-xs text-[#e33b5f] hover:underline">+ Add option</button>
                   </div>
+                )}
+                {field.type === 'file' && editForm.purpose === 'kyc' && (
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-[#9e9e9e] shrink-0">Saves to KYC as:</span>
+                    <select className="border border-[#f0f0f0] rounded-lg px-2 py-1 bg-transparent text-[#222]"
+                      value={field.kyc_doc_type ?? 'other'} onChange={e => updateField(field.id, { kyc_doc_type: e.target.value })}>
+                      {KYC_DOC_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+                )}
+                {field.type === 'file' && editForm.purpose !== 'kyc' && (
+                  <p className="text-xs text-[#9e9e9e]">Respondents upload a file (PDF, image or document, max 25 MB). Only admins and the respondent can open it.</p>
                 )}
                 <Input className="text-xs border-[#f0f0f0] text-[#9e9e9e]" placeholder="Help text (optional)"
                   value={field.help_text ?? ''} onChange={e => updateField(field.id, { help_text: e.target.value })} />

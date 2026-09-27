@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth-context';
+import { apiFetch } from '@/lib/api-fetch';
 
 type RecStatus = 'submitted' | 'ai-reviewed' | 'sent-to-ops' | 'under-review' | 'accepted' | 'rejected' | 'parked' | 'implemented';
 
@@ -159,7 +160,7 @@ export default function RecommendationsPage({ navigate }: { navigate?: (page: st
 
     let reply = 'Sorry, I had trouble responding. Please try again.';
     try {
-      const res = await fetch('/api/ai/chat', {
+      const res = await apiFetch('/api/ai/chat', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: content, session_id: sessionId, agent_type: 'general' }),
@@ -200,7 +201,7 @@ export default function RecommendationsPage({ navigate }: { navigate?: (page: st
     if (!body.trim()) return;
     setAiStage('checking');
     try {
-      const res = await fetch('/api/ai/chat', {
+      const res = await apiFetch('/api/ai/chat', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

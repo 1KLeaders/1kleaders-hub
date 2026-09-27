@@ -1,9 +1,15 @@
 // POST /api/teams/create-meeting
 import { NextRequest, NextResponse } from 'next/server';
 import { getValidTeamsToken } from '@/lib/teams-token';
-import { supabaseAdmin } from '@/lib/supabase-server';
+import { requireCaller, ADMIN_ROLES } from '@/lib/api-auth';
+
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 export async function POST(req: NextRequest) {
+  const auth = await requireCaller(req, ADMIN_ROLES);
+  if ('response' in auth) return auth.response;
+
   const { title, start_datetime, end_datetime, description, invitee_emails = [] } = await req.json();
 
   if (!title || !start_datetime) {
@@ -58,7 +64,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         subject:   title,
-        body:      { contentType: 'HTML', content: `${description ?? ''}<br/><br/>Teams link: <a href="${joinUrl}">${joinUrl}</a>` },
+        body:      { contentType: 'HTML', content: `${escapeHtml(description ?? '')}<br/><br/>Teams link: <a href="${escapeHtml(joinUrl)}">${escapeHtml(joinUrl)}</a>` },
         start:     { dateTime: start_datetime, timeZone: 'UTC' },
         end:       { dateTime: endTime,        timeZone: 'UTC' },
         attendees,

@@ -2,25 +2,31 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, ChevronRight, ChevronLeft, Check, Star } from 'lucide-react';
+import { Loader2, ChevronRight, ChevronLeft, Check, Star, Upload } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth-context';
 
 type Field = {
   id: string; type: string; label: string; required: boolean;
   placeholder?: string; help_text?: string; options?: string[];
+  kyc_doc_type?: string;
 };
 
 type Form = {
   id: string; title: string; description: string | null;
   is_anonymous: boolean; show_progress: boolean; accent_color: string;
-  fields: Field[];
+  fields: Field[]; purpose?: string;
 };
+
+// Answer stored for a file field
+type FileAnswer = { bucket: string; path: string; name: string; size: number; mime: string };
+
+const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 
 interface Props { formId: string; navigate?: (p: string) => void; }
 
 export default function FormViewerPage({ formId, navigate }: Props) {
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const [form,      setForm]      = useState<Form | null>(null);
   const [loading,   setLoading]   = useState(true);
   const [step,      setStep]      = useState(-1); // -1 = intro, fields.length = thank you
@@ -28,7 +34,9 @@ export default function FormViewerPage({ formId, navigate }: Props) {
   const [submitting,setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error,     setError]     = useState('');
+  const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement|HTMLTextAreaElement|null>(null);
+  const fileInputRef = useRef<HTMLInputElement|null>(null);
 
   useEffect(() => {
     supabase.from('forms').select('*').eq('id', formId).eq('is_published', true).single()
@@ -79,13 +87,69 @@ export default function FormViewerPage({ formId, navigate }: Props) {
 
   function prev() { if (step > 0) setStep(s => s - 1); else setStep(-1); }
 
+  const isKyc = form.purpose === 'kyc';
+
+  // Files upload as soon as they're picked; the answer keeps the storage location
+  async function uploadFile(f: Field, file: File) {
+    if (!profile) { setError('Please sign in to upload files.'); return; }
+    if (file.size > MAX_UPLOAD_BYTES) { setError('File is too large (max 25 MB).'); return; }
+    setUploading(true); setError('');
+    const safe = file.name.replace(/[^\w.\-]+/g, '_');
+    const bucket = isKyc ? 'kyc-documents' : 'form-uploads';
+    const path = isKyc
+      ? `${profile.id}/${f.kyc_doc_type ?? `form-${f.id}`}/${Date.now()}_${safe}`
+      : `${profile.id}/${form!.id}/${f.id}/${Date.now()}_${safe}`;
+    const { error: upErr } = await supabase.storage.from(bucket).upload(path, file, { upsert: true, contentType: file.type || undefined });
+    setUploading(false);
+    if (upErr) { setError(`Upload failed: ${upErr.message}`); return; }
+    const value: FileAnswer = { bucket, path, name: file.name, size: file.size, mime: file.type };
+    setAnswers(a => ({ ...a, [f.id]: value }));
+  }
+
   async function submit() {
-    setSubmitting(true);
-    await supabase.from('form_responses').insert({
+    if (!form) return;
+    setSubmitting(true); setError('');
+    const { data: response, error: insErr } = await supabase.from('form_responses').insert({
       form_id:  form.id,
-      user_id:  form.is_anonymous ? null : profile?.id ?? null,
+      user_id:  form.is_anonymous && !isKyc ? null : profile?.id ?? null,
       answers,
-    });
+    }).select('id').single();
+
+    if (insErr) { setSubmitting(false); setError(`Could not submit: ${insErr.message}`); return; }
+
+    // KYC forms: every upload becomes a KYC document, plus one entry holding the written answers
+    if (isKyc && profile) {
+      const now = new Date().toISOString();
+      const usedTypes = new Set<string>();
+      const uploads = fields.filter(f => f.type === 'file' && answers[f.id]?.path).map(f => {
+        const a = answers[f.id] as FileAnswer;
+        // one row per (user, doc_type) — keep types unique if two questions share one (e.g. 'other')
+        let docType = f.kyc_doc_type ?? `form-${f.id}`;
+        if (usedTypes.has(docType)) docType = `${docType}-${f.id}`;
+        usedTypes.add(docType);
+        return {
+          user_id: profile.id, doc_type: docType, storage_path: a.path,
+          file_name: a.name, file_size_bytes: a.size, status: 'submitted', uploaded_at: now,
+          source: 'form', form_response_id: response?.id ?? null,
+        };
+      });
+      const written = Object.fromEntries(fields.filter(f => f.type !== 'file' && answers[f.id] !== undefined && answers[f.id] !== '')
+        .map(f => [f.label, answers[f.id]]));
+      const rows = [
+        ...uploads,
+        { user_id: profile.id, doc_type: 'kyc-form', storage_path: null, file_name: form.title, file_size_bytes: null,
+          status: 'submitted', uploaded_at: now, source: 'form', form_response_id: response?.id ?? null, answers: written },
+      ];
+      const { error: kycErr } = await supabase.from('kyc_documents').upsert(rows, { onConflict: 'user_id,doc_type' });
+      if (kycErr) { setSubmitting(false); setError(`Saved your answers, but KYC documents failed: ${kycErr.message}`); return; }
+
+      const early = [null, '', 'Meeting Completed', 'Agreement Signed', 'Platform Access Issued', 'KYC Pending'];
+      if (early.includes(profile.onboarding_status)) {
+        await supabase.from('profiles').update({ onboarding_status: 'KYC Submitted', updated_at: now }).eq('id', profile.id);
+        await refreshProfile();
+      }
+    }
+
     setSubmitted(true);
     setSubmitting(false);
   }
@@ -101,8 +165,14 @@ export default function FormViewerPage({ formId, navigate }: Props) {
         <Check className="w-8 h-8 text-white" />
       </div>
       <h1 className="text-3xl font-black text-[#222] mb-3">Thank you!</h1>
-      <p className="text-[#7e7e7e] mb-8">Your response has been submitted successfully.</p>
-      {navigate && <Button variant="outline" onClick={() => navigate('forms')}>Back to Forms</Button>}
+      <p className="text-[#7e7e7e] mb-8">
+        {form.purpose === 'kyc'
+          ? 'Your KYC details and documents have been submitted. Next step: payment.'
+          : 'Your response has been submitted successfully.'}
+      </p>
+      {navigate && (form.purpose === 'kyc'
+        ? <Button className="text-white" style={{ backgroundColor: accent }} onClick={() => navigate('onboarding')}>Continue to Payment →</Button>
+        : <Button variant="outline" onClick={() => navigate('forms')}>Back to Forms</Button>)}
     </div>
   );
 
@@ -241,6 +311,33 @@ export default function FormViewerPage({ formId, navigate }: Props) {
                   </button>
                 );
               })}
+            </div>
+          )}
+          {field?.type === 'file' && (
+            <div>
+              <input ref={fileInputRef} type="file" className="hidden"
+                accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.txt"
+                onChange={e => { const f = e.target.files?.[0]; if (f) uploadFile(field, f); e.target.value = ''; }} />
+              {!profile ? (
+                <p className="text-sm text-[#9e9e9e]">Sign in to 1KL Hub to upload files.</p>
+              ) : answers[field.id]?.path ? (
+                <div className="flex items-center gap-3 p-4 rounded-xl border-2 bg-white" style={{ borderColor: accent }}>
+                  <Check className="w-5 h-5 shrink-0" style={{ color: accent }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[#222] truncate">{answers[field.id].name}</p>
+                    <p className="text-xs text-[#9e9e9e]">{(answers[field.id].size / 1024 / 1024).toFixed(2)} MB · uploaded</p>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploading}>Replace</Button>
+                </div>
+              ) : (
+                <button data-form-input onClick={() => fileInputRef.current?.click()} disabled={uploading}
+                  className="w-full border-2 border-dashed border-[#e0e0e0] rounded-xl p-8 text-center bg-white/80 hover:border-current transition flex flex-col items-center gap-2 disabled:opacity-60"
+                  style={{ color: accent }}>
+                  {uploading ? <Loader2 className="w-7 h-7 animate-spin" /> : <Upload className="w-7 h-7" />}
+                  <span className="text-sm font-medium">{uploading ? 'Uploading…' : 'Click to choose a file'}</span>
+                  <span className="text-xs text-[#9e9e9e]">PDF, image or document — max 25 MB</span>
+                </button>
+              )}
             </div>
           )}
           {field?.type === 'rating' && (

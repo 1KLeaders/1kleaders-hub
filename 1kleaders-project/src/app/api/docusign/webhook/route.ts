@@ -1,64 +1,69 @@
 // POST /api/docusign/webhook
 // DocuSign Connect webhook — called by DocuSign when envelope status changes.
-// Updates onboarding_tracker and profiles when someone signs.
+// The request body is NOT trusted: we only take the envelope ID from it and re-read the
+// real status from the DocuSign API before changing anything.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
-
-// Map DocuSign statuses to our onboarding statuses
-const STATUS_MAP: Record<string, string> = {
-  sent:       'Agreement Sent',
-  delivered:  'Agreement Sent',
-  completed:  'Agreement Signed',
-  declined:   'Agreement Declined',
-  voided:     'Agreement Voided',
-};
+import { getJWTAccessToken, getEnvelopeStatus } from '@/lib/docusign';
+import { syncProspectEnvelope, type Prospect } from '@/lib/prospects';
 
 export async function POST(req: NextRequest) {
   try {
-    // DocuSign sends XML or JSON depending on Connect config
-    // We configure JSON in the Connect setup
-    const body = await req.json();
-
-    const envelopeId = body?.data?.envelopeId ?? body?.envelopeId;
-    const status     = body?.data?.envelopeSummary?.status ?? body?.status;
-    const email      = body?.data?.envelopeSummary?.recipients?.signers?.[0]?.email;
-
-    if (!envelopeId || !status) {
-      return NextResponse.json({ error: 'Missing envelopeId or status' }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    const envelopeId: string | undefined = body?.data?.envelopeId ?? body?.envelopeId;
+    if (!envelopeId || !/^[0-9a-f-]{36}$/i.test(envelopeId)) {
+      return NextResponse.json({ error: 'Missing envelopeId' }, { status: 400 });
     }
 
-    const onboardingStatus = STATUS_MAP[status.toLowerCase()];
+    // Only envelopes we sent
+    const { data: known } = await supabaseAdmin
+      .from('docusign_envelopes').select('envelope_id').eq('envelope_id', envelopeId).maybeSingle();
+    const { data: prospect } = await supabaseAdmin
+      .from('shareholder_prospects').select('id, first_name, last_name, email, phone, status, envelope_id, user_id')
+      .eq('envelope_id', envelopeId).maybeSingle();
+    if (!known && !prospect) return NextResponse.json({ received: true, ignored: true });
 
-    // Update our envelope record
-    await supabaseAdmin.from('docusign_envelopes')
-      .update({ status, updated_at: new Date().toISOString() })
-      .eq('envelope_id', envelopeId);
+    const token = await getJWTAccessToken();
 
-    // If signed, grant platform access and update onboarding status
-    if (status.toLowerCase() === 'completed' && email) {
+    // Admin-started onboarding: signed → create account + welcome email
+    if (prospect) {
+      const result = await syncProspectEnvelope(prospect as Prospect, token);
+      return NextResponse.json({ received: true, prospect: result });
+    }
+
+    const env = await getEnvelopeStatus(token, envelopeId);
+    const status = String(env?.status ?? '').toLowerCase();
+    if (!status) return NextResponse.json({ received: true });
+
+    await supabaseAdmin.from('docusign_envelopes').update({
+      status,
+      signed_at:   env?.completedDateTime ?? undefined,
+      declined_at: env?.declinedDateTime  ?? undefined,
+      voided_at:   env?.voidedDateTime    ?? undefined,
+      updated_at:  new Date().toISOString(),
+    }).eq('envelope_id', envelopeId);
+
+    // Existing members: mark agreement signed and notify them
+    const email = env?.recipients?.signers?.[0]?.email ?? null;
+    if (status === 'completed' && email) {
       const { data: profile } = await supabaseAdmin
-        .from('profiles')
-        .select('id, first_name, role')
-        .eq('email', email)
-        .single();
+        .from('profiles').select('id, onboarding_status').ilike('email', String(email).replace(/[%_\\]/g, '\\$&')).maybeSingle();
 
       if (profile) {
-        // Grant platform access — set role if still default, advance onboarding status
-        await supabaseAdmin.from('profiles').update({
-          onboarding_status: 'Agreement Signed',
-          // If they were a basic user awaiting agreement, keep role as-is
-          // Admin manually upgrades to 'shareholder' via onboarding tracker
-          updated_at: new Date().toISOString(),
-        }).eq('id', profile.id);
-
-        // Send in-platform notification
+        const early = [null, '', 'Meeting Completed', 'Platform Access Issued', 'Agreement Sent'];
+        if (early.includes(profile.onboarding_status)) {
+          await supabaseAdmin.from('profiles').update({
+            onboarding_status: 'Agreement Signed',
+            updated_at: new Date().toISOString(),
+          }).eq('id', profile.id);
+        }
         await supabaseAdmin.from('notifications').insert({
           user_id:           profile.id,
           title:             'Agreement Signed — Welcome to 1K Leaders!',
-          message:           'Your partnership agreement has been signed. You now have full platform access. The team will follow up with your KYC requirements shortly.',
+          message:           'Your partnership agreement has been signed. Next step: complete your KYC on the KYC & Onboarding page.',
           notification_type: 'success',
-          audience_roles:    ['user'],
+          action_url:        'page:onboarding',
           is_read:           false,
         });
       }

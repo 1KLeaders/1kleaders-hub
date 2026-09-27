@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, Activity, Users, Wifi, WifiOff } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, Search, Activity, Users, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 type Shareholder = {
@@ -29,13 +30,20 @@ export default function ShareholderActivityPage() {
   const [loading,      setLoading]      = useState(true);
   const [search,       setSearch]       = useState('');
 
-  useEffect(() => {
-    supabase.from('profiles')
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+
+  async function fetchActivity() {
+    setLoading(true);
+    const { data } = await supabase.from('profiles')
       .select('id, first_name, last_name, email, role, last_seen, profile_photo_url, org_name, onboarding_status')
       .in('role', ['shareholder', 'admin', 'super-admin', 'developer'])
-      .order('last_seen', { ascending: false, nullsFirst: false })
-      .then(({ data }) => { setShareholders((data ?? []) as Shareholder[]); setLoading(false); });
-  }, []);
+      .order('last_seen', { ascending: false, nullsFirst: false });
+    setShareholders((data ?? []) as Shareholder[]);
+    setLastRefreshed(new Date());
+    setLoading(false);
+  }
+
+  useEffect(() => { fetchActivity(); }, []);
 
   const filtered = shareholders.filter(s =>
     !search || `${s.first_name} ${s.last_name} ${s.email} ${s.org_name ?? ''}`.toLowerCase().includes(search.toLowerCase())
@@ -46,11 +54,23 @@ export default function ShareholderActivityPage() {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-2xl font-bold text-[#222] flex items-center gap-2">
-          <Activity className="w-6 h-6 text-[#e33b5f]" />Shareholder Activity
-        </h1>
-        <p className="text-[#7e7e7e] mt-1">Track when shareholders last accessed the platform</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold text-[#222] flex items-center gap-2">
+            <Activity className="w-6 h-6 text-[#e33b5f]" />Shareholder Activity
+          </h1>
+          <p className="text-[#7e7e7e] mt-1">Track when shareholders last accessed the platform</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {lastRefreshed && (
+            <span className="text-xs text-[#9e9e9e]">
+              Updated {lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </span>
+          )}
+          <Button size="sm" variant="outline" onClick={fetchActivity} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? 'animate-spin' : ''}`} />Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Stats row */}

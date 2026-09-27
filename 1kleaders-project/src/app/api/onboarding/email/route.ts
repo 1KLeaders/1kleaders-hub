@@ -4,6 +4,7 @@
 // Body: { user_id, new_status, meeting_date? }
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
+import { requireCaller, ADMIN_ROLES } from '@/lib/api-auth';
 import {
   sendKYCSubmittedEmail,
   sendKYCApprovedEmail,
@@ -23,6 +24,9 @@ const STATUS_EMAILS: Record<string, (email: string, firstName: string, extra?: a
 };
 
 export async function POST(req: NextRequest) {
+  const auth = await requireCaller(req, ADMIN_ROLES);
+  if ('response' in auth) return auth.response;
+
   const { user_id, new_status, meeting_date } = await req.json();
 
   if (!user_id || !new_status) {

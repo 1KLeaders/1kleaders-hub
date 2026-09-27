@@ -149,7 +149,7 @@ export async function sendEnvelope({
 
 export async function getEnvelopeStatus(accessToken: string, envelopeId: string) {
   const res = await fetch(
-    `${DS_CONFIG.baseUrl}/v2.1/accounts/${DS_CONFIG.accountId}/envelopes/${envelopeId}`,
+    `${DS_CONFIG.baseUrl}/v2.1/accounts/${DS_CONFIG.accountId}/envelopes/${envelopeId}?include=recipients`,
     { headers: { 'Authorization': `Bearer ${accessToken}` } }
   );
   return res.json();

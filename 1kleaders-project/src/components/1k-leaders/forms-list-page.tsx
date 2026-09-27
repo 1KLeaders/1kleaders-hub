@@ -16,7 +16,8 @@ export default function FormsListPage({ navigate }: { navigate?: (p: string) => 
 
   useEffect(() => {
     supabase.from('forms').select('id, title, description, fields, accent_color, created_at')
-      .eq('is_published', true).order('created_at', { ascending: false })
+      .eq('is_published', true).neq('purpose', 'kyc')   // KYC forms live on the KYC & Onboarding page
+      .order('created_at', { ascending: false })
       .then(({ data }) => { setForms((data ?? []) as Form[]); setLoading(false); });
   }, []);
 

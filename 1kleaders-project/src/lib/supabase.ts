@@ -42,6 +42,9 @@ export type DbProfile = {
   profile_photo_url: string | null;
   is_first_login: boolean;
   whatsapp_opt_in: boolean;
+  email_announcements?: boolean;        // migration-036
+  notification_prefs?: Record<string, boolean> | null;
+  last_seen?: string | null;
   partner_level: string | null;
   created_at: string;
   updated_at: string;

@@ -2,6 +2,7 @@
 // Called automatically by Vercel Cron — syncs Teams calendar every hour
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
+import { syncPendingProspects } from '@/lib/prospects';
 
 export async function GET(req: NextRequest) {
   // Verify via Authorization header OR secret query param
@@ -12,6 +13,11 @@ export async function GET(req: NextRequest) {
   if (!validHeader && !validQuery) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  // Piggy-back: create accounts for prospects whose DocuSign agreement is now signed
+  let prospects: unknown = null;
+  try { prospects = await syncPendingProspects(); }
+  catch (e: any) { prospects = { error: e.message }; console.error('[Cron] Prospect sync failed:', e.message); }
 
   try {
     // Get token directly
@@ -24,7 +30,7 @@ export async function GET(req: NextRequest) {
       .maybeSingle();
 
     if (!conn?.access_token) {
-      return NextResponse.json({ error: 'No Teams connection' });
+      return NextResponse.json({ error: 'No Teams connection', prospects });
     }
 
     // Refresh token if needed
@@ -93,7 +99,7 @@ export async function GET(req: NextRequest) {
     }
 
     console.log(`[Teams Cron] Synced ${synced}/${events.length} events`);
-    return NextResponse.json({ synced, total: events.length, timestamp: new Date().toISOString() });
+    return NextResponse.json({ synced, total: events.length, prospects, timestamp: new Date().toISOString() });
 
   } catch (err: any) {
     console.error('[Teams Cron] Error:', err.message);

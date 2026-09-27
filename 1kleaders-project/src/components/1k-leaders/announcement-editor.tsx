@@ -7,6 +7,7 @@ import {
   Heading1, Heading2, List, ListOrdered, Quote, Image, Video,
   Link, Minus, Undo, Redo, Type, X
 } from 'lucide-react';
+import { parseMediaUrl } from '@/lib/announcements';
 
 interface Props {
   value: string;
@@ -65,16 +66,23 @@ export default function AnnouncementEditor({ value, onChange, placeholder }: Pro
 
   const insertVideo = () => {
     if (!videoUrl.trim()) return;
-    // Support YouTube, Vimeo, and direct video URLs
+    // Same URL parsing as Media blocks (YouTube incl. Shorts, Vimeo, Loom, Spotify, Drive, direct files...)
+    const media = parseMediaUrl(videoUrl);
+    if (!media) return;
+    const attr = (s: string) => s.replace(/"/g, '&quot;');
     let embed = '';
-    const ytMatch = videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
-    const vimeoMatch = videoUrl.match(/vimeo\.com\/(\d+)/);
-    if (ytMatch) {
-      embed = `<figure style="margin:16px 0"><div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen></iframe></div></figure>`;
-    } else if (vimeoMatch) {
-      embed = `<figure style="margin:16px 0"><div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px"><iframe src="https://player.vimeo.com/video/${vimeoMatch[1]}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen></iframe></div></figure>`;
+    if (media.kind === 'iframe') {
+      embed = media.aspect === 'audio'
+        ? `<figure style="margin:16px 0"><iframe src="${attr(media.src)}" style="width:100%;height:160px;border:0;border-radius:8px" allow="encrypted-media"></iframe></figure>`
+        : `<figure style="margin:16px 0"><div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px"><iframe src="${attr(media.src)}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div></figure>`;
+    } else if (media.kind === 'video') {
+      embed = `<figure style="margin:16px 0"><video src="${attr(media.src)}" controls style="max-width:100%;border-radius:8px;"></video></figure>`;
+    } else if (media.kind === 'audio') {
+      embed = `<figure style="margin:16px 0"><audio src="${attr(media.src)}" controls style="width:100%"></audio></figure>`;
+    } else if (media.kind === 'image') {
+      embed = `<figure style="margin:16px 0;text-align:center"><img src="${attr(media.src)}" style="max-width:100%;border-radius:8px;" alt="" /></figure>`;
     } else {
-      embed = `<figure style="margin:16px 0"><video src="${videoUrl}" controls style="max-width:100%;border-radius:8px;"></video></figure>`;
+      embed = `<p><a href="${attr(media.href)}" target="_blank" rel="noopener noreferrer">${media.href}</a></p>`;
     }
     insertHTML(embed);
     setVideoUrl(''); setShowVideoDialog(false);
@@ -178,6 +186,8 @@ export default function AnnouncementEditor({ value, onChange, placeholder }: Pro
         [contenteditable] p  { margin: 0.4rem 0; }
         [contenteditable] blockquote { border-left: 3px solid #e33b5f; margin: 1rem 0; padding: 0.5rem 1rem; color: #555; font-style: italic; background: #fafafa; border-radius: 0 8px 8px 0; }
         [contenteditable] ul, [contenteditable] ol { margin: 0.5rem 0 0.5rem 1.5rem; }
+        [contenteditable] ul { list-style: disc; }
+        [contenteditable] ol { list-style: decimal; }
         [contenteditable] li { margin: 0.25rem 0; }
         [contenteditable] a  { color: #e33b5f; text-decoration: underline; }
         [contenteditable] hr { border: none; border-top: 1px solid #f0f0f0; margin: 1rem 0; }

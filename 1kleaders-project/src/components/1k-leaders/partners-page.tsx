@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   Search, Mail, Linkedin, Building2, Tag, X, Check, Loader2,
   RefreshCw, ChevronRight, Lightbulb, FileText, CheckCircle2,
-  Clock, Users, ExternalLink, MapPin, Star
+  Clock, Users, ExternalLink, MapPin, Star, FileCheck
 } from 'lucide-react';
 import type { Page, DashboardRole, SubRole } from './types';
 import { roleBadgeConfig } from './types';
@@ -38,7 +38,11 @@ type DbPartner = {
   city: string | null;
   country: string | null;
   created_at: string;
+  last_seen: string | null;
 };
+
+// Roles shown in the directory by default — plain 'user' accounts are hidden unless an admin asks for them
+const SHAREHOLDER_AND_ABOVE = ['shareholder', 'admin', 'super-admin', 'developer'];
 
 type PartnerIdea = {
   id: string; title: string; status: string; sector: string | null; vep_score: number | null; created_at: string;
@@ -76,12 +80,13 @@ export default function ShareholdersPage({ navigate, role }: Props) {
 
   const [partners,      setPartners]      = useState<DbPartner[]>([]);
   const [loading,       setLoading]       = useState(true);
-  const [filter,        setFilter]        = useState('All');
+  const [filter,        setFilter]        = useState('Shareholders');
   const [sort,          setSort]          = useState<'name'|'role'|'recent'>('name');
   const [search,        setSearch]        = useState('');
   const [selected,      setSelected]      = useState<DbPartner | null>(null);
   const [partnerIdeas,  setPartnerIdeas]  = useState<PartnerIdea[]>([]);
   const [partnerDocs,   setPartnerDocs]   = useState<PartnerDoc[]>([]);
+  const [partnerAgreements, setPartnerAgreements] = useState<any[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [editingBadges, setEditingBadges] = useState(false);
   const [badgeDraft,    setBadgeDraft]    = useState<SubRole[]>([]);
@@ -91,14 +96,14 @@ export default function ShareholdersPage({ navigate, role }: Props) {
     setLoading(true);
     const { data } = await supabase
       .from('profiles')
-      .select('id, first_name, last_name, email, role, subroles, partner_level, onboarding_status, bio, org_name, org_website, org_industries, expertise_domains, linkedin_url, profile_photo_url, city, country, created_at')
-      .in('role', ['shareholder', 'user', 'admin', 'super-admin', 'developer'])
+      .select('id, first_name, last_name, email, role, subroles, partner_level, onboarding_status, bio, org_name, org_website, org_industries, expertise_domains, linkedin_url, profile_photo_url, city, country, created_at, last_seen')
+      .in('role', isAdmin ? [...SHAREHOLDER_AND_ABOVE, 'user'] : SHAREHOLDER_AND_ABOVE)
       .order('created_at', { ascending: false });
     setPartners((data ?? []) as DbPartner[]);
     setLoading(false);
   }
 
-  useEffect(() => { fetchPartners(); }, []);
+  useEffect(() => { fetchPartners(); }, [isAdmin]);
 
   async function openProfile(partner: DbPartner) {
     setSelected(partner);
@@ -133,6 +138,7 @@ export default function ShareholdersPage({ navigate, role }: Props) {
       p.email.toLowerCase().includes(search.toLowerCase()) ||
       (p.org_name ?? '').toLowerCase().includes(search.toLowerCase());
     const matchFilter = filter === 'All' || p.role === filter ||
+      (filter === 'Shareholders' && SHAREHOLDER_AND_ABOVE.includes(p.role)) ||
       (filter === 'Idea Owners' && p.subroles?.includes('idea-owner')) ||
       (filter === 'VEP' && p.subroles?.includes('vep-builder')) ||
       (filter === 'MAB' && p.subroles?.includes('mab-builder'));
@@ -470,10 +476,13 @@ export default function ShareholdersPage({ navigate, role }: Props) {
           <Input placeholder="Search by name, email, or company..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="flex gap-1.5 flex-wrap">
-          {['All', 'shareholder', 'user', 'Idea Owners', 'VEP', 'MAB'].map(f => (
+          {(isAdmin
+            ? [['Shareholders', 'Shareholders'], ['user', 'Users'], ['All', 'Everyone'], ['Idea Owners', 'Idea Owners'], ['VEP', 'VEP'], ['MAB', 'MAB']]
+            : [['Shareholders', 'Shareholders'], ['Idea Owners', 'Idea Owners'], ['VEP', 'VEP'], ['MAB', 'MAB']]
+          ).map(([f, label]) => (
             <button key={f} onClick={() => setFilter(f)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${filter === f ? 'bg-[#e33b5f] text-white border-[#e33b5f]' : 'bg-white text-[#555353] border-[#f0f0f0] hover:border-[#e33b5f]'}`}>
-              {f}
+              {label}
             </button>
           ))}
         </div>

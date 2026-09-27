@@ -101,6 +101,16 @@ export default function SettingsPage() {
   const [notifCalendar,       setNotifCalendar]       = useState(true);
   const [notifPartnerActivity,setNotifPartnerActivity] = useState(false);
   const [photoUploading,      setPhotoUploading]      = useState(false);
+  const [emailAnnouncements,  setEmailAnnouncements]  = useState(false);
+
+  // Saved immediately (no need to press Save) — read by /api/announcements/notify
+  async function toggleAnnouncementEmails(on: boolean) {
+    if (!profile) return;
+    setEmailAnnouncements(on);
+    const { error } = await supabase.from('profiles').update({ email_announcements: on }).eq('id', profile.id);
+    if (error) { setEmailAnnouncements(!on); setError(error.message); return; }
+    await refreshProfile();
+  }
 
   // Password fields
   const [newPassword,  setNewPassword]  = useState('');
@@ -133,6 +143,7 @@ export default function SettingsPage() {
     setSelectedIndustries(profile.org_industries ?? []);
     setSelectedExpertise(profile.expertise_domains ?? []);
     setWhatsappOptIn(profile.whatsapp_opt_in ?? false);
+    setEmailAnnouncements(profile.email_announcements ?? false);
     const np = profile.notification_prefs ?? {};
     setNotifEmail(np.email ?? true);
     setNotifActionRequired(np.action_required ?? true);
@@ -414,8 +425,15 @@ export default function SettingsPage() {
           <Card>
             <CardHeader><CardTitle className="text-base">Notification Preferences</CardTitle></CardHeader>
             <CardContent className="space-y-4">
+              <div className="flex items-center justify-between py-2 border-b border-[#f0f0f0]">
+                <div>
+                  <p className="font-medium text-sm">Announcement Emails</p>
+                  <p className="text-xs text-[#7e7e7e]">Get an email when a new announcement is published for you. You always get an in-app notification.</p>
+                </div>
+                <Switch checked={emailAnnouncements} onCheckedChange={toggleAnnouncementEmails} />
+              </div>
               {[
-                { label: 'Email Notifications',    desc: 'Receive updates via email',                  checked: notifEmail,           setter: setNotifEmail },
+                { label: 'Email Notifications',    desc: 'Receive updates via email',                 checked: notifEmail,           setter: setNotifEmail },
                 { label: 'Action Required Alerts', desc: 'High-priority admin notifications',          checked: notifActionRequired,  setter: setNotifActionRequired },
                 { label: 'Platform Notifications', desc: 'In-app notification alerts',                 checked: notifPlatform,        setter: setNotifPlatform },
                 { label: 'Calendar Reminders',     desc: 'Meeting and event reminders',                checked: notifCalendar,        setter: setNotifCalendar },

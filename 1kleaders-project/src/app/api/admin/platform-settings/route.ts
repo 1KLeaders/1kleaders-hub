@@ -2,8 +2,12 @@
 // Update platform settings (admin only)
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
+import { requireCaller, ADMIN_ROLES } from '@/lib/api-auth';
 
 export async function POST(req: NextRequest) {
+  const auth = await requireCaller(req, ADMIN_ROLES);
+  if ('response' in auth) return auth.response;
+
   const { key, value } = await req.json();
   if (!key) return NextResponse.json({ error: 'key required' }, { status: 400 });
 
@@ -16,6 +20,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const auth = await requireCaller(req);
+  if ('response' in auth) return auth.response;
+
   const key = req.nextUrl.searchParams.get('key');
   const query = supabaseAdmin.from('platform_settings').select('key, value');
   const { data, error } = key ? await query.eq('key', key).single() : await query;

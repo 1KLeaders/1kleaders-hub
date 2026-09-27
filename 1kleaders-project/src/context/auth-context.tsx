@@ -10,7 +10,9 @@ interface AuthContextValue {
   profile:        DbProfile | null;
   role:           DashboardRole;        // real role from DB
   loading:        boolean;
-  signIn:         (email: string, password: string) => Promise<{ error: string | null }>;
+  passwordRecovery: boolean;            // true after opening a password-reset link
+  clearPasswordRecovery: () => void;
+  signIn:        (email: string, password: string) => Promise<{ error: string | null }>;
   signOut:        () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -23,6 +25,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile,     setProfile]     = useState<DbProfile | null>(null);
   const [loading,     setLoading]     = useState(true);
   const [devViewRole, setDevViewRole] = useState<DashboardRole>('developer');
+  // Reset links redirect to /?reset=1 (see /api/auth/reset-password)
+  const [passwordRecovery, setPasswordRecovery] = useState(
+    () => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('reset') === '1'
+  );
+
+  function clearPasswordRecovery() {
+    setPasswordRecovery(false);
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('reset')) {
+      url.searchParams.delete('reset');
+      window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+    }
+  }
 
   const isDeveloper = profile?.role === 'developer';
   // Developers see the devViewRole; everyone else sees their real DB role
@@ -49,11 +64,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) fetchProfile(session.user.id).finally(() => setLoading(false));
-      else setLoading(false);
+      else {
+        // Expired/invalid reset link — no session, so there's nothing to reset
+        setPasswordRecovery(false);
+        setLoading(false);
+      }
     });
 
     // Listen for auth changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true);
       // Update last_seen on any auth activity
       if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
         supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', session.user.id).then(() => {});
@@ -88,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{
       session, user, profile, role,
-      loading, signIn, signOut, refreshProfile,
+      loading, passwordRecovery, clearPasswordRecovery, signIn, signOut, refreshProfile,
     }}>
       {children}
     </AuthContext.Provider>

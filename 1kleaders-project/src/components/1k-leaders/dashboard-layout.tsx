@@ -1,5 +1,6 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -41,7 +42,8 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard',        page: 'dashboard' },
-  { icon: Megaphone,       label: 'Announcements',    page: 'announcements', roles: ['shareholder', 'vep', 'mab', 'admin', 'super-admin', 'developer'] },
+  // Everyone gets the page; the database only returns announcements whose audience includes them
+  { icon: Megaphone,       label: 'Announcements',    page: 'announcements' },
   { icon: Rocket,          label: 'Startups',         page: 'startups', roles: ['shareholder', 'vep', 'mab', 'admin', 'super-admin', 'developer'] },
   { icon: Lightbulb,       label: 'Idea Submission',  page: 'idea-submission' },
   { icon: BarChart3,       label: 'My Idea Status',   page: 'idea-status',       roles: ['user', 'shareholder'] },
@@ -53,7 +55,6 @@ const navItems: NavItem[] = [
   { icon: Handshake,       label: 'Shareholders',     page: 'partners',          roles: ['shareholder', 'admin', 'super-admin', 'developer'] },
   { icon: FileCheck,       label: 'KYC & Onboarding', page: 'onboarding',        roles: ['user', 'shareholder'] },
   { icon: BarChart3,       label: 'Idea Ranking',     page: 'idea-ranking',      roles: ['admin', 'super-admin', 'developer'] },
-  { icon: FileText,        label: 'Agreements',       page: 'agreements' },
 ];
 
 function getNavItems(role: DashboardRole): NavItem[] {
@@ -67,6 +68,19 @@ export default function DashboardLayout({ navigate, role, currentPage, onSignOut
   const { profile } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Unread notification count for the bell (refreshes on navigation + every minute)
+  useEffect(() => {
+    if (!profile?.id) return;
+    const load = () => supabase.from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', profile.id).eq('is_read', false)
+      .then(({ count }) => setUnreadCount(count ?? 0));
+    load();
+    const t = setInterval(load, 60_000);
+    return () => clearInterval(t);
+  }, [profile?.id, currentPage]);
 
   const handleNav = (page: Page) => {
     navigate(page);
@@ -224,7 +238,11 @@ export default function DashboardLayout({ navigate, role, currentPage, onSignOut
             )}
             <button onClick={() => handleNav('notifications')} className="relative p-2 hover:bg-[#f6f6f6] dark:hover:bg-white/10 rounded-lg transition">
               <Bell className="w-5 h-5 text-[#555353] dark:text-[#aaa]" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-[#e33b5f] rounded-full" />
+              {unreadCount > 0 && (
+                <span className="absolute top-0.5 right-0.5 min-w-4 h-4 px-1 bg-[#e33b5f] rounded-full text-[9px] font-bold text-white flex items-center justify-center">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </button>
             <div className="relative">
               <button onClick={() => setProfileOpen(o => !o)} className="flex items-center p-1 rounded-lg hover:bg-[#f6f6f6] dark:hover:bg-white/10 transition">

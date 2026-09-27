@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Upload, Mail, CheckCircle2, AlertTriangle, Download } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { apiFetch } from '@/lib/api-fetch';
 
 type ImportUser = {
   email: string; first_name: string; last_name: string;
@@ -38,7 +39,7 @@ export default function UserImportPage() {
 
     if (!profile) { setSendOneMsg('❌ User not found in database'); setSendingOne(false); return; }
 
-    const res = await fetch('/api/admin/send-welcome-emails', {
+    const res = await apiFetch('/api/admin/send-welcome-emails', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ users: [{ email: profile.email, first_name: profile.first_name }] }),
@@ -66,7 +67,7 @@ export default function UserImportPage() {
       const batchSize = 50;
       for (let i = 0; i < profiles.length; i += batchSize) {
         const batch = profiles.slice(i, i + batchSize);
-        const res = await fetch('/api/admin/send-welcome-emails', {
+        const res = await apiFetch('/api/admin/send-welcome-emails', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ users: batch.map(p => ({ email: p.email, first_name: p.first_name })), test_email: testMode && testEmail ? testEmail : undefined }),
@@ -152,7 +153,7 @@ export default function UserImportPage() {
         if (existing) { skipped++; addLog(`⏭ Skipped (exists): ${user.email}`); continue; }
 
         // Create via invite API
-        const res = await fetch('/api/auth/invite', {
+        const res = await apiFetch('/api/auth/invite', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -187,7 +188,7 @@ export default function UserImportPage() {
     // Send welcome emails
     addLog('\n📧 Sending welcome emails...');
     const toEmail = users.filter(u => !u.email.includes('already'));
-    const emailRes = await fetch('/api/admin/send-welcome-emails', {
+    const emailRes = await apiFetch('/api/admin/send-welcome-emails', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ users: toEmail }),
@@ -310,7 +311,7 @@ export default function UserImportPage() {
               <p className="text-sm text-[#555353]">{users.length} users loaded from CSV</p>
               <Button className="bg-[#e33b5f] text-white" size="sm" onClick={async () => {
                 setStep('emailing');
-                const res = await fetch('/api/admin/send-welcome-emails', {
+                const res = await apiFetch('/api/admin/send-welcome-emails', {
                   method: 'POST', headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ users }),
                 });

@@ -3,6 +3,7 @@
 // Body: { newsletter_id } — newsletter must exist in DB first
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
+import { requireCaller, ADMIN_ROLES } from '@/lib/api-auth';
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM_EMAIL       = process.env.RESEND_FROM_EMAIL ?? 'noreply@1kleaders.com';
@@ -10,6 +11,9 @@ const FROM_NAME        = process.env.RESEND_FROM_NAME  ?? '1K Leaders';
 const APP_URL          = process.env.NEXT_PUBLIC_APP_URL ?? 'https://1kl-partner-hub.vercel.app';
 
 export async function POST(req: NextRequest) {
+  const auth = await requireCaller(req, ADMIN_ROLES);
+  if ('response' in auth) return auth.response;
+
   if (!RESEND_API_KEY) {
     return NextResponse.json({ error: 'SendGrid not configured' }, { status: 503 });
   }

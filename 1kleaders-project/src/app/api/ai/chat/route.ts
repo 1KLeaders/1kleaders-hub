@@ -2,6 +2,7 @@
 // Proxies messages to Lyzr Agent API
 // Body: { message, session_id?, agent_id? }
 import { NextRequest, NextResponse } from 'next/server';
+import { requireCaller } from '@/lib/api-auth';
 
 const LYZR_API_KEY        = process.env.LYZR_API_KEY!;
 const LYZR_ENDPOINT       = 'https://agent-prod.studio.lyzr.ai/v3/inference/chat/';
@@ -10,6 +11,9 @@ const IDEA_AGENT_ID       = process.env.LYZR_IDEA_AGENT_ID   ?? '6a56ae6225b9b20
 const LYZR_USER_ID        = process.env.LYZR_USER_ID         ?? '1000leadersholdings@gmail.com';
 
 export async function POST(req: NextRequest) {
+  const auth = await requireCaller(req);
+  if ('response' in auth) return auth.response;
+
   const { message, session_id, agent_type } = await req.json();
 
   if (!message?.trim()) {

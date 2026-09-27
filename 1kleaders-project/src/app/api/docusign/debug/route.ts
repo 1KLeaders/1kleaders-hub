@@ -1,8 +1,12 @@
 // GET /api/docusign/debug — shows JWT token status (admin only)
 import { NextRequest, NextResponse } from 'next/server';
 import { getJWTAccessToken, DS_CONFIG } from '@/lib/docusign';
+import { requireCaller, ADMIN_ROLES } from '@/lib/api-auth';
 
 export async function GET(req: NextRequest) {
+  const auth = await requireCaller(req, ADMIN_ROLES);
+  if ('response' in auth) return auth.response;
+
   try {
     const token = await getJWTAccessToken();
     return NextResponse.json({

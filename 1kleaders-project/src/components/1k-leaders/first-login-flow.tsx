@@ -5,19 +5,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { Check, Lock, User, FileText, LayoutDashboard, Eye, EyeOff, Loader2, Camera } from 'lucide-react';
+import { Check, Lock, User, FileText, LayoutDashboard, Eye, EyeOff, Loader2, Camera, ClipboardList } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth-context';
+import RegistrationDetailsStep from './registration-details-step';
 
-const STEPS = [
+// Step ids are stable; 5 ("Your Details") only appears for accounts created by the admin-started onboarding
+const ALL_STEPS = [
   { id: 1, label: 'Set Password',   icon: Lock },
   { id: 2, label: 'Platform Terms', icon: FileText },
+  { id: 5, label: 'Your Details',   icon: ClipboardList },
   { id: 3, label: 'Your Profile',   icon: User },
   { id: 4, label: 'All Set',        icon: LayoutDashboard },
 ];
 
 export default function FirstLoginFlow({ onComplete }: { onComplete: () => void }) {
   const { profile, refreshProfile } = useAuth();
+  const needsDetails = !!(profile as any)?.needs_registration;
+  const STEPS = ALL_STEPS.filter(s => s.id !== 5 || needsDetails);
   const [step,          setStep]        = useState(1);
   const [password,      setPassword]    = useState('');
   const [confirm,       setConfirm]     = useState('');
@@ -32,7 +37,8 @@ export default function FirstLoginFlow({ onComplete }: { onComplete: () => void 
   const [uploading,     setUploading]   = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const progress = ((step - 1) / (STEPS.length - 1)) * 100;
+  const pos = Math.max(0, STEPS.findIndex(s => s.id === step));
+  const progress = (pos / (STEPS.length - 1)) * 100;
 
   async function handlePasswordReset() {
     setError(null);
@@ -48,7 +54,7 @@ export default function FirstLoginFlow({ onComplete }: { onComplete: () => void 
   async function handleTerms() {
     if (!termsAccepted) return setError('You must accept the platform terms to continue.');
     setError(null);
-    setStep(3);
+    setStep(needsDetails ? 5 : 3);
   }
 
   async function uploadPhoto(file: File) {
@@ -94,14 +100,14 @@ export default function FirstLoginFlow({ onComplete }: { onComplete: () => void 
           {STEPS.map((s, i) => (
             <div key={s.id} className="flex items-center flex-1">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
-                step > s.id   ? 'bg-[#e33b5f] text-white' :
-                step === s.id ? 'bg-[#e33b5f] text-white ring-4 ring-[#e33b5f]/20' :
-                                'bg-[#f0f0f0] text-[#9e9e9e]'
+                i < pos   ? 'bg-[#e33b5f] text-white' :
+                i === pos ? 'bg-[#e33b5f] text-white ring-4 ring-[#e33b5f]/20' :
+                            'bg-[#f0f0f0] text-[#9e9e9e]'
               }`}>
-                {step > s.id ? <Check className="w-4 h-4" /> : <s.icon className="w-4 h-4" />}
+                {i < pos ? <Check className="w-4 h-4" /> : <s.icon className="w-4 h-4" />}
               </div>
               {i < STEPS.length - 1 && (
-                <div className={`h-0.5 flex-1 mx-1 transition-all ${step > s.id ? 'bg-[#e33b5f]' : 'bg-[#f0f0f0]'}`} />
+                <div className={`h-0.5 flex-1 mx-1 transition-all ${i < pos ? 'bg-[#e33b5f]' : 'bg-[#f0f0f0]'}`} />
               )}
             </div>
           ))}
@@ -110,7 +116,7 @@ export default function FirstLoginFlow({ onComplete }: { onComplete: () => void 
 
         <Card className="border-[#f0f0f0]">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg text-[#222]">{STEPS[step - 1].label}</CardTitle>
+            <CardTitle className="text-lg text-[#222]">{STEPS[pos].label}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
 
@@ -167,6 +173,9 @@ export default function FirstLoginFlow({ onComplete }: { onComplete: () => void 
                 </Button>
               </>
             )}
+
+            {/* Step 5 — Registration details (admin-started onboarding only) */}
+            {step === 5 && <RegistrationDetailsStep onDone={() => setStep(3)} />}
 
             {/* Step 3 — Profile Photo + Bio only */}
             {step === 3 && (

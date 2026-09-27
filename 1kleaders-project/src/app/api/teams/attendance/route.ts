@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { getValidTeamsToken } from '@/lib/teams-token';
+import { requireCaller } from '@/lib/api-auth';
 
 
 async function getAppToken(): Promise<string | null> {
@@ -39,6 +40,9 @@ async function getAppToken(): Promise<string | null> {
 }
 
 export async function GET(req: NextRequest) {
+  const auth = await requireCaller(req);
+  if ('response' in auth) return auth.response;
+
   const calendarEventId = new URL(req.url).searchParams.get('meetingId');
   if (!calendarEventId) return NextResponse.json({ error: 'meetingId required' }, { status: 400 });
 

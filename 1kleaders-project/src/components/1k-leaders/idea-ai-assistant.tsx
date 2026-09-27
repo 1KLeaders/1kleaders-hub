@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Bot, X, Send, Loader2, Sparkles, ChevronDown, ChevronUp, Zap } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth-context';
+import { apiFetch } from '@/lib/api-fetch';
 
 interface Props {
   context: {
@@ -126,7 +127,7 @@ export default function IdeaAIAssistant({ context, onApplyField }: Props) {
     let suggestions: { field: string; value: string; label: string }[] = [];
 
     try {
-      const res = await fetch('/api/ai/chat', {
+      const res = await apiFetch('/api/ai/chat', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

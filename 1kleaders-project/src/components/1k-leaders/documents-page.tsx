@@ -6,11 +6,16 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, Search, FileText, Download, CheckCircle, Clock, Shield, FolderOpen, Loader2, RefreshCw, Trash2, X, Eye } from 'lucide-react';
-import type { DashboardRole } from './types';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { DashboardRole, Page } from './types';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth-context';
+import AgreementsTab from './agreements-tab';
+import KycDocumentsTab from './kyc-documents-tab';
 
-interface Props { role?: DashboardRole; }
+export type DocumentsTab = 'files' | 'kyc' | 'agreements';
+
+interface Props { role?: DashboardRole; navigate?: (page: Page) => void; initialTab?: DocumentsTab; }
 
 type DbDoc = {
   id: string;
@@ -41,7 +46,31 @@ function formatSize(bytes: number | null) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function DocumentsPage({ role }: Props) {
+export default function DocumentsPage({ role, navigate, initialTab = 'files' }: Props) {
+  const [tab, setTab] = useState<DocumentsTab>(initialTab);
+  useEffect(() => { setTab(initialTab); }, [initialTab]);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-[#222]">Documents</h1>
+        <p className="text-[#7e7e7e]">Files, KYC documents and partnership agreements</p>
+      </div>
+      <Tabs value={tab} onValueChange={v => setTab(v as DocumentsTab)}>
+        <TabsList>
+          <TabsTrigger value="files">Files</TabsTrigger>
+          <TabsTrigger value="kyc">KYC</TabsTrigger>
+          <TabsTrigger value="agreements">Agreements</TabsTrigger>
+        </TabsList>
+        <TabsContent value="files" className="mt-6"><FilesTab role={role} /></TabsContent>
+        <TabsContent value="kyc" className="mt-6"><KycDocumentsTab role={role} navigate={navigate} /></TabsContent>
+        <TabsContent value="agreements" className="mt-6"><AgreementsTab role={role} /></TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function FilesTab({ role }: { role?: DashboardRole }) {
   const { profile } = useAuth();
   const isAdmin = role === 'admin' || role === 'super-admin' || role === 'developer';
 
@@ -149,10 +178,7 @@ export default function DocumentsPage({ role }: Props) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[#222]">Documents</h1>
-          <p className="text-[#7e7e7e]">Manage and organize platform documents</p>
-        </div>
+        <p className="text-sm text-[#7e7e7e]">Manage and organize platform documents</p>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={fetchDocs} disabled={loading}>
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />

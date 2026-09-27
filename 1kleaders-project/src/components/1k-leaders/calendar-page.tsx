@@ -14,6 +14,7 @@ import {
 import type { DashboardRole } from './types';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth-context';
+import { apiFetch } from '@/lib/api-fetch';
 
 interface Props { role: DashboardRole; }
 
@@ -220,7 +221,7 @@ export default function CalendarPage({ role }: Props) {
   const syncTeams = async () => {
     setSyncing(true); setSyncMsg('');
     try {
-      const res = await fetch('/api/teams/sync-calendar');
+      const res = await apiFetch('/api/teams/sync-calendar');
       const data = await res.json();
 
       // No connection or token expired — redirect to Teams auth
@@ -254,7 +255,7 @@ export default function CalendarPage({ role }: Props) {
     setAttendanceData(null);
     setOpenAttendId(teamsEventId);
     try {
-      const res = await fetch('/api/teams/attendance?meetingId=' + encodeURIComponent(teamsEventId));
+      const res = await apiFetch('/api/teams/attendance?meetingId=' + encodeURIComponent(teamsEventId));
       const data = await res.json();
       setAttendanceData({ ...data, _meetingId: teamsEventId });
     } catch (err) {
@@ -294,7 +295,7 @@ export default function CalendarPage({ role }: Props) {
     if (newType === 'meeting' && newDate && newTime) {
       try {
         const startDT = new Date(`${newDate}T${newTime}`).toISOString();
-        const res = await fetch('/api/teams/create-meeting', {
+        const res = await apiFetch('/api/teams/create-meeting', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

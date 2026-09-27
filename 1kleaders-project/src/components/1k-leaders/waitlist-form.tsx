@@ -13,7 +13,7 @@ import { supabase } from '@/lib/supabase';
 interface Props { navigate: (page: Page) => void; }
 
 // Match exact industry list from 1kleaders.com/join
-const industries = [
+export const industries = [
   'Advanced Manufacturing','Aerospace','Agriculture','Agtech','Animal Health',
   'Arts, Culture & Entertainment','Brand & Retail','Crypto & Digital Assets','Deeptech',
   'Education','Energy','Enterprise & AI','Environment','Financial Services','Fintech',
@@ -24,27 +24,27 @@ const industries = [
 ];
 
 // Match exact expertise domains from 1kleaders.com/join
-const expertiseDomains = [
+export const expertiseDomains = [
   'Marketing','Technology','Finance','Strategy and Management','Operations','Legal',
   'Compliance and Risk','Public Relations and Communications','Sales','Human Resources',
   'Product Development','Project Management','Data Analytics','Full-time Entrepreneur','Other',
 ];
 
 // Job levels from 1kleaders.com/join
-const jobLevels = ['C-Level','EVP/SVP','VP','Director','Manager','Associate','Co-Founder','Other'];
+export const jobLevels = ['C-Level','EVP/SVP','VP','Director','Manager','Associate','Co-Founder','Other'];
 
 // Leader profiles from 1kleaders.com/join
-const leaderProfiles = [
+export const leaderProfiles = [
   { value: 'co-founder', label: 'Co-Founder', desc: 'Ambitious entrepreneur who wants to build a startup or join a team of builders.' },
   { value: 'advisor', label: 'Advisor', desc: 'Expert in your field, high career ambitions, ready to extend knowledge to a team of builders.' },
   { value: 'idea-owner', label: 'Idea Owner', desc: 'Unique tech idea, want to build it, but don\'t have the time or resources.' },
   { value: 'investor', label: 'Investor', desc: 'Angel investor interested in qualitative and quantitative returns.' },
 ];
 
-const genders = ['Male', 'Female'];
+export const genders = ['Male', 'Female'];
 
 // Full country list (abbreviated for readability)
-const countries = [
+export const countries = [
   'Afghanistan','Albania','Algeria','Andorra','Angola','Argentina','Armenia','Australia','Austria',
   'Azerbaijan','Bahamas','Bahrain','Bangladesh','Belarus','Belgium','Belize','Benin','Bhutan',
   'Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Brunei Darussalam','Bulgaria','Burundi',
@@ -65,6 +65,21 @@ const countries = [
   'Turkey','Turkmenistan','Uganda','Ukraine','United Arab Emirates',
   'United Kingdom','United States of America','Uruguay','Uzbekistan','Venezuela','Vietnam',
   'Yemen','Zambia','Zimbabwe',
+];
+
+export const phonePrefixes = [
+  'AF(+93)','AL(+355)','DZ(+213)','AD(+376)','AO(+244)','AR(+54)','AM(+374)',
+  'AU(+61)','AT(+43)','AZ(+994)','BS(+1)','BH(+973)','BD(+880)','BE(+32)',
+  'BR(+55)','BG(+359)','CA(+1)','CL(+56)','CN(+86)','CO(+57)','HR(+385)',
+  'CZ(+420)','DK(+45)','EG(+20)','EE(+372)','FI(+358)','FR(+33)','GE(+995)',
+  'DE(+49)','GH(+233)','GR(+30)','HK(+852)','HU(+36)','IN(+91)','ID(+62)',
+  'IR(+98)','IQ(+964)','IE(+353)','IL(+972)','IT(+39)','JP(+81)','JO(+962)',
+  'KZ(+7)','KE(+254)','KW(+965)','LB(+961)','MY(+60)','MX(+52)','MA(+212)',
+  'NL(+31)','NZ(+64)','NG(+234)','NO(+47)','OM(+968)','PK(+92)','PS(+970)',
+  'PH(+63)','PL(+48)','PT(+351)','QA(+974)','RO(+40)','RU(+7)','SA(+966)',
+  'SG(+65)','ZA(+27)','KR(+82)','ES(+34)','SE(+46)','CH(+41)','TW(+886)',
+  'TH(+66)','TN(+216)','TR(+90)','AE(+971)','GB(+44)','US(+1)','UZ(+998)',
+  'VE(+58)','VN(+84)','YE(+967)','ZM(+260)','ZW(+263)',
 ];
 
 export default function WaitlistForm({ navigate }: Props) {
@@ -100,20 +115,6 @@ export default function WaitlistForm({ navigate }: Props) {
     setArr(arr.includes(item) ? arr.filter(i => i !== item) : [...arr, item]);
   };
 
-  const phonePrefixes = [
-    'AF(+93)','AL(+355)','DZ(+213)','AD(+376)','AO(+244)','AR(+54)','AM(+374)',
-    'AU(+61)','AT(+43)','AZ(+994)','BS(+1)','BH(+973)','BD(+880)','BE(+32)',
-    'BR(+55)','BG(+359)','CA(+1)','CL(+56)','CN(+86)','CO(+57)','HR(+385)',
-    'CZ(+420)','DK(+45)','EG(+20)','EE(+372)','FI(+358)','FR(+33)','GE(+995)',
-    'DE(+49)','GH(+233)','GR(+30)','HK(+852)','HU(+36)','IN(+91)','ID(+62)',
-    'IR(+98)','IQ(+964)','IE(+353)','IL(+972)','IT(+39)','JP(+81)','JO(+962)',
-    'KZ(+7)','KE(+254)','KW(+965)','LB(+961)','MY(+60)','MX(+52)','MA(+212)',
-    'NL(+31)','NZ(+64)','NG(+234)','NO(+47)','OM(+968)','PK(+92)','PS(+970)',
-    'PH(+63)','PL(+48)','PT(+351)','QA(+974)','RO(+40)','RU(+7)','SA(+966)',
-    'SG(+65)','ZA(+27)','KR(+82)','ES(+34)','SE(+46)','CH(+41)','TW(+886)',
-    'TH(+66)','TN(+216)','TR(+90)','AE(+971)','GB(+44)','US(+1)','UZ(+998)',
-    'VE(+58)','VN(+84)','YE(+967)','ZM(+260)','ZW(+263)',
-  ];
 
   const handleSubmit = async () => {
     setIsSubmitting(true);

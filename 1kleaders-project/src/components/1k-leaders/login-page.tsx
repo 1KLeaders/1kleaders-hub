@@ -30,7 +30,16 @@ export default function LoginPage({ navigate }: Props) {
   const [error,       setError]       = useState<string | null>(null);
   const [resetSent,   setResetSent]   = useState(false);
   const [showReset,   setShowReset]   = useState(false);
-  const { supabase: _ } = { supabase: null }; // unused — reset handled below
+
+  // Supabase redirects back with #error_code=otp_expired when a reset/magic link is stale or already used
+  useEffect(() => {
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    if (hash.get('error_code') === 'otp_expired' || hash.get('error') === 'access_denied') {
+      setError('That link has expired or was already used. Enter your email and request a new password reset below.');
+      setShowReset(true);
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, []);
 
   async function handleSignIn() {
     setError(null);
@@ -49,16 +58,15 @@ export default function LoginPage({ navigate }: Props) {
 
   async function handleForgotPassword() {
     if (!email) return setError('Enter your email address above first.');
+    setError(null);
     setLoading(true);
-    const { createClient } = await import('@supabase/supabase-js');
-    const sb = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-    await sb.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/`,
-    });
+    const res = await fetch('/api/auth/reset-password', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email }),
+    }).catch(() => null);
     setLoading(false);
+    if (!res?.ok) return setError('Could not send the reset email. Please try again.');
     setResetSent(true);
     setShowReset(false);
   }
@@ -82,7 +90,7 @@ export default function LoginPage({ navigate }: Props) {
             {resetSent && (
               <div className="flex items-start gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
                 <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                Password reset email sent. Check your inbox.
+                If an account exists for that email, a password reset link is on its way. Check your inbox (and spam folder).
               </div>
             )}
 

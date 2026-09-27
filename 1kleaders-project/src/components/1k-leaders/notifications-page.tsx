@@ -258,7 +258,11 @@ export default function NotificationsPage({ navigate, role }: Props) {
                 return (
                   <div key={n.id}
                     className={`flex items-start gap-3 p-4 hover:bg-[#fbfbfb] transition cursor-pointer ${!n.is_read ? 'bg-[#fafafa]' : ''}`}
-                    onClick={() => !n.is_read && markRead(n.id)}
+                    onClick={() => {
+                      if (!n.is_read) markRead(n.id);
+                      // action_url 'page:<page-id>' deep-links inside the Hub (e.g. page:announcement-<id>)
+                      if (n.action_url?.startsWith('page:')) navigate(n.action_url.slice(5) as Page);
+                    }}
                   >
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${tc.color}`}>
                       <Icon className="w-4 h-4" />

@@ -17,6 +17,7 @@ import type { DashboardRole } from './types';
 import IdeaAIAssistant from './idea-ai-assistant';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth-context';
+import { apiFetch } from '@/lib/api-fetch';
 
 interface Props { role: DashboardRole; navigate: (page: string) => void; }
 
@@ -312,7 +313,7 @@ export default function IdeaSubmission({ role, navigate }: Props) {
         mvpTimeline && `MVP timeline: ${mvpTimeline}`,
       ].filter(Boolean).join('\n');
 
-      fetch('/api/ai/chat', {
+      apiFetch('/api/ai/chat', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

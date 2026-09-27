@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { getJWTAccessToken, sendEnvelope } from '@/lib/docusign';
+import { requireCaller, ADMIN_ROLES } from '@/lib/api-auth';
 
 export async function POST(req: NextRequest) {
+  const auth = await requireCaller(req, ADMIN_ROLES);
+  if ('response' in auth) return auth.response;
+
   try {
     const body = await req.json();
     const { user_id, recipient_name, recipient_email, waitlist_id } = body;

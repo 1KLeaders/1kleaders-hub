@@ -1,6 +1,7 @@
 // POST /api/admin/send-welcome-emails
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
+import { requireCaller, ADMIN_ROLES } from '@/lib/api-auth';
 
 const EMAIL_HTML = (firstName: string, email: string, setupLink: string) => `<!DOCTYPE html>
 <html>
@@ -42,6 +43,9 @@ const EMAIL_HTML = (firstName: string, email: string, setupLink: string) => `<!D
 </html>`;
 
 export async function POST(req: NextRequest) {
+  const auth = await requireCaller(req, ADMIN_ROLES);
+  if ('response' in auth) return auth.response;
+
   const { users, test_email } = await req.json();
   // If test_email is provided, send everything to that address only (for testing)
   if (!users?.length) return NextResponse.json({ error: 'No users provided' }, { status: 400 });
