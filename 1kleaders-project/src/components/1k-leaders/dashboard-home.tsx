@@ -138,7 +138,7 @@ export default function DashboardHome({ role, navigate }: Props) {
 
         // Fetch approved startups (is_visible = true)
         const { data: startups, error: startupsError } = await supabase
-          .from('startups').select('id, name, logo_url, primary_color')
+          .from('startups').select('id, name, logo_url, primary_color, logo_background')
           .eq('is_visible', true);
         if (startupsError) console.warn('Startups fetch error:', startupsError.message);
         setApprovedStartups(startups ?? []);

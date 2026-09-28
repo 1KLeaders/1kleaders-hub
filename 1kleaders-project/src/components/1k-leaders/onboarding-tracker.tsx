@@ -123,14 +123,33 @@ export default function OnboardingTracker() {
     loadKycDocs(p.id);
   }
 
-  // Payment instructions shown to members on the KYC & Onboarding page
+  // Payment instructions + Clara KYC Form template shown to members on the KYC & Onboarding page
   const [payInstructions, setPayInstructions] = useState('');
   const [editingPay, setEditingPay] = useState(false);
   const [savingPay, setSavingPay] = useState(false);
+  const [claraUrl, setClaraUrl] = useState('');
+  const [uploadingClara, setUploadingClara] = useState(false);
   useEffect(() => {
-    supabase.from('platform_settings').select('value').eq('key', 'payment_instructions').maybeSingle()
-      .then(({ data }) => setPayInstructions(data?.value ?? ''));
+    supabase.from('platform_settings').select('key, value').in('key', ['payment_instructions', 'clara_kyc_template_url'])
+      .then(({ data }) => {
+        setPayInstructions(data?.find(r => r.key === 'payment_instructions')?.value ?? '');
+        setClaraUrl(data?.find(r => r.key === 'clara_kyc_template_url')?.value ?? '');
+      });
   }, []);
+
+  async function uploadClaraTemplate(file: File) {
+    setUploadingClara(true);
+    const path = `templates/clara-kyc-form-${Date.now()}.${file.name.split('.').pop() ?? 'pdf'}`;
+    const { error } = await supabase.storage.from('public-assets').upload(path, file, { upsert: true, contentType: file.type || undefined });
+    if (error) { setUploadingClara(false); alert(`Upload failed: ${error.message}`); return; }
+    const url = supabase.storage.from('public-assets').getPublicUrl(path).data.publicUrl;
+    const res = await apiFetch('/api/admin/platform-settings', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'clara_kyc_template_url', value: url }),
+    });
+    setUploadingClara(false);
+    if (res.ok) setClaraUrl(url); else alert('Uploaded, but saving the link failed');
+  }
   async function savePayInstructions() {
     setSavingPay(true);
     const res = await apiFetch('/api/admin/platform-settings', {
@@ -240,7 +259,7 @@ export default function OnboardingTracker() {
       <Card className="border-[#f0f0f0]">
         <CardContent className="p-4 space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-[#222] flex items-center gap-2"><CreditCard className="w-4 h-4 text-[#e33b5f]" />Payment instructions</p>
+            <p className="text-sm font-semibold text-[#222] flex items-center gap-2"><CreditCard className="w-4 h-4 text-[#e33b5f]" />Payment instructions <span className="font-normal text-xs text-[#9e9e9e]">(bank details are in the partnership agreement)</span></p>
             {!editingPay
               ? <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setEditingPay(true)}>Edit</Button>
               : <div className="flex gap-1.5">
@@ -254,6 +273,20 @@ export default function OnboardingTracker() {
             ? <textarea rows={4} className="w-full border border-[#f0f0f0] rounded-lg px-3 py-2 text-sm resize-y" value={payInstructions}
                 placeholder="Bank name, account name, IBAN, amount, reference to use…" onChange={e => setPayInstructions(e.target.value)} />
             : <p className="text-xs text-[#7e7e7e] whitespace-pre-wrap">{payInstructions || 'Not set — members will only see the upload box.'}</p>}
+
+          <div className="border-t border-[#f0f0f0] pt-3 flex items-center gap-2 flex-wrap">
+            <p className="text-sm font-semibold text-[#222] flex items-center gap-2 mr-auto"><FileText className="w-4 h-4 text-[#e33b5f]" />Clara KYC Form template</p>
+            {claraUrl
+              ? <a href={claraUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-[#e33b5f] hover:underline">View current template</a>
+              : <span className="text-xs text-amber-600">Not uploaded — members can&apos;t download it yet</span>}
+            <label className="cursor-pointer">
+              <input type="file" className="hidden" accept=".pdf,.doc,.docx"
+                onChange={e => { const f = e.target.files?.[0]; if (f) uploadClaraTemplate(f); e.target.value = ''; }} />
+              <span className="inline-flex items-center h-7 px-3 rounded-md border border-[#e8e8e8] text-xs font-medium hover:bg-[#fafafa]">
+                {uploadingClara ? <Loader2 className="w-3 h-3 animate-spin" /> : claraUrl ? 'Replace' : 'Upload'}
+              </span>
+            </label>
+          </div>
         </CardContent>
       </Card>
 

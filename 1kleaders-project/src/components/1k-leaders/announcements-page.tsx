@@ -13,22 +13,28 @@ import {
 import {
   Megaphone, Lock, Globe, FileText, Play, Share2, X, ChevronUp, ChevronDown, Loader2, Plus, RefreshCw,
   Link, Check, Trash2, Eye, EyeOff, Save, Upload, Users, Search, UserPlus, UserMinus, Pencil, MessageSquare, Bell,
+  Mail, Send, CalendarClock, Columns2, Columns3, AlignLeft, AlignCenter, AlignRight, AlertTriangle,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { apiFetch } from '@/lib/api-fetch';
 import type { DashboardRole } from './types';
 import {
   CATEGORIES, DEFAULT_AUDIENCE, AUDIENCE_ROLE_OPTIONS, AUDIENCE_SUBROLE_OPTIONS, ADMIN_ROLES,
-  genId, getBlocks, excerpt, normalizeAudience, audienceIncludes, describeAudience,
+  genId, getBlocks, excerpt, normalizeAudience, audienceIncludes, describeAudience, MEDIA_SIZES,
   type Announcement, type Audience, type Block, type Category, type Visibility, type Attachment,
+  type EmailMode, type ColumnCell, type MediaSize, type MediaAlign,
 } from '@/lib/announcements';
 
 interface Props { role?: DashboardRole; navigate?: (p: string) => void; }
 
+type PublishMode = 'draft' | 'now' | 'schedule';
+
 type Draft = {
   title: string; description: string; category: Category; visibility: Visibility;
   meta: string; cta: string; attachments: Attachment[]; blocks: Block[];
-  audience: Audience; allow_comments: boolean; is_published: boolean;
+  audience: Audience; allow_comments: boolean;
+  publishMode: PublishMode; publishAt: string;               // publishAt: local 'YYYY-MM-DDTHH:mm'
+  notify_in_app: boolean; email_mode: EmailMode; notify_admins: boolean;
 };
 
 type Person = { id: string; first_name: string | null; last_name: string | null; email: string; role: string; subroles: string[] | null };
@@ -36,8 +42,22 @@ type Person = { id: string; first_name: string | null; last_name: string | null;
 const EMPTY_DRAFT = (): Draft => ({
   title: '', description: '', category: 'Announcement', visibility: 'shareholders_only',
   meta: '', cta: 'Read →', attachments: [], blocks: [{ id: genId(), type: 'content', html: '' }],
-  audience: { ...DEFAULT_AUDIENCE }, allow_comments: true, is_published: false,
+  audience: { ...DEFAULT_AUDIENCE }, allow_comments: true,
+  publishMode: 'draft', publishAt: '', notify_in_app: true, email_mode: 'opted_in', notify_admins: false,
 });
+
+// ISO → value for <input type="datetime-local"> in the viewer's timezone
+const toLocalInput = (iso: string) => {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+const EMAIL_MODES: { value: EmailMode; label: string }[] = [
+  { value: 'opted_in', label: 'Only people who turned on announcement emails' },
+  { value: 'all',      label: 'Everyone in the audience' },
+  { value: 'none',     label: "Don't send email" },
+];
 
 function autoMeta(cat: Category): string {
   const fullDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -64,11 +84,14 @@ export default function AnnouncementsPage({ role, navigate }: Props) {
   const [people,    setPeople]    = useState<Person[]>([]);
   const [personQuery, setPersonQuery] = useState('');
   const [pendingDelete, setPendingDelete] = useState<Announcement | null>(null);
-  const [notice,    setNotice]    = useState<string | null>(null);
+  const [notice,    setNotice]    = useState<{ ok: boolean; text: string } | null>(null);
+  const [testing,   setTesting]   = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function fetchAnnouncements() {
     setLoading(true);
+    // Admins: publish anything whose scheduled time has passed (the cron job also does this)
+    if (isAdmin) await apiFetch('/api/announcements/publish-due', { method: 'POST' }).catch(() => {});
     // RLS returns only announcements this user's audience allows (admins see all)
     const { data } = await supabase.from('announcements').select('*').order('created_at', { ascending: false });
     setItems((data ?? []) as Announcement[]);
@@ -84,7 +107,16 @@ export default function AnnouncementsPage({ role, navigate }: Props) {
       .then(({ data }) => setPeople((data ?? []) as Person[]));
   }, [isAdmin, view]);
 
-  function flash(msg: string) { setNotice(msg); setTimeout(() => setNotice(null), 6000); }
+  function flash(text: string, ok = true) { setNotice({ ok, text }); if (ok) setTimeout(() => setNotice(null), 8000); }
+
+  // Images inserted in the text editor and attachments go to the public 'announcement-attachments' bucket
+  async function uploadPublic(file: File, folder: string): Promise<string> {
+    const path = `${folder}/${Date.now()}_${file.name.replace(/[^\w.\-]+/g, '_')}`;
+    const { error } = await supabase.storage.from('announcement-attachments').upload(path, file, { upsert: true, contentType: file.type || undefined });
+    if (error) throw new Error(error.message);
+    return supabase.storage.from('announcement-attachments').getPublicUrl(path).data.publicUrl;
+  }
+  const uploadEditorImage = (file: File) => uploadPublic(file, 'images');
 
   function openNew() {
     setDraft({ ...EMPTY_DRAFT(), meta: autoMeta('Announcement') });
@@ -96,7 +128,10 @@ export default function AnnouncementsPage({ role, navigate }: Props) {
       title: ann.title, description: ann.description ?? '', category: ann.category, visibility: ann.visibility,
       meta: ann.meta ?? '', cta: ann.cta ?? 'Read →', attachments: ann.attachments ?? [],
       blocks: getBlocks(ann).map(b => ({ ...b, id: b.id.startsWith('legacy') ? genId() : b.id })),
-      audience: normalizeAudience(ann.audience), allow_comments: ann.allow_comments ?? true, is_published: ann.is_published,
+      audience: normalizeAudience(ann.audience), allow_comments: ann.allow_comments ?? true,
+      publishMode: ann.is_published ? 'now' : ann.publish_at ? 'schedule' : 'draft',
+      publishAt: ann.publish_at ? toLocalInput(ann.publish_at) : '',
+      notify_in_app: ann.notify_in_app ?? true, email_mode: ann.email_mode ?? 'opted_in', notify_admins: ann.notify_admins ?? false,
     });
     setEditing(ann); setPendingFiles([]); setMode('write'); setView('edit');
   }
@@ -106,8 +141,15 @@ export default function AnnouncementsPage({ role, navigate }: Props) {
   // ── Blocks ──────────────────────────────────────────────────────────────
   const updateBlock = (id: string, patch: Partial<Block>) =>
     setDraft(d => ({ ...d, blocks: d.blocks.map(b => b.id === id ? { ...b, ...patch } as Block : b) }));
-  const addBlock = (type: Block['type']) =>
-    setDraft(d => ({ ...d, blocks: [...d.blocks, type === 'content' ? { id: genId(), type, html: '' } : { id: genId(), type, url: '', caption: '' }] }));
+  const addBlock = (type: Block['type'], columns = 2) =>
+    setDraft(d => ({ ...d, blocks: [...d.blocks,
+      type === 'content' ? { id: genId(), type, html: '' }
+      : type === 'media' ? { id: genId(), type, url: '', caption: '', size: 'md', align: 'center' }
+      : { id: genId(), type, cells: Array.from({ length: columns }, () => ({ kind: 'content', html: '' }) as ColumnCell) },
+    ] }));
+  const updateCell = (blockId: string, idx: number, cell: ColumnCell) =>
+    setDraft(d => ({ ...d, blocks: d.blocks.map(b => b.id === blockId && b.type === 'columns'
+      ? { ...b, cells: b.cells.map((c, i) => i === idx ? cell : c) } : b) }));
   const removeBlock = (id: string) => setDraft(d => ({ ...d, blocks: d.blocks.filter(b => b.id !== id) }));
   const moveBlock = (id: string, dir: -1 | 1) => setDraft(d => {
     const idx = d.blocks.findIndex(b => b.id === id);
@@ -133,16 +175,24 @@ export default function AnnouncementsPage({ role, navigate }: Props) {
   const peopleById = useMemo(() => Object.fromEntries(people.map(p => [p.id, p])), [people]);
 
   // ── Save ────────────────────────────────────────────────────────────────
+  // Uploads pending attachment files; throws (and keeps the editor open) if any upload fails
   async function uploadAttachments(): Promise<Attachment[]> {
     const results: Attachment[] = [];
     for (const file of pendingFiles) {
-      const path = `announcements/${Date.now()}_${file.name.replace(/[^\w.\-]+/g, '_')}`;
-      const { error } = await supabase.storage.from('announcement-attachments').upload(path, file, { upsert: true });
-      if (error) { flash(`Upload failed for ${file.name}: ${error.message}`); continue; }
-      const { data: { publicUrl } } = supabase.storage.from('announcement-attachments').getPublicUrl(path);
-      results.push({ name: file.name, url: publicUrl, size: file.size });
+      try { results.push({ name: file.name, url: await uploadPublic(file, 'attachments'), size: file.size }); }
+      catch (e: any) { throw new Error(`Attachment “${file.name}” failed to upload: ${e.message}`); }
     }
     return results;
+  }
+
+  function describeNotify(data: any, verb = 'Published') {
+    if (data.skipped) return { ok: true, text: `${verb}. (${data.reason})` };
+    const parts = [`${verb} — ${data.in_app} in-app notification${data.in_app === 1 ? '' : 's'}`];
+    parts.push(data.emailed ? `${data.emailed} email${data.emailed === 1 ? '' : 's'}` : 'no emails');
+    let text = parts.join(', ') + '.';
+    if (data.audience === 0) text += ' Nobody is in this audience yet (admins are only notified when "Also notify admins" is on).';
+    if (data.errors?.length) text += ` Problems: ${data.errors.join('; ')}`;
+    return { ok: !data.errors?.length, text };
   }
 
   async function notifyAudience(id: string) {
@@ -150,17 +200,41 @@ export default function AnnouncementsPage({ role, navigate }: Props) {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ announcement_id: id }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) flash(`Published, but notifications failed: ${data.error ?? res.status}`);
-    else if (!data.skipped) flash(`Published — notified ${data.in_app} ${data.in_app === 1 ? 'person' : 'people'}${data.emailed ? ` (${data.emailed} by email)` : ''}.`);
+    if (!res.ok) { flash(`Published, but notifications failed: ${data.error ?? res.status}`, false); return; }
+    const d = describeNotify(data);
+    flash(d.text, d.ok);
+  }
+
+  // Sends this announcement's notification + email to the current admin only
+  async function sendTest() {
+    if (!editing) { flash('Save the announcement first, then send yourself a test.', false); return; }
+    setTesting(true);
+    const res = await apiFetch('/api/announcements/notify', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ announcement_id: editing.id, test: true }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setTesting(false);
+    if (!res.ok) flash(`Test failed: ${data.error ?? res.status}`, false);
+    else flash(data.errors?.length ? `Test sent with problems: ${data.errors.join('; ')}` : `Test sent to you: ${data.in_app} in-app notification, ${data.emailed} email.`, !data.errors?.length);
   }
 
   async function save() {
     if (!draft.title.trim()) return;
+    if (draft.publishMode === 'schedule') {
+      if (!draft.publishAt) { flash('Pick a date and time to schedule the announcement.', false); return; }
+      if (new Date(draft.publishAt).getTime() <= Date.now()) { flash('The scheduled time is in the past — choose "Publish now" instead.', false); return; }
+    }
     setSaving(true);
-    const uploaded = await uploadAttachments();
+    let uploaded: Attachment[] = [];
+    try { uploaded = await uploadAttachments(); }
+    catch (e: any) { setSaving(false); flash(e.message, false); return; }
     setPendingFiles([]);
 
-    const blocks = draft.blocks.filter(b => b.type === 'content' ? b.html.replace(/<br\s*\/?>/g, '').trim() : b.url.trim());
+    const blocks = draft.blocks.filter(b =>
+      b.type === 'content' ? b.html.replace(/<br\s*\/?>/g, '').trim()
+      : b.type === 'media' ? b.url.trim()
+      : b.cells.some(c => c.kind === 'media' ? c.url.trim() : c.html.replace(/<br\s*\/?>/g, '').trim()));
+    const publishNow = draft.publishMode === 'now';
     const payload = {
       title: draft.title.trim(),
       description: draft.description.trim() || null,
@@ -175,8 +249,12 @@ export default function AnnouncementsPage({ role, navigate }: Props) {
       media_url: (blocks.find(b => b.type === 'media') as any)?.url ?? null,
       audience: draft.audience,
       allow_comments: draft.allow_comments,
-      is_published: draft.is_published,
-      published_at: draft.is_published ? (editing?.published_at ?? new Date().toISOString()) : editing?.published_at ?? null,
+      is_published: publishNow,
+      published_at: publishNow ? (editing?.published_at ?? new Date().toISOString()) : editing?.published_at ?? null,
+      publish_at: draft.publishMode === 'schedule' ? new Date(draft.publishAt).toISOString() : null,
+      notify_in_app: draft.notify_in_app,
+      email_mode: draft.email_mode,
+      notify_admins: draft.notify_admins,
       updated_at: new Date().toISOString(),
     };
 
@@ -185,19 +263,20 @@ export default function AnnouncementsPage({ role, navigate }: Props) {
       : await supabase.from('announcements').insert(payload).select().single();
 
     setSaving(false);
-    if (error || !data) { flash(`Save failed: ${error?.message ?? 'unknown error'}`); return; }
+    if (error || !data) { flash(`Save failed: ${error?.message ?? 'unknown error'}`, false); return; }
 
     const saved = data as Announcement;
     setItems(prev => editing ? prev.map(i => i.id === saved.id ? saved : i) : [saved, ...prev]);
     closeEditor();
-    if (saved.is_published && !saved.notified_at) await notifyAudience(saved.id);
+    if (saved.is_published && !saved.notified_at && (saved.notify_in_app !== false || saved.email_mode !== 'none')) await notifyAudience(saved.id);
+    else if (saved.publish_at) flash(`Scheduled — it will publish (and notify) on ${new Date(saved.publish_at).toLocaleString()}.`);
     else flash(saved.is_published ? 'Changes saved.' : 'Saved as draft.');
   }
 
   async function togglePublish(ann: Announcement) {
     const is_published = !ann.is_published;
     const { data } = await supabase.from('announcements')
-      .update({ is_published, published_at: is_published ? (ann.published_at ?? new Date().toISOString()) : ann.published_at })
+      .update({ is_published, publish_at: null, published_at: is_published ? (ann.published_at ?? new Date().toISOString()) : ann.published_at })
       .eq('id', ann.id).select().single();
     if (data) setItems(prev => prev.map(i => i.id === ann.id ? data as Announcement : i));
     if (is_published && !ann.notified_at) await notifyAudience(ann.id);
@@ -228,6 +307,12 @@ export default function AnnouncementsPage({ role, navigate }: Props) {
     return vis === 'external_use'
       ? <Badge className="bg-[#e33b5f]/10 text-[#e33b5f] border-0 text-xs flex items-center gap-1"><Globe className="w-3 h-3" />External Use</Badge>
       : <Badge className="bg-[#f0f0f0] text-[#555353] border border-[#e0e0e0] text-xs flex items-center gap-1"><Lock className="w-3 h-3" />Members Only</Badge>;
+  }
+
+  function DraftBadge({ ann }: { ann: Announcement }) {
+    return ann.publish_at
+      ? <Badge className="bg-sky-100 text-sky-700 text-xs flex items-center gap-1"><CalendarClock className="w-3 h-3" />Scheduled · {new Date(ann.publish_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</Badge>
+      : <Badge className="bg-amber-100 text-amber-700 text-xs">Draft</Badge>;
   }
 
   function AdminActions({ ann }: { ann: Announcement }) {
@@ -262,23 +347,31 @@ export default function AnnouncementsPage({ role, navigate }: Props) {
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" className="accent-[#e33b5f]" checked={draft.is_published}
-                onChange={e => setDraft(d => ({ ...d, is_published: e.target.checked }))} />
-              Published
-            </label>
+          <div className="flex items-center gap-2 flex-wrap">
+            <select className="h-9 border border-[#e8e8e8] rounded-lg px-2 text-sm bg-white"
+              value={draft.publishMode} onChange={e => setDraft(d => ({ ...d, publishMode: e.target.value as PublishMode }))}>
+              <option value="draft">Draft</option>
+              <option value="now">{editing?.is_published ? 'Published' : 'Publish now'}</option>
+              <option value="schedule">Schedule…</option>
+            </select>
+            {draft.publishMode === 'schedule' && (
+              <input type="datetime-local" className="h-9 border border-[#e8e8e8] rounded-lg px-2 text-sm bg-white"
+                min={toLocalInput(new Date().toISOString())}
+                value={draft.publishAt} onChange={e => setDraft(d => ({ ...d, publishAt: e.target.value }))} />
+            )}
             <Button className="bg-[#e33b5f] text-white" onClick={save} disabled={saving || !draft.title.trim()}>
-              {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
-              {editing ? 'Save' : draft.is_published ? 'Publish' : 'Save Draft'}
+              {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : draft.publishMode === 'schedule' ? <CalendarClock className="w-4 h-4 mr-1" /> : <Save className="w-4 h-4 mr-1" />}
+              {draft.publishMode === 'now' ? (editing?.is_published ? 'Save' : 'Publish') : draft.publishMode === 'schedule' ? 'Schedule' : 'Save Draft'}
             </Button>
           </div>
         </div>
 
-        {draft.is_published && !editing?.notified_at && (
+        {draft.publishMode !== 'draft' && !editing?.notified_at && (
           <p className="text-xs text-[#7e7e7e] flex items-center gap-1.5">
             <Bell className="w-3.5 h-3.5 text-[#e33b5f]" />
-            On save, {audienceCount} {audienceCount === 1 ? 'person' : 'people'} in the audience get an in-app notification (plus email for those who opted in).
+            {draft.publishMode === 'schedule' ? 'When it publishes' : 'On publish'}:{' '}
+            {draft.notify_in_app ? `${audienceCount} ${audienceCount === 1 ? 'person' : 'people'} get an in-app notification` : 'no in-app notifications'}
+            {draft.email_mode === 'none' ? ', no email.' : draft.email_mode === 'all' ? ', and everyone in the audience is emailed.' : ', plus email for people who opted in.'}
           </p>
         )}
 
@@ -444,21 +537,80 @@ export default function AnnouncementsPage({ role, navigate }: Props) {
                 <Card key={block.id} className="border-[#f0f0f0]">
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-center gap-2">
-                      {block.type === 'content' ? <FileText className="w-4 h-4 text-[#e33b5f]" /> : <Play className="w-4 h-4 text-[#e33b5f]" />}
-                      <span className="flex-1 font-medium text-sm">{block.type === 'content' ? 'Text' : 'Media'}</span>
+                      {block.type === 'content' ? <FileText className="w-4 h-4 text-[#e33b5f]" /> : block.type === 'media' ? <Play className="w-4 h-4 text-[#e33b5f]" /> : <Columns3 className="w-4 h-4 text-[#e33b5f]" />}
+                      <span className="flex-1 font-medium text-sm">
+                        {block.type === 'content' ? 'Text' : block.type === 'media' ? 'Media' : `${block.cells.length} columns`}
+                      </span>
+                      {block.type === 'columns' && (
+                        <select className="h-7 text-xs border border-[#e8e8e8] rounded px-1.5 bg-white" value={block.cells.length}
+                          onChange={e => {
+                            const n = Number(e.target.value);
+                            const cells = [...block.cells.slice(0, n)];
+                            while (cells.length < n) cells.push({ kind: 'content', html: '' });
+                            updateBlock(block.id, { cells } as Partial<Block>);
+                          }}>
+                          <option value={2}>2 columns</option>
+                          <option value={3}>3 columns</option>
+                        </select>
+                      )}
                       <button onClick={() => moveBlock(block.id, -1)} disabled={idx === 0} className="p-1 rounded hover:bg-[#f0f0f0] disabled:opacity-30"><ChevronUp className="w-3.5 h-3.5" /></button>
                       <button onClick={() => moveBlock(block.id, 1)} disabled={idx === draft.blocks.length - 1} className="p-1 rounded hover:bg-[#f0f0f0] disabled:opacity-30"><ChevronDown className="w-3.5 h-3.5" /></button>
                       <button onClick={() => removeBlock(block.id)} className="p-1 rounded hover:bg-red-50 text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
                     </div>
                     {block.type === 'content' ? (
-                      <AnnouncementEditor value={block.html} onChange={html => updateBlock(block.id, { html })} placeholder="Write here..." />
-                    ) : (
+                      <AnnouncementEditor value={block.html} onChange={html => updateBlock(block.id, { html })} placeholder="Write here..." uploadImage={uploadEditorImage} />
+                    ) : block.type === 'media' ? (
                       <div className="space-y-2">
                         <Input className="border-[#f0f0f0]" placeholder="Paste a YouTube, Vimeo, Loom, Spotify, Apple Podcasts, SoundCloud, Google Drive, image, video or audio URL"
                           value={block.url} onChange={e => updateBlock(block.id, { url: e.target.value })} />
-                        <Input className="border-[#f0f0f0] text-sm" placeholder="Caption (optional)"
-                          value={block.caption ?? ''} onChange={e => updateBlock(block.id, { caption: e.target.value })} />
-                        {block.url.trim() && <div className="max-w-xl"><MediaEmbedView url={block.url} caption={block.caption} /></div>}
+                        <div className="flex gap-2 flex-wrap items-center">
+                          <Input className="border-[#f0f0f0] text-sm flex-1 min-w-48" placeholder="Caption (optional)"
+                            value={block.caption ?? ''} onChange={e => updateBlock(block.id, { caption: e.target.value })} />
+                          <div className="flex items-center gap-1 text-xs">
+                            <span className="text-[#9e9e9e]">Size</span>
+                            {MEDIA_SIZES.map(s => (
+                              <button key={s.value} onClick={() => updateBlock(block.id, { size: s.value as MediaSize })}
+                                className={`px-2 py-1 rounded border ${(block.size ?? 'md') === s.value ? 'bg-[#e33b5f] text-white border-[#e33b5f]' : 'border-[#e8e8e8] text-[#555353]'}`}>{s.label}</button>
+                            ))}
+                          </div>
+                          <div className="flex items-center gap-0.5">
+                            {([['left', AlignLeft], ['center', AlignCenter], ['right', AlignRight]] as const).map(([a, Icon]) => (
+                              <button key={a} title={`Align ${a}`} onClick={() => updateBlock(block.id, { align: a as MediaAlign })}
+                                className={`p-1.5 rounded border ${(block.align ?? 'center') === a ? 'bg-[#e33b5f] text-white border-[#e33b5f]' : 'border-[#e8e8e8] text-[#555353]'}`}>
+                                <Icon className="w-3.5 h-3.5" />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        {block.url.trim() && <MediaEmbedView url={block.url} caption={block.caption} size={block.size ?? 'md'} align={block.align ?? 'center'} />}
+                      </div>
+                    ) : (
+                      <div className={`grid gap-3 ${block.cells.length === 3 ? 'lg:grid-cols-3' : 'md:grid-cols-2'}`}>
+                        {block.cells.map((cell, ci) => (
+                          <div key={ci} className="border border-dashed border-[#e8e8e8] rounded-lg p-2 space-y-2 min-w-0">
+                            <div className="flex items-center gap-1 text-xs">
+                              <span className="text-[#9e9e9e] mr-auto">Column {ci + 1}</span>
+                              {(['content', 'media'] as const).map(k => (
+                                <button key={k} onClick={() => cell.kind !== k && updateCell(block.id, ci, k === 'content' ? { kind: 'content', html: '' } : { kind: 'media', url: '', caption: '' })}
+                                  className={`px-2 py-0.5 rounded border ${cell.kind === k ? 'bg-[#222] text-white border-[#222]' : 'border-[#e8e8e8] text-[#555353]'}`}>
+                                  {k === 'content' ? 'Text' : 'Media'}
+                                </button>
+                              ))}
+                            </div>
+                            {cell.kind === 'content' ? (
+                              <AnnouncementEditor key={`${block.id}-${ci}-content`} compact value={cell.html}
+                                onChange={html => updateCell(block.id, ci, { kind: 'content', html })} placeholder="Column text..." uploadImage={uploadEditorImage} />
+                            ) : (
+                              <div className="space-y-2">
+                                <Input className="border-[#f0f0f0] text-sm" placeholder="Media URL" value={cell.url}
+                                  onChange={e => updateCell(block.id, ci, { ...cell, url: e.target.value })} />
+                                <Input className="border-[#f0f0f0] text-xs" placeholder="Caption (optional)" value={cell.caption ?? ''}
+                                  onChange={e => updateCell(block.id, ci, { ...cell, caption: e.target.value })} />
+                                {cell.url.trim() && <MediaEmbedView url={cell.url} caption={cell.caption} size="full" />}
+                              </div>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     )}
                   </CardContent>
@@ -469,7 +621,42 @@ export default function AnnouncementsPage({ role, navigate }: Props) {
             <div className="flex gap-2 flex-wrap">
               <Button variant="outline" size="sm" onClick={() => addBlock('content')}><FileText className="w-3.5 h-3.5 mr-1" />Add text</Button>
               <Button variant="outline" size="sm" onClick={() => addBlock('media')}><Play className="w-3.5 h-3.5 mr-1" />Add media</Button>
+              <Button variant="outline" size="sm" onClick={() => addBlock('columns', 2)}><Columns2 className="w-3.5 h-3.5 mr-1" />2 columns</Button>
+              <Button variant="outline" size="sm" onClick={() => addBlock('columns', 3)}><Columns3 className="w-3.5 h-3.5 mr-1" />3 columns</Button>
             </div>
+
+            {/* Notifications */}
+            <Card className="border-[#f0f0f0]">
+              <CardContent className="p-4 space-y-3">
+                <p className="text-sm font-semibold text-[#222] flex items-center gap-2"><Bell className="w-4 h-4 text-[#e33b5f]" />Notifications when published</p>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="checkbox" className="accent-[#e33b5f]" checked={draft.notify_in_app}
+                    onChange={e => setDraft(d => ({ ...d, notify_in_app: e.target.checked }))} />
+                  Send an in-app (bell) notification to everyone in the audience
+                </label>
+                <label className="flex items-center gap-2 text-sm flex-wrap">
+                  <Mail className="w-3.5 h-3.5 text-[#9e9e9e]" />Email:
+                  <select className="h-8 border border-[#e8e8e8] rounded-lg px-2 text-sm bg-white"
+                    value={draft.email_mode} onChange={e => setDraft(d => ({ ...d, email_mode: e.target.value as EmailMode }))}>
+                    {EMAIL_MODES.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                  </select>
+                </label>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="checkbox" className="accent-[#e33b5f]" checked={draft.notify_admins}
+                    onChange={e => setDraft(d => ({ ...d, notify_admins: e.target.checked }))} />
+                  Also notify admins
+                </label>
+                <div className="flex items-center gap-2 flex-wrap pt-1">
+                  <Button size="sm" variant="outline" onClick={sendTest} disabled={testing || !editing}>
+                    {testing ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1" />}Send a test to me
+                  </Button>
+                  <span className="text-xs text-[#9e9e9e]">
+                    {editing ? 'Sends the bell notification and the email to you only.' : 'Save as a draft first to send yourself a test.'}
+                    {editing?.notified_at && ` Audience already notified ${new Date(editing.notified_at).toLocaleString()}.`}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Attachments */}
             <Card className="border-[#f0f0f0]">
@@ -518,8 +705,9 @@ export default function AnnouncementsPage({ role, navigate }: Props) {
       </div>
 
       {notice && (
-        <div className="max-w-5xl mb-4 flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-sm text-emerald-700">
-          <Check className="w-4 h-4 shrink-0" /><span className="flex-1">{notice}</span>
+        <div className={`max-w-5xl mb-4 flex items-start gap-2 px-4 py-2.5 rounded-lg border text-sm ${notice.ok ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+          {notice.ok ? <Check className="w-4 h-4 shrink-0 mt-0.5" /> : <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />}
+          <span className="flex-1">{notice.text}</span>
           <button onClick={() => setNotice(null)}><X className="w-4 h-4" /></button>
         </div>
       )}
@@ -573,7 +761,7 @@ export default function AnnouncementsPage({ role, navigate }: Props) {
                   <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
                     <div className="flex items-center gap-2 flex-wrap">
                       <VisiBadge vis={featured.visibility} />
-                      {!featured.is_published && isAdmin && <Badge className="bg-amber-100 text-amber-700 text-xs">Draft</Badge>}
+                      {!featured.is_published && isAdmin && <DraftBadge ann={featured} />}
                     </div>
                     <span className="text-xs text-[#9e9e9e]">{featured.meta}</span>
                   </div>
@@ -602,7 +790,7 @@ export default function AnnouncementsPage({ role, navigate }: Props) {
                   <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
                     <span className="text-xs font-bold tracking-widest text-[#9e9e9e] uppercase">{ann.category}</span>
                     <div className="flex items-center gap-1.5">
-                      {!ann.is_published && isAdmin && <Badge className="bg-amber-100 text-amber-700 text-xs">Draft</Badge>}
+                      {!ann.is_published && isAdmin && <DraftBadge ann={ann} />}
                       <VisiBadge vis={ann.visibility} />
                     </div>
                   </div>

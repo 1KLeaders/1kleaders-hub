@@ -13,12 +13,12 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   Loader2, ArrowLeft, Globe, Users, Pencil, Plus, Trash2, Camera, X, Linkedin, MapPin, Calendar,
-  Building2, FileText, Image as ImageIcon, Video, Link2, Paperclip, Send, Rocket, TrendingUp, Save,
+  Building2, FileText, Image as ImageIcon, Video, Link2, Paperclip, Send, Rocket, TrendingUp, Save, Wand2,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth-context';
 import {
-  StartupLogo, UpdateAttachments, uploadStartupFile, kindForFile, formatBytes,
+  StartupLogo, UpdateAttachments, uploadStartupFile, kindForFile, formatBytes, removeLogoBackground,
   type Startup, type TeamMember, type UpdateAttachment,
 } from './startup-shared';
 
@@ -129,6 +129,33 @@ export default function StartupDetailPage({ startupId, navigate, hideBack }: Pro
   }
 
   const setTeam = (team: TeamMember[]) => setForm(f => ({ ...f, team }));
+
+  // ── Logo background ────────────────────────────────────────────────────
+  const [logoBusy, setLogoBusy] = useState(false);
+  const [logoUndo, setLogoUndo] = useState<{ logo_url: string | null; logo_background: string | null } | null>(null);
+
+  async function updateLogo(patch: { logo_url?: string | null; logo_background?: string | null }) {
+    if (!startup) return false;
+    const { error } = await supabase.from('startups').update(patch).eq('id', startup.id);
+    if (error) { setError(error.message); return false; }
+    setStartup(s => s ? { ...s, ...patch } as Startup : s);
+    return true;
+  }
+
+  async function makeLogoTransparent() {
+    if (!startup?.logo_url) return;
+    setLogoBusy(true); setError(null);
+    try {
+      const { blob, isLight } = await removeLogoBackground(startup.logo_url);
+      const url = await uploadStartupFile(startup.id, new File([blob], 'logo-transparent.png', { type: 'image/png' }), 'logo');
+      const before = { logo_url: startup.logo_url, logo_background: startup.logo_background ?? 'white' };
+      // Light logos (e.g. white text made for a black background) go on a dark tile so they stay visible
+      if (await updateLogo({ logo_url: url, logo_background: isLight ? 'dark' : 'white' })) setLogoUndo(before);
+    } catch (e: any) {
+      setError(`Couldn't process the logo: ${e.message}`);
+    }
+    setLogoBusy(false);
+  }
 
   async function uploadTeamPhoto(idx: number, file: File) {
     if (!startup) return;
@@ -523,6 +550,36 @@ export default function StartupDetailPage({ startupId, navigate, hideBack }: Pro
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Edit {startup.name}</DialogTitle></DialogHeader>
           <div className="space-y-4">
+            {/* Logo */}
+            <div className="flex items-center gap-4 p-3 rounded-xl border border-[#f0f0f0] flex-wrap">
+              <div className="p-2 rounded-lg" style={{ backgroundImage: 'repeating-conic-gradient(#eee 0% 25%, #fff 0% 50%)', backgroundSize: '12px 12px' }}>
+                <StartupLogo startup={startup} size={72} />
+              </div>
+              <div className="flex-1 min-w-52 space-y-2">
+                <p className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider">Logo</p>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={() => logoRef.current?.click()} disabled={!!uploadingImg || logoBusy}>
+                    <Camera className="w-3.5 h-3.5 mr-1" />Upload new
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={makeLogoTransparent} disabled={!startup.logo_url || logoBusy}>
+                    {logoBusy ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Wand2 className="w-3.5 h-3.5 mr-1" />}Remove background
+                  </Button>
+                  {logoUndo && (
+                    <Button size="sm" variant="ghost" onClick={async () => { if (await updateLogo(logoUndo)) setLogoUndo(null); }}>Undo</Button>
+                  )}
+                </div>
+                <label className="flex items-center gap-2 text-xs text-[#555353]">
+                  Tile behind logo:
+                  <select className="border border-[#e8e8e8] rounded px-1.5 py-0.5" value={startup.logo_background ?? 'white'}
+                    onChange={e => updateLogo({ logo_background: e.target.value })}>
+                    <option value="white">White</option>
+                    <option value="dark">Dark</option>
+                    <option value="none">None (transparent)</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
             <div className="grid sm:grid-cols-2 gap-3">
               {([
                 ['name', 'Name *'], ['tagline', 'Tagline'], ['website', 'Website'], ['linkedin_url', 'LinkedIn page'],

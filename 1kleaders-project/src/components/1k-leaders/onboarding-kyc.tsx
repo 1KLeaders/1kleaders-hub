@@ -18,12 +18,15 @@ import { useAuth } from '@/context/auth-context';
 
 interface Props { navigate?: (page: Page) => void; }
 
-// Used only when no KYC form has been published in the Form Builder
+// The 5 required KYC documents. When a KYC form is published in the Form Builder it covers the first four;
+// the Clara KYC Form is always a separate upload because members fill in the downloadable template.
+const CLARA = { id: 'clara-kyc-form', label: 'Clara KYC Form', hint: 'Download the template, fill it in, then upload the completed form — PDF' };
 const FALLBACK_DOC_TYPES = [
   { id: 'passport',         label: 'Passport Copy',    hint: 'Clear scan of valid passport — PDF or image' },
   { id: 'national-id',      label: 'National ID Copy', hint: 'Front and back — PDF or image' },
   { id: 'proof-of-address', label: 'Proof of Address', hint: 'Utility bill or bank statement (last 3 months)' },
   { id: 'cv',               label: 'CV / Résumé',      hint: 'Most recent CV — PDF' },
+  CLARA,
 ];
 
 const POST_APPROVAL = ['Payment Confirmed', 'Awaiting ADGM Registration', 'Officially Registered Partner'];
@@ -45,6 +48,7 @@ export default function OnboardingKYC({ navigate }: Props) {
   const [docs,        setDocs]        = useState<KycDoc[]>([]);
   const [kycForm,     setKycForm]     = useState<{ id: string; title: string } | null>(null);
   const [instructions, setInstructions] = useState('');
+  const [claraTemplate, setClaraTemplate] = useState('');
   const [loading,     setLoading]     = useState(true);
   const [uploading,   setUploading]   = useState<string | null>(null);
   const [error,       setError]       = useState<string | null>(null);
@@ -56,14 +60,16 @@ export default function OnboardingKYC({ navigate }: Props) {
   async function load() {
     if (!profile) return;
     setLoading(true);
-    const [{ data: d }, { data: forms }, { data: setting }] = await Promise.all([
+    const [{ data: d }, { data: forms }, { data: settings }] = await Promise.all([
       supabase.from('kyc_documents').select('id, doc_type, status, file_name, storage_path, uploaded_at, rejection_reason').eq('user_id', profile.id),
       supabase.from('forms').select('id, title').eq('purpose', 'kyc').eq('is_published', true).order('created_at', { ascending: false }).limit(1),
-      supabase.from('platform_settings').select('value').eq('key', 'payment_instructions').maybeSingle(),
+      supabase.from('platform_settings').select('key, value').in('key', ['payment_instructions', 'clara_kyc_template_url']),
     ]);
     setDocs((d ?? []) as KycDoc[]);
     setKycForm(forms?.[0] ?? null);
-    setInstructions(setting?.value ?? '');
+    const setting = (k: string) => (settings ?? []).find(s => s.key === k)?.value ?? '';
+    setInstructions(setting('payment_instructions'));
+    setClaraTemplate(setting('clara_kyc_template_url'));
     setLoading(false);
   }
 
@@ -75,13 +81,21 @@ export default function OnboardingKYC({ navigate }: Props) {
   const receipt  = docs.find(d => d.doc_type === 'payment-receipt');
   const rejected = kycDocs.filter(d => d.status === 'rejected');
 
+  const has = (type: string) => kycDocs.some(d => d.doc_type === type && d.status !== 'rejected');
   const kycDone = kycForm
-    ? kycDocs.some(d => d.doc_type === 'kyc-form') && rejected.length === 0
-    : FALLBACK_DOC_TYPES.every(t => kycDocs.some(d => d.doc_type === t.id && d.status !== 'rejected'));
+    ? kycDocs.some(d => d.doc_type === 'kyc-form') && has(CLARA.id) && rejected.length === 0
+    : FALLBACK_DOC_TYPES.every(t => has(t.id));
+  const docsUploaded = kycForm
+    ? (kycDocs.some(d => d.doc_type === 'kyc-form') ? 4 : 0) + (has(CLARA.id) ? 1 : 0)
+    : FALLBACK_DOC_TYPES.filter(t => has(t.id)).length;
   const paymentDone = !!receipt && receipt.status !== 'rejected';
   const approved    = isShareholder || POST_APPROVAL.includes(status);
 
   const step = approved ? 4 : !kycDone ? 1 : !paymentDone ? 2 : 3;
+
+  // Approved shareholders don't need this page any more (developers can still open it to test)
+  const hideForShareholder = approved && profile?.role !== 'developer';
+  useEffect(() => { if (hideForShareholder) navigate?.('dashboard'); }, [hideForShareholder]);
 
   async function markStatus(next: string, onlyIfBefore: string[]) {
     if (!profile || !onlyIfBefore.includes(status)) return;
@@ -133,9 +147,32 @@ export default function OnboardingKYC({ navigate }: Props) {
     { n: 3, label: 'Approval', icon: ClipboardList },
   ];
 
+  if (hideForShareholder) return null;
+
   if (loading) return (
     <div className="flex items-center justify-center py-20 gap-2 text-[#9e9e9e]"><Loader2 className="w-5 h-5 animate-spin" />Loading...</div>
   );
+
+  function renderDocRow(t: { id: string; label: string; hint: string }) {
+    const doc = kycDocs.find(d => d.doc_type === t.id);
+    return (
+      <div key={t.id} className="flex items-center gap-3 flex-wrap">
+        <div className="flex-1 min-w-48">
+          <p className="text-sm font-medium text-[#222]">{t.label} <span className="text-[#e33b5f]">*</span></p>
+          <p className="text-xs text-[#7e7e7e]">{t.hint}</p>
+          {t.id === CLARA.id && (claraTemplate
+            ? <a href={claraTemplate} target="_blank" rel="noopener noreferrer" download className="inline-flex items-center gap-1 text-xs font-medium text-[#e33b5f] hover:underline mt-1"><Download className="w-3 h-3" />Download the Clara KYC Form template</a>
+            : <p className="text-xs text-amber-600 mt-1">The template will be available here shortly — contact the 1K Leaders team if you need it now.</p>)}
+        </div>
+        {doc && <Badge className={`text-xs capitalize ${docBadge(doc.status)}`}>{doc.status === 'submitted' ? 'awaiting review' : doc.status}</Badge>}
+        <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" ref={el => { fileRefs.current[t.id] = el; }}
+          onChange={e => { const f = e.target.files?.[0]; if (f) uploadKycDoc(t.id, f); e.target.value = ''; }} />
+        <Button size="sm" variant="outline" disabled={uploading === t.id || doc?.status === 'approved'} onClick={() => fileRefs.current[t.id]?.click()}>
+          {uploading === t.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Upload className="w-3.5 h-3.5 mr-1" />{doc ? 'Replace' : 'Upload'}</>}
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -202,37 +239,25 @@ export default function OnboardingKYC({ navigate }: Props) {
             </div>
           )}
 
-          {kycForm ? (
-            <div className="flex items-center gap-4 p-4 rounded-xl border border-[#f0f0f0] bg-[#fafafa] flex-wrap">
-              <ClipboardList className="w-8 h-8 text-[#e33b5f] shrink-0" />
-              <div className="flex-1 min-w-48">
-                <p className="text-sm font-semibold text-[#222]">{kycForm.title}</p>
-                <p className="text-xs text-[#7e7e7e]">Your details and ID documents in one form. Takes about 5 minutes.</p>
-              </div>
-              <Button className="bg-[#e33b5f] hover:bg-[#c02d4f] text-white" onClick={() => navigate?.(`form-${kycForm.id}` as Page)}>
-                {kycDocs.some(d => d.doc_type === 'kyc-form') ? 'Update KYC form' : 'Start KYC form'}
-              </Button>
-            </div>
-          ) : (
-            FALLBACK_DOC_TYPES.map(t => {
-              const doc = kycDocs.find(d => d.doc_type === t.id);
-              return (
-                <div key={t.id} className="flex items-center gap-3 flex-wrap">
-                  <div className="flex-1 min-w-48">
-                    <p className="text-sm font-medium text-[#222]">{t.label} <span className="text-[#e33b5f]">*</span></p>
-                    <p className="text-xs text-[#7e7e7e]">{t.hint}</p>
-                  </div>
-                  {doc && <Badge className={`text-xs capitalize ${docBadge(doc.status)}`}>{doc.status === 'submitted' ? 'awaiting review' : doc.status}</Badge>}
-                  <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" ref={el => { fileRefs.current[t.id] = el; }}
-                    onChange={e => { const f = e.target.files?.[0]; if (f) uploadKycDoc(t.id, f); e.target.value = ''; }} />
-                  <Button size="sm" variant="outline" disabled={uploading === t.id || doc?.status === 'approved'} onClick={() => fileRefs.current[t.id]?.click()}>
-                    {uploading === t.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Upload className="w-3.5 h-3.5 mr-1" />{doc ? 'Replace' : 'Upload'}</>}
-                  </Button>
-                </div>
-              );
-            })
-          )}
+          <p className="text-xs text-[#7e7e7e]">{docsUploaded} of 5 KYC documents uploaded</p>
 
+          {kycForm ? (
+            <>
+              <div className="flex items-center gap-4 p-4 rounded-xl border border-[#f0f0f0] bg-[#fafafa] flex-wrap">
+                <ClipboardList className="w-8 h-8 text-[#e33b5f] shrink-0" />
+                <div className="flex-1 min-w-48">
+                  <p className="text-sm font-semibold text-[#222]">{kycForm.title}</p>
+                  <p className="text-xs text-[#7e7e7e]">Your details plus passport, national ID, proof of address and CV. Takes about 5 minutes.</p>
+                </div>
+                <Button className="bg-[#e33b5f] hover:bg-[#c02d4f] text-white" onClick={() => navigate?.(`form-${kycForm.id}` as Page)}>
+                  {kycDocs.some(d => d.doc_type === 'kyc-form') ? 'Update KYC form' : 'Start KYC form'}
+                </Button>
+              </div>
+              {renderDocRow(CLARA)}
+            </>
+          ) : (
+            FALLBACK_DOC_TYPES.map(renderDocRow)
+          )}
           {kycDocs.filter(d => d.storage_path).length > 0 && (
             <div className="border-t border-[#f0f0f0] pt-3 space-y-1.5">
               <p className="text-xs font-semibold text-[#9e9e9e] uppercase tracking-wider">Your documents</p>
@@ -249,21 +274,25 @@ export default function OnboardingKYC({ navigate }: Props) {
         </CardContent>
       </Card>
 
+      {/* Payment stays hidden until all 5 KYC documents are in */}
+      {step >= 2 ? (<>
       {/* Step 2 — Payment */}
-      <Card className={`border-[#f0f0f0] ${step === 2 ? 'ring-1 ring-[#e33b5f]/30' : ''} ${step < 2 ? 'opacity-60' : ''}`}>
+      <Card className={`border-[#f0f0f0] ${step === 2 ? 'ring-1 ring-[#e33b5f]/30' : ''}`}>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-[#e33b5f]" /> Step 2 — Payment
-            {step < 2 && <Lock className="w-3.5 h-3.5 text-[#9e9e9e] ml-auto" />}
             {paymentDone && <Badge className={`text-xs ml-auto ${docBadge(receipt!.status)}`}>{receipt!.status === 'approved' ? 'Confirmed' : 'Receipt submitted'}</Badge>}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {step < 2 ? (
-            <p className="text-sm text-[#9e9e9e]">Complete your KYC first to unlock payment.</p>
-          ) : (
+          {(
             <>
-              {instructions && <div className="p-4 bg-[#e33b5f]/5 border border-[#e33b5f]/20 rounded-lg text-sm text-[#444] whitespace-pre-wrap">{instructions}</div>}
+              <div className="p-4 bg-[#e33b5f]/5 border border-[#e33b5f]/20 rounded-lg text-sm text-[#444] space-y-3">
+                <p className="whitespace-pre-wrap">{instructions || 'The bank details for your partner fee are in your signed partnership agreement. Once you’ve made the transfer, upload the receipt below.'}</p>
+                <Button size="sm" variant="outline" className="bg-white" onClick={() => navigate?.('agreements')}>
+                  <FileText className="w-3.5 h-3.5 mr-1.5" />View my partnership agreement (bank details)
+                </Button>
+              </div>
               {receipt?.status === 'rejected' && (
                 <p className="text-sm text-red-600">Your receipt couldn&apos;t be verified{receipt.rejection_reason ? `: ${receipt.rejection_reason}` : ''}. Please upload it again.</p>
               )}
@@ -321,6 +350,12 @@ export default function OnboardingKYC({ navigate }: Props) {
           )}
         </CardContent>
       </Card>
+      </>) : (
+        <div className="flex items-center gap-3 p-4 rounded-xl border border-dashed border-[#e8e8e8] text-sm text-[#9e9e9e]">
+          <Lock className="w-4 h-4 shrink-0" />
+          Payment opens once all 5 KYC documents are uploaded ({docsUploaded}/5 so far).
+        </div>
+      )}
     </div>
   );
 }

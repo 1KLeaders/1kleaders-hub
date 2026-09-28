@@ -9,7 +9,8 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth-context';
 
 // Shown after a user opens the branded password-reset link (they are signed in via the recovery token)
-export default function ResetPasswordScreen({ onDone }: { onDone: () => void }) {
+// preview: developer walkthrough — the password is not changed
+export default function ResetPasswordScreen({ onDone, preview }: { onDone: () => void; preview?: boolean }) {
   const { profile, clearPasswordRecovery } = useAuth();
   const [password, setPassword] = useState('');
   const [confirm,  setConfirm]  = useState('');
@@ -22,6 +23,7 @@ export default function ResetPasswordScreen({ onDone }: { onDone: () => void }) 
     setError(null);
     if (password.length < 8) return setError('Password must be at least 8 characters.');
     if (password !== confirm) return setError('Passwords do not match.');
+    if (preview) return setDone(true);
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
@@ -30,7 +32,7 @@ export default function ResetPasswordScreen({ onDone }: { onDone: () => void }) 
   }
 
   function finish() {
-    clearPasswordRecovery();
+    if (!preview) clearPasswordRecovery();
     onDone();
   }
 

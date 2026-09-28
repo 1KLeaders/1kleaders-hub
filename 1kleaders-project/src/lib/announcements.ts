@@ -5,9 +5,25 @@ export type Category   = 'Updates' | 'Reports' | 'Podcast' | 'Newsletter' | 'Ann
 
 export const CATEGORIES: Category[] = ['Updates', 'Reports', 'Podcast', 'Newsletter', 'Announcement'];
 
+export type MediaSize  = 'sm' | 'md' | 'lg' | 'full';
+export type MediaAlign = 'left' | 'center' | 'right';
+
 export type ContentBlock = { id: string; type: 'content'; html: string };
-export type MediaBlock   = { id: string; type: 'media'; url: string; caption?: string };
-export type Block = ContentBlock | MediaBlock;
+export type MediaBlock   = { id: string; type: 'media'; url: string; caption?: string; size?: MediaSize; align?: MediaAlign };
+// Side-by-side layout: 2 or 3 cells, each holding text or media
+export type ColumnCell   = { kind: 'content'; html: string } | { kind: 'media'; url: string; caption?: string };
+export type ColumnsBlock = { id: string; type: 'columns'; cells: ColumnCell[] };
+export type Block = ContentBlock | MediaBlock | ColumnsBlock;
+
+// Max width for media blocks (videos default to medium so they don't fill the whole page)
+export const MEDIA_SIZES: { value: MediaSize; label: string; maxWidth: string }[] = [
+  { value: 'sm',   label: 'Small',  maxWidth: '360px' },
+  { value: 'md',   label: 'Medium', maxWidth: '560px' },
+  { value: 'lg',   label: 'Large',  maxWidth: '760px' },
+  { value: 'full', label: 'Full',   maxWidth: '100%' },
+];
+
+export type EmailMode = 'none' | 'opted_in' | 'all';
 
 export type Attachment = { name: string; url: string; size?: number };
 
@@ -37,6 +53,10 @@ export type Announcement = {
   is_published:   boolean;
   published_at:   string | null;
   notified_at:    string | null;
+  publish_at?:    string | null;     // scheduled publish time (migration-039)
+  notify_in_app?: boolean | null;
+  email_mode?:    EmailMode | null;
+  notify_admins?: boolean | null;
 };
 
 export const ADMIN_ROLES = ['admin', 'super-admin', 'developer'];
@@ -110,7 +130,10 @@ export function stripHtml(html: string | null | undefined): string {
 
 export function excerpt(ann: Pick<Announcement, 'description' | 'blocks' | 'content' | 'media_url'>, max = 200): string {
   if (ann.description?.trim()) return ann.description.trim();
-  const text = getBlocks(ann).filter(b => b.type === 'content').map(b => stripHtml((b as ContentBlock).html)).join(' ');
+  const text = getBlocks(ann).flatMap(b =>
+    b.type === 'content' ? [stripHtml(b.html)]
+    : b.type === 'columns' ? b.cells.filter(c => c.kind === 'content').map(c => stripHtml((c as { html: string }).html))
+    : []).join(' ');
   return text.length > max ? text.slice(0, max).trimEnd() + '…' : text;
 }
 

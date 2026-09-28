@@ -92,6 +92,7 @@ function FilesTab({ role, category, hideWhenEmpty, title }: {
   const isAdmin = role === 'admin' || role === 'super-admin' || role === 'developer';
 
   const [docs,        setDocs]        = useState<DbDoc[]>([]);
+  const [agreementCount, setAgreementCount] = useState(0);
   const [loading,     setLoading]     = useState(true);
   const activeCat = category;
   const [search,      setSearch]      = useState('');
@@ -116,8 +117,14 @@ function FilesTab({ role, category, hideWhenEmpty, title }: {
     // Non-admins only see their own docs
     if (!isAdmin) query.eq('owner_id', profile.id);
 
-    const { data, error } = await query;
+    // Agreements count towards the document total (same visibility rules as the Agreements view)
+    let agreements = supabase.from('docusign_envelopes').select('id', { count: 'exact', head: true })
+      .or('hidden.is.null,hidden.eq.false');
+    if (!isAdmin) agreements = agreements.or(`user_id.eq.${profile.id},recipient_email.ilike.${profile.email}`);
+
+    const [{ data, error }, { count }] = await Promise.all([query, agreements]);
     if (!error) setDocs((data ?? []) as DbDoc[]);
+    setAgreementCount(count ?? 0);
     setLoading(false);
   }
 
@@ -252,7 +259,8 @@ function FilesTab({ role, category, hideWhenEmpty, title }: {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Total Docs',     value: docs.length,                                       icon: FolderOpen  },
+          // Agreements only count in the unfiltered "All" view
+          { label: 'Total Docs',     value: docs.length + (category === 'All' ? agreementCount : 0), icon: FolderOpen  },
           { label: 'Verified',       value: docs.filter(d => d.status === 'verified').length,   icon: CheckCircle },
           { label: 'Pending Review', value: docs.filter(d => d.status === 'pending').length,    icon: Clock       },
           { label: 'Secure',         value: docs.filter(d => d.status !== 'expired').length,    icon: Shield      },

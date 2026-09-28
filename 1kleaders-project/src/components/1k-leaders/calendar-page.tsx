@@ -323,6 +323,11 @@ export default function CalendarPage({ role }: Props) {
       description: [newDesc.trim(), teamsJoinUrl ? `Teams link: ${teamsJoinUrl}` : null].filter(Boolean).join('\n') || null,
       created_by:      profile.id,
       invitees:        invitees.length > 0 ? invitees : null,
+      // Meetings are only visible to invitees (migration-039); the creator is always included
+      attendee_emails: [...new Set([
+        ...invitees.map(id => partners.find(p => p.id === id)?.email?.toLowerCase()).filter(Boolean) as string[],
+        profile.email.toLowerCase(),
+      ])],
       teams_join_url:  teamsJoinUrl,
     }).select().single();
 
@@ -428,7 +433,10 @@ export default function CalendarPage({ role }: Props) {
             </div>
             <div><Label className="text-sm">Description (optional)</Label><Input className="mt-1 border-[#f0f0f0]" value={newDesc} onChange={e => setNewDesc(e.target.value)} /></div>
             <div>
-              <Label className="text-sm">Invite Partners (optional)</Label>
+              <Label className="text-sm">Invite Partners</Label>
+              {newType === 'meeting' && (
+                <p className="text-xs text-[#9e9e9e] mt-0.5">Only invited people (and admins) will see this meeting on their calendar.</p>
+              )}
               <div className="mt-1 flex flex-wrap gap-1.5 p-2 border border-[#f0f0f0] rounded-lg min-h-[40px]">
                 {invitees.map(id => {
                   const p = partners.find(p => p.id === id);

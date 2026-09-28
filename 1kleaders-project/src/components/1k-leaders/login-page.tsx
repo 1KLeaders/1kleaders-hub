@@ -9,9 +9,9 @@ import { ArrowLeft, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from 'lucide
 import { useAuth } from '@/context/auth-context';
 import type { Page } from './types';
 
-interface Props { navigate: (page: Page) => void; type?: string; }
+interface Props { navigate: (page: Page) => void; type?: string; previewExpired?: boolean; }
 
-export default function LoginPage({ navigate }: Props) {
+export default function LoginPage({ navigate, previewExpired }: Props) {
   const { signIn } = useAuth();
   const [isDark, setIsDark] = useState(false);
   useEffect(() => {
@@ -34,7 +34,7 @@ export default function LoginPage({ navigate }: Props) {
   // Supabase redirects back with #error_code=otp_expired when a reset/magic link is stale or already used
   useEffect(() => {
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    if (hash.get('error_code') === 'otp_expired' || hash.get('error') === 'access_denied') {
+    if (previewExpired || hash.get('error_code') === 'otp_expired' || hash.get('error') === 'access_denied') {
       setError('That link has expired or was already used. Enter your email and request a new password reset below.');
       setShowReset(true);
       window.history.replaceState(null, '', window.location.pathname);

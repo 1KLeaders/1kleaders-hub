@@ -19,9 +19,10 @@ const ALL_STEPS = [
   { id: 4, label: 'All Set',        icon: LayoutDashboard },
 ];
 
-export default function FirstLoginFlow({ onComplete }: { onComplete: () => void }) {
+// preview: developer walkthrough — nothing is saved (password, profile and photo are left untouched)
+export default function FirstLoginFlow({ onComplete, preview, forceDetails }: { onComplete: () => void; preview?: boolean; forceDetails?: boolean }) {
   const { profile, refreshProfile } = useAuth();
-  const needsDetails = !!(profile as any)?.needs_registration;
+  const needsDetails = forceDetails ?? !!(profile as any)?.needs_registration;
   const STEPS = ALL_STEPS.filter(s => s.id !== 5 || needsDetails);
   const [step,          setStep]        = useState(1);
   const [password,      setPassword]    = useState('');
@@ -44,6 +45,7 @@ export default function FirstLoginFlow({ onComplete }: { onComplete: () => void 
     setError(null);
     if (password.length < 8) return setError('Password must be at least 8 characters.');
     if (password !== confirm) return setError('Passwords do not match.');
+    if (preview) return setStep(2);
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
@@ -58,6 +60,7 @@ export default function FirstLoginFlow({ onComplete }: { onComplete: () => void 
   }
 
   async function uploadPhoto(file: File) {
+    if (preview) { setPhotoUrl(URL.createObjectURL(file)); return; }
     setUploading(true);
     const ext  = file.name.split('.').pop();
     const path = `avatars/${profile!.id}/avatar.${ext}`;
@@ -71,6 +74,7 @@ export default function FirstLoginFlow({ onComplete }: { onComplete: () => void 
 
   async function handleProfile() {
     setError(null);
+    if (preview) return setStep(4);
     setLoading(true);
     await supabase.from('profiles').update({
       bio:               bio.trim() || null,
@@ -175,7 +179,7 @@ export default function FirstLoginFlow({ onComplete }: { onComplete: () => void 
             )}
 
             {/* Step 5 — Registration details (admin-started onboarding only) */}
-            {step === 5 && <RegistrationDetailsStep onDone={() => setStep(3)} />}
+            {step === 5 && <RegistrationDetailsStep preview={preview} onDone={() => setStep(3)} />}
 
             {/* Step 3 — Profile Photo + Bio only */}
             {step === 3 && (

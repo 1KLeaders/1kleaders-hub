@@ -11,7 +11,8 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth-context';
 import { industries, expertiseDomains, jobLevels, leaderProfiles, genders, countries, phonePrefixes } from './waitlist-form';
 
-export default function RegistrationDetailsStep({ onDone }: { onDone: () => void }) {
+// preview: developer walkthrough — validates but doesn't save
+export default function RegistrationDetailsStep({ onDone, preview }: { onDone: () => void; preview?: boolean }) {
   const { profile, refreshProfile } = useAuth();
   const p = profile as any;
 
@@ -47,6 +48,7 @@ export default function RegistrationDetailsStep({ onDone }: { onDone: () => void
       !jobLevel && 'job level', selExpertise.length === 0 && 'expertise',
     ].filter(Boolean);
     if (missing.length) return setError(`Please fill in: ${missing.join(', ')}.`);
+    if (preview) return onDone();
     setSaving(true); setError(null);
     const { error } = await supabase.from('profiles').update({
       first_name: firstName.trim(), last_name: lastName.trim(),

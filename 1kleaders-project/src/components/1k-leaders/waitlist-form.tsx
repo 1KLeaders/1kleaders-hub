@@ -82,7 +82,8 @@ export const phonePrefixes = [
   'VE(+58)','VN(+84)','YE(+967)','ZM(+260)','ZW(+263)',
 ];
 
-export default function WaitlistForm({ navigate }: Props) {
+// preview: developer walkthrough — the submission isn't saved
+export default function WaitlistForm({ navigate, preview }: Props & { preview?: boolean }) {
   const [step, setStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -117,6 +118,7 @@ export default function WaitlistForm({ navigate }: Props) {
 
 
   const handleSubmit = async () => {
+    if (preview) { setSubmitted(true); return; }
     setIsSubmitting(true);
     setSubmitError(null);
     const { error } = await supabase.from('waitlist_submissions').insert({

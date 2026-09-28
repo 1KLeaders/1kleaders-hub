@@ -7,7 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import ShareholderProfileCard from './shareholder-profile-card';
+import type { Page } from './types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { User, Lock, Bell, Shield, Save, Loader2, Check, Eye, EyeOff, AlertCircle, X, Moon, Sun, Monitor } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
@@ -75,7 +77,7 @@ function EmailChangeSection() {
   );
 }
 
-export default function SettingsPage() {
+export default function SettingsPage({ navigate }: { navigate?: (page: Page) => void }) {
   const { profile, refreshProfile } = useAuth();
   const { theme, setTheme, resolvedTheme } = useTheme();
 
@@ -249,12 +251,14 @@ export default function SettingsPage() {
 
         {/* ── Profile Tab ── */}
         <TabsContent value="profile">
+          <div className="grid xl:grid-cols-[minmax(0,1fr)_420px] gap-6 items-start">
           <Card>
             <CardHeader><CardTitle className="text-base">Profile Information</CardTitle></CardHeader>
             <CardContent className="space-y-5">
               {/* Avatar */}
               <div className="flex items-center gap-4">
                 <Avatar className="w-16 h-16">
+                  {profile?.profile_photo_url && <AvatarImage src={profile.profile_photo_url} alt="" className="object-cover" />}
                   <AvatarFallback className="bg-[#e33b5f]/10 text-[#c02d4f] text-lg font-bold">{initials}</AvatarFallback>
                 </Avatar>
                 <div>
@@ -376,6 +380,28 @@ export default function SettingsPage() {
               </Button>
             </CardContent>
           </Card>
+
+          {/* Live preview of the public shareholder profile */}
+          <div className="space-y-3 xl:sticky xl:top-20">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-[#222] flex items-center gap-2"><Eye className="w-4 h-4 text-[#e33b5f]" />Profile preview</p>
+              {navigate && profile && (
+                <Button size="sm" variant="outline" onClick={() => navigate(`partner-${profile.id}` as Page)}>
+                  Open in directory
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-[#9e9e9e]">This is how other shareholders see you in the Shareholders directory. It updates as you type — press Save Changes to publish.</p>
+            {profile && (
+              <ShareholderProfileCard p={{
+                ...profile,
+                first_name: firstName, last_name: lastName, city, country, bio, linkedin_url: linkedin,
+                org_name: orgName, org_website: orgWebsite, job_title: jobTitle,
+                expertise_domains: selectedExpertise, org_industries: selectedIndustries,
+              }} />
+            )}
+          </div>
+          </div>
         </TabsContent>
 
         {/* ── Account Tab ── */}

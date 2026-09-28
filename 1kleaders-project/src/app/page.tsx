@@ -8,6 +8,8 @@ import LoginPage from '@/components/1k-leaders/login-page';
 import OnboardingKYC from '@/components/1k-leaders/onboarding-kyc';
 import FirstLoginFlow from '@/components/1k-leaders/first-login-flow';
 import ResetPasswordScreen from '@/components/1k-leaders/reset-password-screen';
+import RegistrationDetailsStep from '@/components/1k-leaders/registration-details-step';
+import DeveloperPanel, { DEV_SCREENS, type DevScreen } from '@/components/1k-leaders/developer-panel';
 import DashboardLayout from '@/components/1k-leaders/dashboard-layout';
 import DashboardHome from '@/components/1k-leaders/dashboard-home';
 import IdeaSubmission from '@/components/1k-leaders/idea-submission';
@@ -64,11 +66,24 @@ const dashboardPages: Page[] = [
   'discussion-rooms', 'ai-assistant', 'newsletter-tracking',
   'vep-dashboard', 'mab-dashboard', 'recommendations', 'admin-dashboard',
   'startup-page', 'bug-report', 'onboarding-tracker', 'cohort-management', 'onboarding', 'quality-review', 'contributions', 'idea-status', 'fellowship-applications', 'announcements', 'startups', 'attendance-leaderboard', 'user-import', 'forms', 'shareholder-activity',
+  'demo-day' as Page, 'admin-users', 'admin-settings',
 ];
 
+function LoadingSplash() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#f6f6f6]">
+      <div className="flex flex-col items-center gap-3">
+        <img src="/logo-red-mid.png" alt="1KLeaders" className="h-10 object-contain animate-pulse" />
+        <p className="text-sm text-[#9e9e9e]">Loading...</p>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
-  const { session, profile, role, loading, signOut, passwordRecovery } = useAuth();
+  const { session, profile, role, loading, signOut, passwordRecovery, isDeveloper } = useAuth();
   const [currentPage, setCurrentPage] = useState<Page>('landing');
+  const [devScreen, setDevScreen] = useState<DevScreen | null>(null);
 
   const navigate = (page: Page) => setCurrentPage(page);
 
@@ -84,14 +99,38 @@ export default function Home() {
   }, []);
 
   // ── Loading splash ────────────────────────────────────────────────────────
-  if (loading) {
+  if (loading) return <LoadingSplash />;
+
+  // ── Developer screen previews (login, registration, password reset, first login…) ──
+  if (devScreen && isDeveloper) {
+    const exit = () => setDevScreen(null);
+    // Links inside previewed screens move between previews (Login ↔ Waitlist ↔ Landing)
+    const devNav = (p: Page) => p === 'login' ? setDevScreen('login') : p === 'waitlist' ? setDevScreen('waitlist') : p === 'landing' ? setDevScreen('landing') : exit();
+    const screen = (() => {
+      switch (devScreen) {
+        case 'landing':              return <LandingPage navigate={devNav} />;
+        case 'login':                return <LoginPage navigate={devNav} />;
+        case 'login-expired':        return <LoginPage navigate={devNav} previewExpired />;
+        case 'waitlist':             return <WaitlistForm navigate={devNav} preview />;
+        case 'reset-password':       return <ResetPasswordScreen preview onDone={exit} />;
+        case 'first-login':          return <FirstLoginFlow preview forceDetails={false} onComplete={exit} />;
+        case 'first-login-details':  return <FirstLoginFlow preview forceDetails onComplete={exit} />;
+        case 'registration-details': return (
+          <div className="min-h-screen bg-[#f6f6f6] flex items-start justify-center p-4 pt-16">
+            <div className="max-w-lg w-full bg-white border border-[#f0f0f0] rounded-2xl p-6"><RegistrationDetailsStep preview onDone={exit} /></div>
+          </div>
+        );
+        case 'loading':              return <LoadingSplash />;
+      }
+    })();
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f6f6f6]">
-        <div className="flex flex-col items-center gap-3">
-          <img src="/logo-red-mid.png" alt="1KLeaders" className="h-10 object-contain animate-pulse" />
-          <p className="text-sm text-[#9e9e9e]">Loading...</p>
+      <>
+        <div className="fixed top-0 inset-x-0 z-[70] flex items-center justify-center gap-3 bg-[#141414] text-white text-xs py-1.5 px-3">
+          <span>🛠 Previewing “{DEV_SCREENS.find(s => s.id === devScreen)?.label}” — nothing is saved</span>
+          <button onClick={exit} className="px-2.5 py-0.5 rounded-full bg-[#e33b5f] font-semibold">Exit preview</button>
         </div>
-      </div>
+        {screen}
+      </>
     );
   }
 
@@ -110,7 +149,8 @@ export default function Home() {
     // If they landed on a public page after auth, redirect to dashboard
     const isDynamicPage = currentPage.startsWith('startup-') || 
       currentPage.startsWith('announcement-') || 
-      currentPage.startsWith('form-');
+      currentPage.startsWith('form-') ||
+      currentPage.startsWith('partner-');
     if (!dashboardPages.includes(currentPage) && !isDynamicPage) {
       setCurrentPage('dashboard');
     }
@@ -123,8 +163,8 @@ export default function Home() {
         // Agreements now live in a tab on the Documents page; old 'agreements' links open that tab
         case 'agreements':        return <DocumentsPage role={role} navigate={navigate} initialTab="agreements" />;
         case 'documents':         return <DocumentsPage role={role} navigate={navigate} />;
-        case 'partners':          return <PartnersPage role={role} navigate={navigate} />;
-        case 'settings':          return <SettingsPage />;
+        case 'partners':          return <PartnersPage key="partners" role={role} navigate={navigate} />;
+        case 'settings':          return <SettingsPage navigate={navigate} />;
         case 'notifications':     return <NotificationsPage navigate={navigate} role={role} />;
         case 'profile':           return <ProfilePage navigate={navigate} />;
         case 'calendar':          return <CalendarPage role={role} />;
@@ -139,7 +179,7 @@ export default function Home() {
         case 'forms': return ['admin','super-admin','developer'].includes(role ?? '') ? <FormBuilderPage role={role} navigate={navigate} /> : <FormsListPage navigate={navigate} />;
         case 'shareholder-activity': return <ShareholderActivityPage />;
         case 'user-import':           return <UserImportPage />;
-        case 'admin-settings':    return <SettingsPage />;
+        case 'admin-settings':    return <SettingsPage navigate={navigate} />;
         case 'onboarding-tracker': return <OnboardingTracker />;
         case 'cohort-management':   return <CohortManagement />;
         case 'quality-review':       return <QualityReview />;
@@ -160,6 +200,9 @@ export default function Home() {
           if (currentPage.startsWith('announcement-')) {
             return <AnnouncementDetailPage announcementId={currentPage.replace('announcement-', '')} navigate={navigate} />;
           }
+          if (currentPage.startsWith('partner-')) {
+            return <PartnersPage key={currentPage} role={role} navigate={navigate} initialSelectedId={currentPage.replace('partner-', '')} />;
+          }
           if (currentPage.startsWith('form-')) {
             return <FormViewerPage formId={currentPage.replace('form-', '')} navigate={navigate} />;
           }
@@ -168,15 +211,18 @@ export default function Home() {
     };
 
     return (
-      <DashboardLayout
-        navigate={navigate}
-        role={role}
-
-        currentPage={currentPage}
-        onSignOut={signOut}
-      >
-        {renderContent()}
-      </DashboardLayout>
+      <>
+        <DashboardLayout
+          navigate={navigate}
+          role={role}
+          currentPage={currentPage}
+          onSignOut={signOut}
+        >
+          {renderContent()}
+        </DashboardLayout>
+        {/* Developer accounts only — renders nothing for everyone else */}
+        <DeveloperPanel currentPage={currentPage} navigate={navigate} onScreen={setDevScreen} />
+      </>
     );
   }
 

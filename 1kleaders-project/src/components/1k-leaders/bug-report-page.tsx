@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Bug, Send, Loader2, Check, RefreshCw, ChevronDown, ChevronUp, X, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth-context';
+import { apiFetch } from '@/lib/api-fetch';
 
 type BugReport = {
   id: string;
@@ -30,8 +31,9 @@ const severityColors: Record<string, string> = {
 };
 
 export default function BugReportPage() {
-  const { profile, role } = useAuth();
-  const isDeveloper = role === 'developer';
+  const { profile } = useAuth();
+  // Real role (not the developer "view as" role): developers and admins triage reports
+  const isDeveloper = ['developer', 'admin', 'super-admin'].includes(profile?.role ?? '');
 
   const [title,       setTitle]       = useState('');
   const [description, setDescription] = useState('');
@@ -39,41 +41,41 @@ export default function BugReportPage() {
   const [page,        setPage]        = useState('');
   const [submitting,  setSubmitting]  = useState(false);
   const [submitted,   setSubmitted]   = useState(false);
-  const [screenshot,  setScreenshot]  = useState<string | null>(null);
+  const [screenshot,  setScreenshot]  = useState<string | null>(null);      // local preview URL
+  const [screenshotPath, setScreenshotPath] = useState<string | null>(null); // storage path sent with the report
   const [uploading,   setUploading]   = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [error,       setError]       = useState<string | null>(null);
 
-  // Developer-only: view all reports
-  const [reports,     setReports]     = useState<BugReport[]>([]);
+  // Developer/admin: view all reports
+  const [reports,     setReports]     = useState<(BugReport & { screenshot_url?: string | null })[]>([]);
   const [loadingReports, setLoadingReports] = useState(false);
   const [expanded,    setExpanded]    = useState<string | null>(null);
 
   const fetchReports = async () => {
     setLoadingReports(true);
-    const { data } = await supabase
-      .from('bug_reports')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (data) setReports(data as BugReport[]);
+    const res = await apiFetch('/api/bug-reports');
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) setReports(data.reports ?? []);
     setLoadingReports(false);
   };
 
   useEffect(() => { if (isDeveloper) fetchReports(); }, [isDeveloper]);
 
   const updateBugStatus = async (id: string, status: string) => {
-    await supabase.from('bug_reports').update({ status }).eq('id', id);
     setReports(prev => prev.map(r => r.id === id ? { ...r, status } : r));
+    await apiFetch('/api/bug-reports', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, status }),
+    });
   };
 
   async function uploadScreenshot(file: File) {
-    setUploading(true);
-    const path = `bug-reports/${Date.now()}-${file.name}`;
-    const { error } = await supabase.storage.from('documents').upload(path, file, { upsert: true });
-    if (!error) {
-      const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(path);
-      setScreenshot(publicUrl);
-    }
+    if (!profile) return;
+    setUploading(true); setError(null);
+    const path = `${profile.id}/bug-reports/${Date.now()}-${file.name.replace(/[^\w.\-]+/g, '_')}`;
+    const { error } = await supabase.storage.from('form-uploads').upload(path, file, { upsert: true, contentType: file.type });
+    if (error) setError(`Screenshot upload failed: ${error.message}`);
+    else { setScreenshotPath(path); setScreenshot(URL.createObjectURL(file)); }
     setUploading(false);
   }
 
@@ -81,23 +83,18 @@ export default function BugReportPage() {
     setError(null);
     if (!title.trim() || !description.trim()) return setError('Title and description are required.');
     setSubmitting(true);
-    const { error } = await supabase.from('bug_reports').insert({
-      title:          title.trim(),
-      description:    description.trim(),
-      severity,
-      page:           page.trim() || null,
-      status:         'open',
-      reporter_email: profile?.email ?? 'unknown',
-      reporter_name:  `${profile?.first_name ?? ''} ${profile?.last_name ?? ''}`.trim() || 'Unknown',
+    const res = await apiFetch('/api/bug-reports', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, description, severity, page, screenshot_path: screenshotPath }),
     });
+    const data = await res.json().catch(() => ({}));
     setSubmitting(false);
-    if (error) return setError(error.message);
-    setTitle(''); setDescription(''); setPage(''); setSeverity('medium');
+    if (!res.ok) return setError(data.error ?? `Could not submit (${res.status})`);
+    setTitle(''); setDescription(''); setPage(''); setSeverity('medium'); setScreenshot(null); setScreenshotPath(null);
     setSubmitted(true);
     setTimeout(() => setSubmitted(false), 4000);
     if (isDeveloper) fetchReports();
   }
-
   return (
     <div className="space-y-6 max-w-3xl">
       <div className="flex items-center gap-3">
@@ -163,7 +160,7 @@ export default function BugReportPage() {
             {screenshot ? (
               <div className="relative">
                 <img src={screenshot} alt="screenshot" className="w-full rounded-xl max-h-48 object-cover border border-[#f0f0f0]" />
-                <button type="button" onClick={() => setScreenshot(null)}
+                <button type="button" onClick={() => { setScreenshot(null); setScreenshotPath(null); }}
                   className="absolute top-2 right-2 w-6 h-6 bg-[#222]/60 rounded-full flex items-center justify-center text-white hover:bg-red-500 transition">
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -178,20 +175,7 @@ export default function BugReportPage() {
               </button>
             )}
             <input ref={fileRef} type="file" accept="image/*" className="hidden"
-              onChange={async e => {
-                const f = e.target.files?.[0];
-                if (f) {
-                  setUploading(true);
-                  const path = `bug-reports/${Date.now()}-${f.name}`;
-                  const { error } = await supabase.storage.from('documents').upload(path, f, { upsert: true });
-                  if (!error) {
-                    const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(path);
-                    setScreenshot(publicUrl);
-                  }
-                  setUploading(false);
-                }
-                e.target.value = '';
-              }} />
+              onChange={e => { const f = e.target.files?.[0]; if (f) uploadScreenshot(f); e.target.value = ''; }} />
           </div>
 
           <Button className="bg-gradient-to-r from-[#e33b5f] to-[#E65F5C] text-white" onClick={handleSubmit} disabled={submitting}>
@@ -240,6 +224,12 @@ export default function BugReportPage() {
                         {r.page && <span>Page: <strong className="text-[#444]">{r.page}</strong></span>}
                       </div>
                       <p className="text-sm text-[#555353] whitespace-pre-wrap">{r.description}</p>
+                      {r.screenshot_url && (
+                        <a href={r.screenshot_url} target="_blank" rel="noopener noreferrer">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={r.screenshot_url} alt="Screenshot" className="max-h-64 rounded-lg border border-[#f0f0f0]" />
+                        </a>
+                      )}
                       <div className="flex gap-2">
                         {['open', 'in-progress', 'fixed', 'wont-fix'].map(s => (
                           <Button key={s} size="sm" variant={r.status === s ? 'default' : 'outline'}

@@ -17,7 +17,7 @@ import { roleBadgeConfig } from './types';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth-context';
 
-interface Props { navigate?: (page: Page) => void; role?: DashboardRole; }
+interface Props { navigate?: (page: Page) => void; role?: DashboardRole; initialSelectedId?: string; }
 
 type DbPartner = {
   id: string;
@@ -73,7 +73,7 @@ function DigitalBadge({ role }: { role: string }) {
   return <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium border ${cfg.color}`}>{cfg.icon} {cfg.label}</span>;
 }
 
-export default function ShareholdersPage({ navigate, role }: Props) {
+export default function ShareholdersPage({ navigate, role, initialSelectedId }: Props) {
   const { profile: currentUser } = useAuth();
   const isAdmin = role === 'admin' || role === 'super-admin' || role === 'developer';
   const isShareholder = role === 'shareholder' || isAdmin;
@@ -104,6 +104,15 @@ export default function ShareholdersPage({ navigate, role }: Props) {
   }
 
   useEffect(() => { fetchPartners(); }, [isAdmin]);
+
+  // Deep link (e.g. "Open in directory" from Settings) → open that profile once loaded
+  const [openedInitial, setOpenedInitial] = useState(false);
+  useEffect(() => {
+    if (!initialSelectedId || openedInitial || loading) return;
+    const p = partners.find(x => x.id === initialSelectedId);
+    if (p) openProfile(p);
+    setOpenedInitial(true);
+  }, [initialSelectedId, loading, partners]);
 
   async function openProfile(partner: DbPartner) {
     setSelected(partner);
@@ -164,6 +173,9 @@ export default function ShareholdersPage({ navigate, role }: Props) {
           <button onClick={() => setSelected(null)} className="text-sm text-[#7e7e7e] hover:text-[#222]">← Back to Partners</button>
           <ChevronRight className="w-4 h-4 text-[#d0d0d0]" />
           <span className="text-sm font-medium text-[#222] truncate">{name}</span>
+          {isOwnProfile && navigate && (
+            <Button size="sm" variant="outline" className="ml-auto" onClick={() => navigate('settings')}>Edit my profile</Button>
+          )}
         </div>
 
         {/* Header card */}

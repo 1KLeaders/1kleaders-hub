@@ -12,6 +12,8 @@ interface AuthContextValue {
   loading:        boolean;
   passwordRecovery: boolean;            // true after opening a password-reset link
   clearPasswordRecovery: () => void;
+  isDeveloper:    boolean;              // real DB role is 'developer'
+  setDevViewRole: (role: DashboardRole) => void;  // developers: preview the Hub as another role
   signIn:        (email: string, password: string) => Promise<{ error: string | null }>;
   signOut:        () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -24,7 +26,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user,        setUser]        = useState<User | null>(null);
   const [profile,     setProfile]     = useState<DbProfile | null>(null);
   const [loading,     setLoading]     = useState(true);
-  const [devViewRole, setDevViewRole] = useState<DashboardRole>('developer');
+  const [devViewRole, setDevViewRoleState] = useState<DashboardRole>(() => {
+    if (typeof window === 'undefined') return 'developer';
+    try { return (localStorage.getItem('1kl-dev-view-role') as DashboardRole) || 'developer'; } catch { return 'developer'; }
+  });
+  function setDevViewRole(r: DashboardRole) {
+    setDevViewRoleState(r);
+    try { localStorage.setItem('1kl-dev-view-role', r); } catch {}
+  }
   // Reset links redirect to /?reset=1 (see /api/auth/reset-password)
   const [passwordRecovery, setPasswordRecovery] = useState(
     () => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('reset') === '1'
@@ -108,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{
       session, user, profile, role,
-      loading, passwordRecovery, clearPasswordRecovery, signIn, signOut, refreshProfile,
+      loading, passwordRecovery, clearPasswordRecovery, isDeveloper, setDevViewRole, signIn, signOut, refreshProfile,
     }}>
       {children}
     </AuthContext.Provider>

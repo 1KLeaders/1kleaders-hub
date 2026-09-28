@@ -53,7 +53,8 @@ const navItems: NavItem[] = [
   { icon: FolderOpen,      label: 'Documents',        page: 'documents' },
   { icon: FileText,        label: 'Forms',            page: 'forms', roles: ['shareholder', 'user', 'vep', 'mab'] },
   { icon: Handshake,       label: 'Shareholders',     page: 'partners',          roles: ['shareholder', 'admin', 'super-admin', 'developer'] },
-  { icon: FileCheck,       label: 'KYC & Onboarding', page: 'onboarding',        roles: ['user', 'shareholder'] },
+  // Only members who aren't approved shareholders yet
+  { icon: FileCheck,       label: 'KYC & Onboarding', page: 'onboarding',        roles: ['user'] },
   { icon: BarChart3,       label: 'Idea Ranking',     page: 'idea-ranking',      roles: ['admin', 'super-admin', 'developer'] },
 ];
 

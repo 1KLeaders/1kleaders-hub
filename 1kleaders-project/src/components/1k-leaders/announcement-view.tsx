@@ -3,7 +3,7 @@
 // the editor's Preview mode and the public External Use page, so preview == reality.
 import { Badge } from '@/components/ui/badge';
 import { Globe, Lock, FileText, ExternalLink, Music, Film } from 'lucide-react';
-import { getBlocks, parseMediaUrl, type Announcement, type Block } from '@/lib/announcements';
+import { getBlocks, parseMediaUrl, MEDIA_SIZES, type Announcement, type Block, type MediaSize, type MediaAlign } from '@/lib/announcements';
 
 type ViewableAnnouncement = Pick<Announcement,
   'title' | 'description' | 'category' | 'visibility' | 'meta' | 'attachments' | 'blocks' | 'content' | 'media_url'>;
@@ -15,8 +15,11 @@ interface Props {
   footerNote?: React.ReactNode;
 }
 
-export function MediaEmbedView({ url, caption }: { url: string; caption?: string }) {
+export function MediaEmbedView({ url, caption, size, align }: { url: string; caption?: string; size?: MediaSize; align?: MediaAlign }) {
   const embed = parseMediaUrl(url);
+  const maxWidth = MEDIA_SIZES.find(s => s.value === size)?.maxWidth ?? '100%';
+  const marginLeft  = align === 'left' ? 0 : 'auto';
+  const marginRight = align === 'right' ? 0 : 'auto';
   if (!embed) {
     return <p className="text-sm text-red-500 my-4">Invalid media URL: {url}</p>;
   }
@@ -68,7 +71,7 @@ export function MediaEmbedView({ url, caption }: { url: string; caption?: string
   }
 
   return (
-    <figure className="my-6">
+    <figure className="my-6" style={{ maxWidth, marginLeft, marginRight }}>
       {body}
       {caption && embed.kind !== 'link' && <figcaption className="text-xs text-[#9e9e9e] text-center mt-2">{caption}</figcaption>}
     </figure>
@@ -76,7 +79,24 @@ export function MediaEmbedView({ url, caption }: { url: string; caption?: string
 }
 
 function BlockView({ block }: { block: Block }) {
-  if (block.type === 'media') return block.url ? <MediaEmbedView url={block.url} caption={block.caption} /> : null;
+  if (block.type === 'media') {
+    // Older media blocks have no size: default to Medium so videos don't fill the page
+    return block.url ? <MediaEmbedView url={block.url} caption={block.caption} size={block.size ?? 'md'} align={block.align ?? 'center'} /> : null;
+  }
+  if (block.type === 'columns') {
+    const cols = block.cells.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2';
+    return (
+      <div className={`grid grid-cols-1 ${cols} gap-6 my-6 items-start`}>
+        {block.cells.map((c, i) => (
+          <div key={i} className="min-w-0 [&_figure]:!my-0">
+            {c.kind === 'media'
+              ? (c.url ? <MediaEmbedView url={c.url} caption={c.caption} size="full" /> : null)
+              : <div className="announcement-body" dangerouslySetInnerHTML={{ __html: c.html }} />}
+          </div>
+        ))}
+      </div>
+    );
+  }
   if (!block.html?.trim()) return null;
   return <div className="announcement-body" dangerouslySetInnerHTML={{ __html: block.html }} />;
 }
@@ -156,6 +176,12 @@ export default function AnnouncementView({ ann, headerActions, children, footerN
         .announcement-body video { max-width: 100%; border-radius: 8px; }
         .announcement-body iframe { max-width: 100%; border-radius: 8px; }
         .announcement-body strong { color: #222; font-weight: 700; }
+        .announcement-body pre { background: #141414; color: #f0f0f0; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.85rem; white-space: pre-wrap; margin: 1rem 0; }
+        .announcement-body table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.9rem; display: block; overflow-x: auto; }
+        .announcement-body td, .announcement-body th { border: 1px solid #e8e8e8; padding: 6px 10px; vertical-align: top; }
+        .announcement-body th { background: #fafafa; text-align: left; font-weight: 600; color: #222; }
+        .announcement-body figure[data-media] { max-width: 100%; }
+        @media (max-width: 640px) { .announcement-body figure[data-media] { width: 100% !important; } }
       `}</style>
     </article>
   );
