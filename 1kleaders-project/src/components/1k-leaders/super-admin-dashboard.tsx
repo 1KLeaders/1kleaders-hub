@@ -36,6 +36,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase'
 import { apiFetch } from '@/lib/api-fetch'
+import ProspectOnboarding from './prospect-onboarding'
 
 interface SuperAdminDashboardProps {
   onNavigate: (page: string) => void
@@ -530,6 +531,9 @@ export function SuperAdminDashboard({ onNavigate }: SuperAdminDashboardProps) {
           </Card>
         ))}
       </div>
+
+      {/* Admin-started onboarding: invite a prospect shareholder (DocuSign → account → registration) */}
+      <ProspectOnboarding />
 
       {/* Waitlist Review Queue — live from Supabase */}
       <Card className="border-amber-200">

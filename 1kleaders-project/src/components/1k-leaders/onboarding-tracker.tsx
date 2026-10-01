@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { apiFetch } from '@/lib/api-fetch';
-import ProspectOnboarding from './prospect-onboarding';
 
 const ONBOARDING_STEPS = [
   'Meeting Completed',
@@ -128,27 +127,31 @@ export default function OnboardingTracker() {
   const [editingPay, setEditingPay] = useState(false);
   const [savingPay, setSavingPay] = useState(false);
   const [claraUrl, setClaraUrl] = useState('');
+  const [claraName, setClaraName] = useState('');
   const [uploadingClara, setUploadingClara] = useState(false);
-  useEffect(() => {
-    supabase.from('platform_settings').select('key, value').in('key', ['payment_instructions', 'clara_kyc_template_url'])
-      .then(({ data }) => {
-        setPayInstructions(data?.find(r => r.key === 'payment_instructions')?.value ?? '');
-        setClaraUrl(data?.find(r => r.key === 'clara_kyc_template_url')?.value ?? '');
-      });
-  }, []);
+  const [claraMsg, setClaraMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
+  async function loadOnboardingSettings() {
+    const res = await apiFetch('/api/onboarding/settings');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { setClaraMsg({ ok: false, text: `Couldn't load settings: ${data.error ?? res.status}` }); return; }
+    setPayInstructions(data.payment_instructions ?? '');
+    setClaraUrl(data.clara_kyc_template_url ?? '');
+    setClaraName(data.clara_kyc_template_name ?? '');
+  }
+  useEffect(() => { loadOnboardingSettings(); }, []);
+
+  // Uploaded server-side (service role) — see /api/onboarding/settings
   async function uploadClaraTemplate(file: File) {
-    setUploadingClara(true);
-    const path = `templates/clara-kyc-form-${Date.now()}.${file.name.split('.').pop() ?? 'pdf'}`;
-    const { error } = await supabase.storage.from('public-assets').upload(path, file, { upsert: true, contentType: file.type || undefined });
-    if (error) { setUploadingClara(false); alert(`Upload failed: ${error.message}`); return; }
-    const url = supabase.storage.from('public-assets').getPublicUrl(path).data.publicUrl;
-    const res = await apiFetch('/api/admin/platform-settings', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: 'clara_kyc_template_url', value: url }),
-    });
+    setUploadingClara(true); setClaraMsg(null);
+    const body = new FormData();
+    body.append('file', file);
+    const res = await apiFetch('/api/onboarding/settings', { method: 'POST', body });
+    const data = await res.json().catch(() => ({}));
     setUploadingClara(false);
-    if (res.ok) setClaraUrl(url); else alert('Uploaded, but saving the link failed');
+    if (!res.ok) { setClaraMsg({ ok: false, text: data.error ?? `Upload failed (${res.status})` }); return; }
+    setClaraUrl(data.url); setClaraName(data.name);
+    setClaraMsg({ ok: true, text: `Saved “${data.name}”. Members can now download it on KYC & Onboarding.` });
   }
   async function savePayInstructions() {
     setSavingPay(true);
@@ -252,9 +255,6 @@ export default function OnboardingTracker() {
         </Button>
       </div>
 
-      {/* Admin-started onboarding: invite a prospect shareholder */}
-      <ProspectOnboarding onAccountCreated={fetchPartners} />
-
       {/* Payment instructions (shown to members on KYC & Onboarding) */}
       <Card className="border-[#f0f0f0]">
         <CardContent className="p-4 space-y-2">
@@ -277,16 +277,19 @@ export default function OnboardingTracker() {
           <div className="border-t border-[#f0f0f0] pt-3 flex items-center gap-2 flex-wrap">
             <p className="text-sm font-semibold text-[#222] flex items-center gap-2 mr-auto"><FileText className="w-4 h-4 text-[#e33b5f]" />Clara KYC Form template</p>
             {claraUrl
-              ? <a href={claraUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-[#e33b5f] hover:underline">View current template</a>
+              ? <a href={claraUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-[#e33b5f] hover:underline">{claraName || 'Current template'} ↓</a>
               : <span className="text-xs text-amber-600">Not uploaded — members can&apos;t download it yet</span>}
-            <label className="cursor-pointer">
-              <input type="file" className="hidden" accept=".pdf,.doc,.docx"
+            <label className={uploadingClara ? 'pointer-events-none' : 'cursor-pointer'}>
+              <input type="file" className="hidden" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 onChange={e => { const f = e.target.files?.[0]; if (f) uploadClaraTemplate(f); e.target.value = ''; }} />
-              <span className="inline-flex items-center h-7 px-3 rounded-md border border-[#e8e8e8] text-xs font-medium hover:bg-[#fafafa]">
-                {uploadingClara ? <Loader2 className="w-3 h-3 animate-spin" /> : claraUrl ? 'Replace' : 'Upload'}
+              <span className="inline-flex items-center gap-1 h-7 px-3 rounded-md border border-[#e8e8e8] text-xs font-medium hover:bg-[#fafafa]">
+                {uploadingClara ? <><Loader2 className="w-3 h-3 animate-spin" />Uploading…</> : claraUrl ? 'Replace' : 'Upload (PDF / DOCX)'}
               </span>
             </label>
           </div>
+          {claraMsg && (
+            <p className={`text-xs ${claraMsg.ok ? 'text-emerald-600' : 'text-red-600'}`}>{claraMsg.text}</p>
+          )}
         </CardContent>
       </Card>
 

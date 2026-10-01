@@ -15,6 +15,7 @@ import {
 import type { Page } from './types';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth-context';
+import { apiFetch } from '@/lib/api-fetch';
 
 interface Props { navigate?: (page: Page) => void; }
 
@@ -60,16 +61,16 @@ export default function OnboardingKYC({ navigate }: Props) {
   async function load() {
     if (!profile) return;
     setLoading(true);
-    const [{ data: d }, { data: forms }, { data: settings }] = await Promise.all([
+    const [{ data: d }, { data: forms }, settings] = await Promise.all([
       supabase.from('kyc_documents').select('id, doc_type, status, file_name, storage_path, uploaded_at, rejection_reason').eq('user_id', profile.id),
       supabase.from('forms').select('id, title').eq('purpose', 'kyc').eq('is_published', true).order('created_at', { ascending: false }).limit(1),
-      supabase.from('platform_settings').select('key, value').in('key', ['payment_instructions', 'clara_kyc_template_url']),
+      // Read server-side so platform_settings permissions can't hide the template link from members
+      apiFetch('/api/onboarding/settings').then(r => r.ok ? r.json() : {}).catch(() => ({})),
     ]);
     setDocs((d ?? []) as KycDoc[]);
     setKycForm(forms?.[0] ?? null);
-    const setting = (k: string) => (settings ?? []).find(s => s.key === k)?.value ?? '';
-    setInstructions(setting('payment_instructions'));
-    setClaraTemplate(setting('clara_kyc_template_url'));
+    setInstructions(settings.payment_instructions ?? '');
+    setClaraTemplate(settings.clara_kyc_template_url ?? '');
     setLoading(false);
   }
 
